@@ -17,44 +17,19 @@ import {
 interface ServiceCardProps {
   name: string;
   service: ServiceInfo;
-  projectPath?: string;
 }
 
-// Helper to check if framework documentation is available
-function hasFrameworkDocs(projectPath: string | undefined, framework: string): boolean {
-  if (!projectPath) return false;
+// Frameworks that support automatic documentation fetching
+const DOCUMENTED_FRAMEWORKS = ['WordPress', 'Laravel', 'Django', 'FastAPI', 'Symfony'];
 
-  // Map framework names to their slugs
-  const frameworkSlugs: Record<string, string> = {
-    'WordPress': 'wordpress',
-    'Laravel': 'laravel',
-    'Django': 'django',
-    'FastAPI': 'fastapi',
-    'Symfony': 'symfony',
-  };
-
-  const slug = frameworkSlugs[framework];
-  if (!slug) return false;
-
-  // Check if docs file exists (this will be checked by electron API)
-  try {
-    const fs = window.require?.('fs');
-    const path = window.require?.('path');
-    if (!fs || !path) return false;
-
-    const docsPath = path.join(projectPath, '.auto-claude', 'backend-framework-docs', slug, 'docs.md');
-    return fs.existsSync(docsPath);
-  } catch {
-    return false;
-  }
-}
-
-export function ServiceCard({ name, service, projectPath }: ServiceCardProps) {
+export function ServiceCard({ name, service }: ServiceCardProps) {
   const Icon = serviceTypeIcons[service.type || 'unknown'];
   const colorClass = serviceTypeColors[service.type || 'unknown'];
-  const docsAvailable = service.framework && (service.type === 'backend' || service.type === 'cms')
-    ? hasFrameworkDocs(projectPath, service.framework)
-    : false;
+
+  // Show docs indicator for backend/CMS frameworks that support documentation
+  const showDocsIndicator = service.framework &&
+    (service.type === 'backend' || service.type === 'cms') &&
+    DOCUMENTED_FRAMEWORKS.includes(service.framework);
 
   return (
     <Card className="overflow-hidden">
@@ -85,15 +60,15 @@ export function ServiceCard({ name, service, projectPath }: ServiceCardProps) {
           {service.framework && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge variant="secondary" className={cn('text-xs gap-1', docsAvailable && 'pr-1')}>
+                <Badge variant="secondary" className={cn('text-xs gap-1', showDocsIndicator && 'pr-1')}>
                   {service.framework}
-                  {docsAvailable && (
+                  {showDocsIndicator && (
                     <BookOpen className="h-3 w-3 text-green-400" />
                   )}
                 </Badge>
               </TooltipTrigger>
-              {docsAvailable && (
-                <TooltipContent>Documentation available</TooltipContent>
+              {showDocsIndicator && (
+                <TooltipContent>Documentation auto-fetched via Context7</TooltipContent>
               )}
             </Tooltip>
           )}
