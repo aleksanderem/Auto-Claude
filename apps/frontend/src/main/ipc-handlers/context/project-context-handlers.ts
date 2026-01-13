@@ -90,25 +90,33 @@ export function registerProjectContextHandlers(
   ipcMain.handle(
     IPC_CHANNELS.CONTEXT_GET,
     async (_, projectId: string): Promise<IPCResult<ProjectContextData>> => {
+      console.log('[project-context] CONTEXT_GET called for project:', projectId);
       const project = projectStore.getProject(projectId);
       if (!project) {
         return { success: false, error: 'Project not found' };
       }
 
       try {
+        console.log('[project-context] Loading project index...');
         // Load project index
         const projectIndex = loadProjectIndex(project.path);
+        console.log('[project-context] Project index loaded:', projectIndex ? 'success' : 'null');
 
+        console.log('[project-context] Loading graphiti state...');
         // Load graphiti state from most recent spec
         const memoryState = loadGraphitiStateFromSpecs(project.path, project.autoBuildPath);
+        console.log('[project-context] Graphiti state loaded');
 
+        console.log('[project-context] Building memory status...');
         // Build memory status
         const memoryStatus = buildMemoryStatus(
           project.path,
           project.autoBuildPath,
           memoryState
         );
+        console.log('[project-context] Memory status built:', memoryStatus.available);
 
+        console.log('[project-context] Loading recent memories...');
         // Load recent memories
         const recentMemories = await loadRecentMemories(
           project.path,
@@ -117,7 +125,9 @@ export function registerProjectContextHandlers(
           memoryStatus.dbPath,
           memoryStatus.database
         );
+        console.log('[project-context] Recent memories loaded:', recentMemories.length);
 
+        console.log('[project-context] CONTEXT_GET complete');
         return {
           success: true,
           data: {
@@ -129,6 +139,7 @@ export function registerProjectContextHandlers(
           }
         };
       } catch (error) {
+        console.error('[project-context] CONTEXT_GET error:', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to load project context'
