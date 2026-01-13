@@ -167,10 +167,11 @@ export function registerProjectContextHandlers(
 
         const [pythonCommand, pythonBaseArgs] = parsePythonCommand(pythonCmd);
 
-        // Run analyzer
+        // Run analyzer with timeout
         await new Promise<void>((resolve, reject) => {
           let stdout = '';
           let stderr = '';
+          let isResolved = false;
 
           const proc = spawn(pythonCommand, [
             ...pythonBaseArgs,
@@ -182,6 +183,16 @@ export function registerProjectContextHandlers(
             env: getAugmentedEnv()
           });
 
+          // Set timeout (60 seconds for large projects)
+          const timeout = setTimeout(() => {
+            if (!isResolved) {
+              isResolved = true;
+              console.error('[project-context] Analyzer timeout after 60s');
+              proc.kill('SIGTERM');
+              reject(new Error('Analyzer operation timed out after 60 seconds'));
+            }
+          }, 60000);
+
           proc.stdout?.on('data', (data) => {
             stdout += data.toString();
           });
@@ -191,20 +202,29 @@ export function registerProjectContextHandlers(
           });
 
           proc.on('close', (code: number) => {
-            if (code === 0) {
-              console.log('[project-context] Analyzer stdout:', stdout);
-              resolve();
-            } else {
-              console.error('[project-context] Analyzer failed with code', code);
-              console.error('[project-context] Analyzer stderr:', stderr);
-              console.error('[project-context] Analyzer stdout:', stdout);
-              reject(new Error(`Analyzer exited with code ${code}: ${stderr || stdout}`));
+            if (!isResolved) {
+              isResolved = true;
+              clearTimeout(timeout);
+
+              if (code === 0) {
+                console.log('[project-context] Analyzer stdout:', stdout);
+                resolve();
+              } else {
+                console.error('[project-context] Analyzer failed with code', code);
+                console.error('[project-context] Analyzer stderr:', stderr);
+                console.error('[project-context] Analyzer stdout:', stdout);
+                reject(new Error(`Analyzer exited with code ${code}: ${stderr || stdout}`));
+              }
             }
           });
 
           proc.on('error', (err) => {
-            console.error('[project-context] Analyzer spawn error:', err);
-            reject(err);
+            if (!isResolved) {
+              isResolved = true;
+              clearTimeout(timeout);
+              console.error('[project-context] Analyzer spawn error:', err);
+              reject(err);
+            }
           });
         });
 
