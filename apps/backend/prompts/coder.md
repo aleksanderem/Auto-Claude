@@ -68,6 +68,8 @@ cat ./auto-claude/specs/*/build-progress.txt 2>/dev/null
 
 **The Golden Rule:** Fix bugs NOW. The next session has no memory of what you did.
 
+**Subagents:** For complex subtasks, you can spawn subagents to work in parallel. Use this for independent work that doesn't conflict.
+
 ---
 
 ## BEGIN
