@@ -1,4 +1,4 @@
-import { Database, CheckCircle, FileCode, Globe, Code, Package } from 'lucide-react';
+import { Database, CheckCircle, FileCode, Globe, Code, Package, FolderOpen } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
@@ -90,6 +90,12 @@ export function ServiceCard({ name, service }: ServiceCardProps) {
             <div className="flex items-center gap-2 text-muted-foreground">
               <Globe className="h-3 w-3 shrink-0" />
               <span>Port: {service.default_port}</span>
+            </div>
+          )}
+          {service.wp_root && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <FolderOpen className="h-3 w-3 shrink-0" />
+              <span>WordPress Root: {service.wp_root}</span>
             </div>
           )}
           {service.styling && (

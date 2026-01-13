@@ -223,17 +223,56 @@ class FrameworkDetector:
             if "rubocop" in content_lower:
                 self.frameworks.append("rubocop")
 
+    def _find_wordpress_root(self) -> tuple[bool, str | None]:
+        """
+        Find WordPress root directory by scanning common subdirectories.
+
+        Returns:
+            Tuple of (found, relative_path) where:
+            - found: True if WordPress detected
+            - relative_path: Relative path to WordPress root (e.g., "app/public") or None if in project root
+        """
+        # Common WordPress subdirectory patterns (in priority order)
+        common_wp_dirs = [
+            ".",  # Project root (check first)
+            "public",
+            "app/public",
+            "web",
+            "wordpress",
+            "wp",
+            "html",
+            "htdocs",
+            "public_html",
+            "www",
+            "site",
+        ]
+
+        for subdir in common_wp_dirs:
+            check_path = self.project_dir / subdir
+
+            # Skip if directory doesn't exist (except for "." which is always valid)
+            if subdir != "." and not check_path.is_dir():
+                continue
+
+            # Check for WordPress indicators
+            wp_config = check_path / "wp-config.php"
+            wp_content = check_path / "wp-content"
+
+            if wp_config.exists() or wp_content.exists():
+                # Return relative path (None for project root)
+                return (True, None if subdir == "." else subdir)
+
+        return (False, None)
+
     def detect_php_frameworks(self) -> None:
         """Detect PHP frameworks from composer.json."""
-        # Check for WordPress via wp-config.php (standard WordPress install)
-        if self.parser.file_exists("wp-config.php"):
+        # Check for WordPress in project root and common subdirectories
+        found, wp_root = self._find_wordpress_root()
+        if found:
             self.frameworks.append("wordpress")
+            # Store wp_root for later use in project_analyzer
+            self.wp_root = wp_root
             return  # WordPress detected, no need to check composer
-
-        # Check for WordPress via wp-content directory
-        if self.parser.file_exists("wp-content"):
-            self.frameworks.append("wordpress")
-            return
 
         composer = self.parser.read_json("composer.json")
         if not composer:

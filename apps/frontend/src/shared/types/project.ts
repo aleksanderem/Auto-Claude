@@ -52,7 +52,8 @@ export interface ServiceInfo {
   path: string;
   language?: string;
   framework?: string;
-  type?: 'backend' | 'frontend' | 'worker' | 'scraper' | 'library' | 'proxy' | 'mobile' | 'desktop' | 'unknown';
+  wp_root?: string; // WordPress root directory (relative path, e.g., "app/public")
+  type?: 'backend' | 'frontend' | 'worker' | 'scraper' | 'library' | 'proxy' | 'mobile' | 'desktop' | 'cms' | 'unknown';
   package_manager?: string;
   default_port?: number;
   entry_point?: string;

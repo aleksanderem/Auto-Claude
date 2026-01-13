@@ -91,8 +91,8 @@ class FrameworkAnalyzer(BaseAnalyzer):
             content = self._read_file("Gemfile")
             self._detect_ruby_framework(content)
 
-        # PHP detection
-        elif self._exists("composer.json") or self._exists("wp-config.php"):
+        # PHP detection (check root AND common subdirectories for WordPress)
+        elif self._exists("composer.json") or self._exists("wp-config.php") or self._php_exists_in_subdirs():
             self.analysis["language"] = "PHP"
             self.analysis["package_manager"] = "composer"
             self._detect_php_framework()
@@ -365,27 +365,77 @@ class FrameworkAnalyzer(BaseAnalyzer):
         if "sidekiq" in content.lower():
             self.analysis["task_queue"] = "Sidekiq"
 
+    def _php_exists_in_subdirs(self) -> bool:
+        """
+        Check if PHP/WordPress files exist in common subdirectories.
+        This enables PHP detection even when project root doesn't have composer.json.
+        """
+        common_dirs = ["public", "app/public", "web", "wordpress", "wp", "html", "htdocs", "public_html", "www", "site"]
+        for subdir in common_dirs:
+            check_path = self.path / subdir
+            if check_path.is_dir():
+                if (check_path / "wp-config.php").exists() or (check_path / "composer.json").exists():
+                    return True
+        return False
+
+    def _find_wordpress_root(self) -> tuple[bool, str | None]:
+        """
+        Find WordPress root directory by scanning common subdirectories.
+
+        Returns:
+            Tuple of (found, relative_path) where:
+            - found: True if WordPress detected
+            - relative_path: Relative path to WordPress root (e.g., "app/public") or None if in project root
+        """
+        # Common WordPress subdirectory patterns (in priority order)
+        common_wp_dirs = [
+            ".",  # Project root (check first)
+            "public",
+            "app/public",
+            "web",
+            "wordpress",
+            "wp",
+            "html",
+            "htdocs",
+            "public_html",
+            "www",
+            "site",
+        ]
+
+        for subdir in common_wp_dirs:
+            check_path = self.path / subdir if subdir != "." else self.path
+
+            # Skip if directory doesn't exist (except for "." which is always valid)
+            if subdir != "." and not check_path.is_dir():
+                continue
+
+            # Check for WordPress indicators
+            wp_config = check_path / "wp-config.php"
+            wp_content = check_path / "wp-content"
+
+            if wp_config.exists() or wp_content.exists():
+                # Return relative path (None for project root)
+                return (True, None if subdir == "." else subdir)
+
+        return (False, None)
+
     def _detect_php_framework(self) -> None:
         """Detect PHP framework (WordPress, Laravel, Symfony)."""
         from .port_detector import PortDetector
 
         port_detector = PortDetector(self.path, self.analysis)
 
-        # Check for WordPress (multiple detection methods)
-        if self._exists("wp-config.php"):
+        # Check for WordPress in project root and common subdirectories
+        found, wp_root = self._find_wordpress_root()
+        if found:
             self.analysis["framework"] = "WordPress"
             self.analysis["type"] = "cms"
             # WordPress typically runs on port 8000 for local dev, or 80/443 in production
             detected_port = port_detector.detect_port_from_sources(8000)
             self.analysis["default_port"] = detected_port
-            return
-
-        # Check wp-content directory (WordPress with custom structure)
-        if self._exists("wp-content"):
-            self.analysis["framework"] = "WordPress"
-            self.analysis["type"] = "cms"
-            detected_port = port_detector.detect_port_from_sources(8000)
-            self.analysis["default_port"] = detected_port
+            # Store WordPress root directory if found in subdirectory
+            if wp_root:
+                self.analysis["wp_root"] = wp_root
             return
 
         # Check composer.json for framework detection
