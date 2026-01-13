@@ -415,7 +415,7 @@ export function registerTaskExecutionHandlers(
                 const safeFilename = path.basename(image.filename);
 
                 // SECURITY: Validate filename contains only safe characters
-                if (!/^[a-zA-Z0-9_\-\.]+$/.test(safeFilename)) {
+                if (!/^[a-zA-Z0-9_\-.]+$/.test(safeFilename)) {
                   console.error('[TASK_REVIEW] Invalid filename rejected:', safeFilename);
                   continue;
                 }
