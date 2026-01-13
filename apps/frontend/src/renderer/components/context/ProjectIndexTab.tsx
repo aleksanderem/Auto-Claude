@@ -116,7 +116,12 @@ export function ProjectIndexTab({
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2">
                   {Object.entries(projectIndex.services).map(([name, service]) => (
-                    <ServiceCard key={name} name={name} service={service} />
+                    <ServiceCard
+                      key={name}
+                      name={name}
+                      service={service}
+                      projectPath={projectIndex.project_root}
+                    />
                   ))}
                 </div>
               </div>

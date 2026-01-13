@@ -1,4 +1,4 @@
-import { Database, CheckCircle, FileCode, Globe, Code, Package, FolderOpen } from 'lucide-react';
+import { Database, CheckCircle, FileCode, Globe, Code, Package, FolderOpen, BookOpen } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
@@ -17,11 +17,44 @@ import {
 interface ServiceCardProps {
   name: string;
   service: ServiceInfo;
+  projectPath?: string;
 }
 
-export function ServiceCard({ name, service }: ServiceCardProps) {
+// Helper to check if framework documentation is available
+function hasFrameworkDocs(projectPath: string | undefined, framework: string): boolean {
+  if (!projectPath) return false;
+
+  // Map framework names to their slugs
+  const frameworkSlugs: Record<string, string> = {
+    'WordPress': 'wordpress',
+    'Laravel': 'laravel',
+    'Django': 'django',
+    'FastAPI': 'fastapi',
+    'Symfony': 'symfony',
+  };
+
+  const slug = frameworkSlugs[framework];
+  if (!slug) return false;
+
+  // Check if docs file exists (this will be checked by electron API)
+  try {
+    const fs = window.require?.('fs');
+    const path = window.require?.('path');
+    if (!fs || !path) return false;
+
+    const docsPath = path.join(projectPath, '.auto-claude', 'backend-framework-docs', slug, 'docs.md');
+    return fs.existsSync(docsPath);
+  } catch {
+    return false;
+  }
+}
+
+export function ServiceCard({ name, service, projectPath }: ServiceCardProps) {
   const Icon = serviceTypeIcons[service.type || 'unknown'];
   const colorClass = serviceTypeColors[service.type || 'unknown'];
+  const docsAvailable = service.framework && (service.type === 'backend' || service.type === 'cms')
+    ? hasFrameworkDocs(projectPath, service.framework)
+    : false;
 
   return (
     <Card className="overflow-hidden">
@@ -50,9 +83,19 @@ export function ServiceCard({ name, service }: ServiceCardProps) {
             </Badge>
           )}
           {service.framework && (
-            <Badge variant="secondary" className="text-xs">
-              {service.framework}
-            </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className={cn('text-xs gap-1', docsAvailable && 'pr-1')}>
+                  {service.framework}
+                  {docsAvailable && (
+                    <BookOpen className="h-3 w-3 text-green-400" />
+                  )}
+                </Badge>
+              </TooltipTrigger>
+              {docsAvailable && (
+                <TooltipContent>Documentation available</TooltipContent>
+              )}
+            </Tooltip>
           )}
           {service.package_manager && (
             <Badge variant="outline" className="text-xs">
@@ -87,10 +130,20 @@ export function ServiceCard({ name, service }: ServiceCardProps) {
             </div>
           )}
           {service.default_port && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Globe className="h-3 w-3 shrink-0" />
-              <span>Port: {service.default_port}</span>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2 text-muted-foreground cursor-help">
+                  <Globe className="h-3 w-3 shrink-0" />
+                  <span>Port: {service.default_port}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs">
+                  <div className="font-medium">Default Port</div>
+                  <div className="text-muted-foreground">Auto-detected from project config</div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
           )}
           {service.wp_root && (
             <div className="flex items-center gap-2 text-muted-foreground">
