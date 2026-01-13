@@ -225,8 +225,6 @@ class FrameworkDetector:
 
     def detect_php_frameworks(self) -> None:
         """Detect PHP frameworks from composer.json."""
-        composer = self.parser.read_json("composer.json")
-
         # Check for WordPress via wp-config.php (standard WordPress install)
         if self.parser.file_exists("wp-config.php"):
             self.frameworks.append("wordpress")
@@ -237,6 +235,7 @@ class FrameworkDetector:
             self.frameworks.append("wordpress")
             return
 
+        composer = self.parser.read_json("composer.json")
         if not composer:
             return
 
