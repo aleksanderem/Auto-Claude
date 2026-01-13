@@ -223,8 +223,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           // FIX (Flip-Flop Bug): Respect explicit human_review status from plan file
           // When the plan explicitly says 'human_review', don't override it with calculated status
           // Note: ImplementationPlan type already defines status?: TaskStatus
+          // EXTRA CHECK: Only treat as "explicit" human_review if it's FINAL QA approval (has qa_signoff.status==approved)
+          // Spec approval stage (all pending subtasks, no QA) should be recalculated to backlog
           const planStatus = plan.status;
-          const isExplicitHumanReview = planStatus === 'human_review';
+          const hasApprovedQA = plan.qa_signoff && plan.qa_signoff.status === 'approved';
+          const isExplicitHumanReview = planStatus === 'human_review' && (hasApprovedQA || anyFailed || anyInProgress);
 
           // FIX (ACS-203): Add defensive check for terminal status transitions
           // Before allowing transition to 'done', 'human_review', or 'ai_review', verify:

@@ -160,12 +160,24 @@ class ImplementationPlan:
             self.planStatus = "in_progress"
         else:
             # All subtasks pending
-            # Preserve human_review/review status if it's for plan approval stage
-            # (spec is complete, waiting for user to approve before coding starts)
-            if self.status == "human_review" and self.planStatus == "review":
-                # Keep the plan approval status - don't reset to backlog
+            # Don't override if status was explicitly set to in_progress (user clicked Start/Resume)
+            # This prevents the task from getting stuck in human_review when resuming
+            if self.status == "in_progress":
+                # User explicitly started the task - keep in_progress status
+                pass
+            # Preserve human_review/review status ONLY if it's for FINAL QA approval stage
+            # (all work done, QA approved, waiting for user to merge)
+            # Do NOT preserve human_review for initial spec approval - that should reset to backlog
+            elif (
+                self.status == "human_review"
+                and self.planStatus == "review"
+                and self.qa_signoff
+                and self.qa_signoff.get("status") == "approved"
+            ):
+                # This is the final QA-approved review stage - keep human_review status
                 pass
             else:
+                # Either pending new work, or spec approval stage (no QA yet) - reset to backlog
                 self.status = "backlog"
                 self.planStatus = "pending"
 
@@ -177,24 +189,87 @@ class ImplementationPlan:
 
     def get_available_phases(self) -> list[Phase]:
         """Get phases whose dependencies are satisfied."""
-        completed_phases = {p.phase for p in self.phases if p.is_complete()}
+        # Build a set of completed phase identifiers in multiple formats:
+        # - Integer: 1, 2, 3...
+        # - String with phase number: "phase-1-...", "phase-2-..."
+        # This handles both formats that may appear in depends_on
+        completed_phases: set[int | str] = set()
+        for p in self.phases:
+            if p.is_complete():
+                completed_phases.add(p.phase)  # Add integer
+                # Also add any string format that starts with "phase-{num}-"
+                completed_phases.add(f"phase-{p.phase}")  # Prefix for matching
+                print(f"[DEBUG-PLAN] Phase {p.phase} ({p.name}) is COMPLETE", flush=True)
+            else:
+                pending = [s for s in p.subtasks if s.status.value == "pending"]
+                print(f"[DEBUG-PLAN] Phase {p.phase} ({p.name}) NOT complete, pending subtasks: {len(pending)}")
+
+        print(f"[DEBUG-PLAN] Completed phases set: {completed_phases}")
+
         available = []
 
         for phase in self.phases:
             if phase.is_complete():
                 continue
-            deps_met = all(d in completed_phases for d in phase.depends_on)
-            if deps_met:
-                available.append(phase)
 
+            print(f"[DEBUG-PLAN] Checking phase {phase.phase} ({phase.name}), depends_on: {phase.depends_on}")
+
+            # Check if all dependencies are met
+            deps_met = True
+            for dep in phase.depends_on:
+                if isinstance(dep, int):
+                    # Integer dependency - direct lookup
+                    if dep not in completed_phases:
+                        print(f"[DEBUG-PLAN]   Dep {dep} (int) NOT met")
+                        deps_met = False
+                        break
+                    else:
+                        print(f"[DEBUG-PLAN]   Dep {dep} (int) MET")
+                elif isinstance(dep, str):
+                    # String dependency like "phase-1-plugin-setup"
+                    # Check if any completed phase matches the prefix
+                    dep_phase_num = None
+                    if dep.startswith("phase-"):
+                        parts = dep.split("-")
+                        if len(parts) >= 2 and parts[1].isdigit():
+                            dep_phase_num = int(parts[1])
+
+                    print(f"[DEBUG-PLAN]   Dep '{dep}' (str) -> phase_num: {dep_phase_num}")
+
+                    if dep_phase_num is not None:
+                        if dep_phase_num not in completed_phases:
+                            print(f"[DEBUG-PLAN]   Dep phase {dep_phase_num} NOT in completed_phases")
+                            deps_met = False
+                            break
+                        else:
+                            print(f"[DEBUG-PLAN]   Dep phase {dep_phase_num} MET")
+                    else:
+                        # Unknown format - treat as unmet
+                        print(f"[DEBUG-PLAN]   Unknown dep format, treating as unmet")
+                        deps_met = False
+                        break
+
+            if deps_met:
+                print(f"[DEBUG-PLAN] Phase {phase.phase} ({phase.name}) is AVAILABLE")
+                available.append(phase)
+            else:
+                print(f"[DEBUG-PLAN] Phase {phase.phase} ({phase.name}) deps NOT met")
+
+        print(f"[DEBUG-PLAN] Available phases: {[p.name for p in available]}")
         return available
 
     def get_next_subtask(self) -> tuple[Phase, Subtask] | None:
         """Get the next subtask to work on, respecting dependencies."""
-        for phase in self.get_available_phases():
+        print("[DEBUG-PLAN] get_next_subtask called")
+        available = self.get_available_phases()
+        print(f"[DEBUG-PLAN] Available phases count: {len(available)}")
+        for phase in available:
             pending = phase.get_pending_subtasks()
+            print(f"[DEBUG-PLAN] Phase {phase.phase} ({phase.name}) has {len(pending)} pending subtasks")
             if pending:
+                print(f"[DEBUG-PLAN] Returning subtask: {pending[0].id}")
                 return phase, pending[0]
+        print("[DEBUG-PLAN] No pending subtasks found, returning None")
         return None
 
     def get_progress(self) -> dict:

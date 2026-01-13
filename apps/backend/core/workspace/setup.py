@@ -77,6 +77,7 @@ def choose_workspace(
 
     # Check task_metadata.json for task-specific workspace mode (takes precedence)
     # useWorktree: true = ISOLATED, false = DIRECT
+    spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
     metadata_path = spec_dir / "task_metadata.json"
     if metadata_path.exists():
         try:

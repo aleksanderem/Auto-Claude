@@ -40,11 +40,24 @@ function validateStatusTransition(
   // Can't validate without task data - allow the transition
   if (!task) return true;
 
-  // Don't allow human_review without subtasks
-  // This prevents tasks from jumping to review before planning is complete
-  if (newStatus === 'human_review' && (!task.subtasks || task.subtasks.length === 0)) {
-    console.warn(`[validateStatusTransition] Blocking human_review - task ${task.id} has no subtasks (phase: ${phase})`);
-    return false;
+  // Don't allow human_review without subtasks OR without QA approval
+  // This prevents tasks from jumping to review before planning is complete (no subtasks)
+  // AND prevents spec approval stage from being treated as final review (no QA approval)
+  if (newStatus === 'human_review') {
+    if (!task.subtasks || task.subtasks.length === 0) {
+      console.warn(`[validateStatusTransition] Blocking human_review - task ${task.id} has no subtasks (phase: ${phase})`);
+      return false;
+    }
+    // EXTRA CHECK: Block human_review if no QA approval yet (prevents spec approval → human_review)
+    // Only allow human_review when:
+    // 1. QA has approved (final review stage) OR
+    // 2. Some subtasks failed/in_progress (needs manual intervention)
+    const hasApprovedQA = task.qaSignoff?.status === 'approved';
+    const hasFailedOrActiveSubtasks = task.subtasks.some(s => s.status === 'failed' || s.status === 'in_progress');
+    if (!hasApprovedQA && !hasFailedOrActiveSubtasks) {
+      console.warn(`[validateStatusTransition] Blocking human_review - task ${task.id} has no QA approval and all subtasks pending (phase: ${phase})`);
+      return false;
+    }
   }
 
   // FIX (PR Review): Use comprehensive phase regression check instead of hardcoded checks
@@ -218,14 +231,16 @@ export function registerAgenteventsHandlers(
             // This prevents tasks from getting stuck in ai_review status
             // FIX (ACS-71): Only move to human_review if subtasks exist AND are all completed
             // If no subtasks exist, the task is still in planning and shouldn't move to human_review
+            // EXTRA CHECK: Also verify qa_signoff exists to prevent spec approval being treated as final review
             const isActiveStatus = task.status === 'in_progress' || task.status === 'ai_review';
             const hasSubtasks = task.subtasks && task.subtasks.length > 0;
             const hasIncompleteSubtasks = hasSubtasks &&
               task.subtasks.some((s) => s.status !== 'completed');
+            const hasApprovedQA = task.qaSignoff?.status === 'approved';
 
-            if (isActiveStatus && hasSubtasks && !hasIncompleteSubtasks) {
-              // All subtasks completed - safe to move to human_review
-              console.warn(`[Task ${taskId}] Fallback: Moving to human_review (process exited successfully, all ${task.subtasks.length} subtasks completed)`);
+            if (isActiveStatus && hasSubtasks && !hasIncompleteSubtasks && hasApprovedQA) {
+              // All subtasks completed AND QA approved - safe to move to human_review
+              console.warn(`[Task ${taskId}] Fallback: Moving to human_review (process exited successfully, all ${task.subtasks.length} subtasks completed, QA approved)`);
               persistStatus('human_review');
               // Include projectId for multi-project filtering (issue #723)
               mainWindow.webContents.send(
@@ -241,7 +256,13 @@ export function registerAgenteventsHandlers(
             }
           } else {
             notificationService.notifyTaskFailed(taskTitle, project.id, taskId);
-            persistStatus('human_review');
+            // FIX: Check validation before setting human_review on failure
+            // Don't move to human_review if task hasn't started coding yet (spec approval stage)
+            if (validateStatusTransition(task, 'human_review', 'failed')) {
+              persistStatus('human_review');
+            } else {
+              console.warn(`[Task ${taskId}] Process failed but validation blocked human_review - keeping current status (${task.status})`);
+            }
             // Include projectId for multi-project filtering (issue #723)
             mainWindow.webContents.send(
               IPC_CHANNELS.TASK_STATUS_CHANGE,

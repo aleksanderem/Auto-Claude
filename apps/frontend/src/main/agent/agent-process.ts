@@ -407,11 +407,21 @@ export class AgentProcessManager {
     extraEnv: Record<string, string> = {},
     processType: ProcessType = 'task-execution'
   ): Promise<void> {
+    console.log('[DEBUG] spawnProcess ENTERED:', { taskId, cwd, args, processType });
+
     const isSpecRunner = processType === 'spec-creation';
+    console.log('[DEBUG] isSpecRunner:', isSpecRunner);
+
+    console.log('[DEBUG] Calling killProcess...');
     this.killProcess(taskId);
+    console.log('[DEBUG] killProcess completed');
 
     const spawnId = this.state.generateSpawnId();
+    console.log('[DEBUG] Generated spawnId:', spawnId);
+
+    console.log('[DEBUG] Setting up process environment...');
     const env = this.setupProcessEnvironment(extraEnv);
+    console.log('[DEBUG] Environment setup completed');
 
     // Get Python environment (PYTHONPATH for bundled packages, etc.)
     const pythonEnv = pythonEnvManager.getPythonEnv();
@@ -430,6 +440,11 @@ export class AgentProcessManager {
 
     // Parse Python commandto handle space-separated commands like "py -3"
     const [pythonCommand, pythonBaseArgs] = parsePythonCommand(this.getPythonPath());
+    console.log('[DEBUG] Python command:', pythonCommand, 'base args:', pythonBaseArgs);
+    console.log('[DEBUG] Full args:', [...pythonBaseArgs, ...args]);
+    console.log('[DEBUG] CWD:', cwd);
+    console.log('[DEBUG] About to spawn child process...');
+
     const childProcess = spawn(pythonCommand, [...pythonBaseArgs, ...args], {
       cwd,
       env: {
@@ -440,12 +455,16 @@ export class AgentProcessManager {
       }
     });
 
+    console.log('[DEBUG] Child process spawned! PID:', childProcess.pid);
+
     this.state.addProcess(taskId, {
       taskId,
       process: childProcess,
       startedAt: new Date(),
       spawnId
     });
+
+    console.log('[DEBUG] Process added to state');
 
     let currentPhase: ExecutionProgressData['phase'] = isSpecRunner ? 'planning' : 'planning';
     let phaseProgress = 0;
@@ -567,14 +586,19 @@ export class AgentProcessManager {
     };
 
     childProcess.stdout?.on('data', (data: Buffer) => {
+      console.log('[DEBUG] stdout data received:', data.toString('utf8').substring(0, 200));
       stdoutBuffer = processBufferedOutput(stdoutBuffer, data.toString('utf8'));
     });
 
     childProcess.stderr?.on('data', (data: Buffer) => {
+      console.log('[DEBUG] stderr data received:', data.toString('utf8').substring(0, 500));
       stderrBuffer = processBufferedOutput(stderrBuffer, data.toString('utf8'));
     });
 
     childProcess.on('exit', (code: number | null) => {
+      console.log('[DEBUG] Process exited with code:', code);
+      console.log('[DEBUG] Final stdout buffer:', stdoutBuffer.substring(0, 500));
+      console.log('[DEBUG] Final stderr buffer:', stderrBuffer.substring(0, 500));
       if (stdoutBuffer.trim()) {
         this.emitter.emit('log', taskId, stdoutBuffer + '\n');
         processLog(stdoutBuffer);
