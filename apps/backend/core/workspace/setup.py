@@ -292,15 +292,18 @@ def setup_workspace(
         current_branch = current_branch_result.stdout.strip() if current_branch_result.returncode == 0 else ""
 
         if current_branch != branch_name:
-            # Fetch latest from remote to ensure we have up-to-date code
-            fetch_result = run_git(["fetch", "origin", base_branch], cwd=project_dir)
-            if fetch_result.returncode != 0:
-                debug_warning(MODULE, f"Could not fetch {base_branch} from origin: {fetch_result.stderr}")
-                print(f"Warning: Could not fetch {base_branch} from origin")
-
             # Determine start point (prefer remote over local)
             remote_ref = f"origin/{base_branch}"
             check_remote = run_git(["rev-parse", "--verify", remote_ref], cwd=project_dir)
+
+            # Only fetch if remote branch exists (prevents errors for local-only branches)
+            if check_remote.returncode == 0:
+                # Fetch latest from remote to ensure we have up-to-date code
+                fetch_result = run_git(["fetch", "origin", base_branch], cwd=project_dir)
+                if fetch_result.returncode != 0:
+                    debug_warning(MODULE, f"Could not fetch {base_branch} from origin: {fetch_result.stderr}")
+                    print(f"Warning: Could not fetch {base_branch} from origin")
+
             start_point = remote_ref if check_remote.returncode == 0 else base_branch
 
             # Check if branch already exists

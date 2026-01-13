@@ -5,6 +5,7 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import type { ProjectEnvConfig, ProjectSettings } from '../../../shared/types';
+import { loadProjects } from '../../stores/project-store';
 
 interface DocsCacheInfo {
   framework: string;
@@ -90,9 +91,11 @@ export function UIFrameworkDocsSection({
     try {
       const result = await window.electronAPI.refreshProjectIndex(projectId);
       if (result.success) {
-        // Detection successful - show notification
-        alert('UI frameworks detected successfully! The page will reload to show updates.');
-        window.location.reload();
+        // Refresh project data in store to reflect detected frameworks
+        await loadProjects();
+
+        // Show success notification (non-blocking)
+        alert('UI frameworks detected successfully!');
       } else {
         console.error('Failed to detect UI framework:', result.error);
         alert(`Failed to detect frameworks: ${result.error}`);

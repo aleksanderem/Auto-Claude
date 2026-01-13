@@ -76,9 +76,10 @@ interface NavItemConfig<T extends string> {
 }
 
 const appNavItemsConfig: NavItemConfig<AppSection>[] = [
-  { id: 'appearance', icon: Palette },
-  { id: 'display', icon: Monitor },
-  { id: 'language', icon: Globe },
+  // Temporarily hidden - TODO: re-enable later
+  // { id: 'appearance', icon: Palette },
+  // { id: 'display', icon: Monitor },
+  // { id: 'language', icon: Globe },
   { id: 'devtools', icon: Code },
   { id: 'agent', icon: Bot },
   { id: 'paths', icon: FolderOpen },
@@ -109,7 +110,7 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
 
   // Track which top-level section is active
   const [activeTopLevel, setActiveTopLevel] = useState<'app' | 'project'>('app');
-  const [appSection, setAppSection] = useState<AppSection>(initialSection || 'appearance');
+  const [appSection, setAppSection] = useState<AppSection>(initialSection || 'devtools');
   const [projectSection, setProjectSection] = useState<ProjectSettingsSection>('general');
 
   // Navigate to initial section when dialog opens with a specific section
@@ -182,12 +183,13 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
 
   const renderAppSection = () => {
     switch (appSection) {
-      case 'appearance':
-        return <ThemeSettings settings={settings} onSettingsChange={setSettings} />;
-      case 'display':
-        return <DisplaySettings settings={settings} onSettingsChange={setSettings} />;
-      case 'language':
-        return <LanguageSettings settings={settings} onSettingsChange={setSettings} />;
+      // Temporarily hidden - TODO: re-enable later
+      // case 'appearance':
+      //   return <ThemeSettings settings={settings} onSettingsChange={setSettings} />;
+      // case 'display':
+      //   return <DisplaySettings settings={settings} onSettingsChange={setSettings} />;
+      // case 'language':
+      //   return <LanguageSettings settings={settings} onSettingsChange={setSettings} />;
       case 'devtools':
         return <DevToolsSettings settings={settings} onSettingsChange={setSettings} />;
       case 'agent':
