@@ -754,9 +754,13 @@ export function App() {
                   {healthCheckLoading ? (
                     <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                   ) : healthCheck?.healthy ? (
-                    <CheckCircle className="h-3.5 w-3.5 text-green-400" />
+                    <span className="rounded-full bg-white p-0.5">
+                      <CheckCircle className="h-3 w-3 text-green-500" />
+                    </span>
                   ) : (
-                    <XCircle className="h-3.5 w-3.5 text-red-400" />
+                    <span className="rounded-full bg-white p-0.5">
+                      <XCircle className="h-3 w-3 text-red-500" />
+                    </span>
                   )}
                   <span className="text-xs font-semibold">
                     {healthCheckLoading

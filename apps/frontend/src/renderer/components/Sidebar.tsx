@@ -126,6 +126,7 @@ export function Sidebar({
   const [appVersion, setAppVersion] = useState<string>('');
   const [isPackaged, setIsPackaged] = useState<boolean>(false);
   const [buildHash, setBuildHash] = useState<string | null>(null);
+  const [appStartTime] = useState<string>(() => new Date().toLocaleTimeString());
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
@@ -447,14 +448,14 @@ export function Sidebar({
 
           {/* Version Info */}
           {appVersion && (
-            <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex flex-col items-center gap-1.5 text-xs">
               <div className="flex items-center gap-2">
-                <span>
-                  {t('common:labels.version')} {appVersion}
+                <span className="font-medium text-foreground/80">
+                  v{appVersion}
                 </span>
                 <span
                   className={cn(
-                    'px-1.5 py-0.5 rounded font-semibold',
+                    'px-1.5 py-0.5 rounded font-semibold text-[10px]',
                     isPackaged
                       ? 'bg-green-500/20 text-green-400'
                       : 'bg-orange-500/20 text-orange-400'
@@ -464,9 +465,14 @@ export function Sidebar({
                 </span>
               </div>
               {buildHash && (
-                <span className="text-[10px] text-muted-foreground/60 font-mono">
-                  build: {buildHash}
-                </span>
+                <div className="flex items-center gap-2 px-2 py-1 rounded bg-muted/50">
+                  <span className="text-[11px] font-mono text-foreground/70">
+                    {buildHash}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    @ {appStartTime}
+                  </span>
+                </div>
               )}
             </div>
           )}

@@ -449,7 +449,10 @@ export function registerSettingsHandlers(
 
       // For health check, prefer venv Python which has all packages installed
       // Fall back to settings.pythonPath if venv doesn't exist
-      const venvPythonPath = path.join(sourcePath, '.venv', 'bin', 'python');
+      // Note: Windows uses Scripts/python.exe, Unix uses bin/python
+      const venvPythonPath = process.platform === 'win32'
+        ? path.join(sourcePath, '.venv', 'Scripts', 'python.exe')
+        : path.join(sourcePath, '.venv', 'bin', 'python');
       const pythonPath = existsSync(venvPythonPath) ? venvPythonPath : (settings?.pythonPath || 'python3');
       const usingVenv = existsSync(venvPythonPath);
 
@@ -524,6 +527,15 @@ export function registerSettingsHandlers(
 
         let stdout = '';
         let stderr = '';
+        let timedOut = false;
+
+        // Kill process if it hangs beyond 30 seconds
+        const timeoutMs = 30_000;
+        const killTimer = setTimeout(() => {
+          timedOut = true;
+          console.error('[settings-handlers] Health check timed out after 30s, killing process');
+          healthProcess.kill();
+        }, timeoutMs);
 
         healthProcess.stdout?.on('data', (data) => {
           const chunk = data.toString();
@@ -538,9 +550,19 @@ export function registerSettingsHandlers(
         });
 
         healthProcess.on('close', (code) => {
+          clearTimeout(killTimer);
           console.log('[settings-handlers] Health check process closed with code:', code);
           console.log('[settings-handlers] Stdout length:', stdout.length);
           console.log('[settings-handlers] Stderr length:', stderr.length);
+
+          // Handle timeout case
+          if (timedOut) {
+            resolve({
+              success: false,
+              error: 'Health check timed out after 30 seconds',
+            });
+            return;
+          }
 
           if (code === 0 && stdout) {
             try {
@@ -555,23 +577,24 @@ export function registerSettingsHandlers(
               console.error('[settings-handlers] Stdout was:', stdout.substring(0, 200));
               resolve({
                 success: false,
-                error: `Failed to parse health check results: ${parseError}`,
+                error: 'Failed to parse health check results',
               });
             }
           } else {
             console.error('[settings-handlers] Health check failed');
             resolve({
               success: false,
-              error: stderr || `Health check failed with code ${code}`,
+              error: stderr ? 'Health check process failed' : `Health check failed with code ${code}`,
             });
           }
         });
 
         healthProcess.on('error', (error) => {
+          clearTimeout(killTimer);
           console.error('[settings-handlers] Health check process error:', error);
           resolve({
             success: false,
-            error: `Failed to run health check: ${error.message}`,
+            error: 'Failed to run health check process',
           });
         });
       });
