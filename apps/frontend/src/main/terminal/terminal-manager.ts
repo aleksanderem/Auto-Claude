@@ -18,6 +18,7 @@ import * as TerminalLifecycle from './terminal-lifecycle';
 import * as TerminalEventHandler from './terminal-event-handler';
 import * as ClaudeIntegration from './claude-integration-handler';
 import { debugLog, debugError } from '../../shared/utils/debug-logger';
+import { debugModeFeatures, debugCpuLog } from '../../shared/utils/debug-mode';
 
 export class TerminalManager {
   private terminals: Map<string, TerminalProcess> = new Map();
@@ -382,10 +383,29 @@ export class TerminalManager {
     return this.terminals.has(terminalId);
   }
 
+  // Debug counter for terminal data events (only active when DEBUG_CPU_INVESTIGATION=true)
+  private dataEventCount = 0;
+  private dataEventLogInterval: NodeJS.Timeout | null = null;
+
   /**
    * Handle terminal data output
    */
   private handleTerminalData(terminal: TerminalProcess, data: string): void {
+    // Data event rate logging - only active in debug mode
+    if (debugModeFeatures.enableTerminalDataLogging) {
+      this.dataEventCount++;
+
+      // Log data event rate every 5 seconds
+      if (!this.dataEventLogInterval) {
+        this.dataEventLogInterval = setInterval(() => {
+          if (this.dataEventCount > 0) {
+            debugCpuLog(`Data events in last 5s: ${this.dataEventCount} (rate: ${(this.dataEventCount / 5).toFixed(1)}/s)`);
+            this.dataEventCount = 0;
+          }
+        }, 5000);
+      }
+    }
+
     TerminalEventHandler.handleTerminalData(terminal, data, this.eventCallbacks);
   }
 }

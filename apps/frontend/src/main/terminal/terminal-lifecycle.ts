@@ -221,9 +221,23 @@ export async function restoreTerminal(
     }
   }
 
+  // Don't send outputBuffer for Claude mode terminals with pending resume:
+  // 1. Claude will be restarted, so old output is not useful
+  // 2. Large Claude output buffers (23KB+) with complex ANSI codes can cause
+  //    IPC saturation and CPU issues when the renderer processes them
+  const shouldSendBuffer = !terminal.pendingClaudeResume;
+
+  debugLog('[TerminalLifecycle] restoreTerminal returning:', {
+    terminalId: terminal.id,
+    pendingClaudeResume: terminal.pendingClaudeResume,
+    storedIsClaudeMode,
+    shouldSendBuffer,
+    outputBufferLen: session.outputBuffer?.length || 0
+  });
+
   return {
     success: true,
-    outputBuffer: session.outputBuffer
+    outputBuffer: shouldSendBuffer ? session.outputBuffer : undefined
   };
 }
 

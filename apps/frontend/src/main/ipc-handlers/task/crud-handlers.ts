@@ -7,6 +7,7 @@ import { projectStore } from '../../project-store';
 import { titleGenerator } from '../../title-generator';
 import { AgentManager } from '../../agent';
 import { findTaskAndProject } from './shared';
+import { debugModeFeatures, debugCpuLog } from '../../../shared/utils/debug-mode';
 
 /**
  * Register task CRUD (Create, Read, Update, Delete) handlers
@@ -14,13 +15,22 @@ import { findTaskAndProject } from './shared';
 export function registerTaskCRUDHandlers(agentManager: AgentManager): void {
   /**
    * List all tasks for a project
+   * IPC loop detection enabled via DEBUG_CPU_INVESTIGATION=true
    */
+  let taskListCallCount = 0;
   ipcMain.handle(
     IPC_CHANNELS.TASK_LIST,
     async (_, projectId: string): Promise<IPCResult<Task[]>> => {
-      console.warn('[IPC] TASK_LIST called with projectId:', projectId);
+      // Loop detection - only active in debug mode
+      if (debugModeFeatures.enableIpcLoopDetection) {
+        taskListCallCount++;
+        debugCpuLog(`TASK_LIST called (#${taskListCallCount}) with projectId: ${projectId}`);
+        if (taskListCallCount > 10) {
+          console.error('[IPC] TASK_LIST called more than 10 times! Possible loop detected.');
+          return { success: true, data: [] };
+        }
+      }
       const tasks = projectStore.getTasks(projectId);
-      console.warn('[IPC] TASK_LIST returning', tasks.length, 'tasks');
       return { success: true, data: tasks };
     }
   );

@@ -1,6 +1,6 @@
 import { ipcMain, dialog, app, shell } from 'electron';
 import { existsSync, writeFileSync, mkdirSync, statSync, readFileSync } from 'fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { is } from '@electron-toolkit/utils';
@@ -13,14 +13,18 @@ import type {
   AppSettings,
   IPCResult,
   SourceEnvConfig,
-  SourceEnvCheckResult
+  SourceEnvCheckResult,
+  SystemHealthCheck
 } from '../../shared/types';
 import { AgentManager } from '../agent';
 import type { BrowserWindow } from 'electron';
 import { setUpdateChannel, setUpdateChannelWithDowngradeCheck } from '../app-updater';
 import { getSettingsPath, readSettingsFile } from '../settings-utils';
-import { configureTools, getToolPath, getToolInfo, isPathFromWrongPlatform, preWarmToolCache } from '../cli-tool-manager';
+import { configureTools, getToolPath, getToolInfo, isPathFromWrongPlatform } from '../cli-tool-manager';
 import { parseEnvFile } from './utils';
+import { pythonEnvManager } from '../python-env-manager';
+import { parsePythonCommand } from '../python-detector';
+import { projectStore } from '../project-store';
 
 const settingsPath = getSettingsPath();
 
@@ -176,10 +180,8 @@ export function registerSettingsHandlers(
         claudePath: settings.claudePath,
       });
 
-      // Re-warm cache asynchronously after configuring (non-blocking)
-      preWarmToolCache(['claude']).catch((error) => {
-        console.warn('[SETTINGS_GET] Failed to re-warm CLI cache:', error);
-      });
+      // Note: Cache is pre-warmed on app startup (index.ts), no need to re-warm on every settings load
+      // Removing preWarmToolCache call here fixes infinite loop bug (#CPU-100%)
 
       return { success: true, data: settings as AppSettings };
     }
@@ -223,10 +225,8 @@ export function registerSettingsHandlers(
             claudePath: newSettings.claudePath,
           });
 
-          // Re-warm cache asynchronously after configuring (non-blocking)
-          preWarmToolCache(['claude']).catch((error) => {
-            console.warn('[SETTINGS_SAVE] Failed to re-warm CLI cache:', error);
-          });
+          // Note: configureTools() clears the cache, tools will be re-detected on next use
+          // No need to pre-warm here since detection is fast (cached) and non-blocking
         }
 
         // Update auto-updater channel if betaUpdates setting changed
@@ -404,6 +404,183 @@ export function registerSettingsHandlers(
     const version = app.getVersion();
     console.log('[settings-handlers] APP_VERSION returning:', version);
     return version;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.APP_IS_PACKAGED, async (): Promise<boolean> => {
+    const isPackaged = app.isPackaged;
+    console.log('[settings-handlers] APP_IS_PACKAGED returning:', isPackaged);
+    return isPackaged;
+  });
+
+  ipcMain.handle(IPC_CHANNELS.APP_BUILD_HASH, async (): Promise<string | null> => {
+    try {
+      // Try to get git commit hash
+      const appPath = app.getAppPath();
+      const gitDir = path.resolve(appPath, is.dev ? '../..' : '../../..');
+
+      const hash = execFileSync(getToolPath('git'), ['rev-parse', '--short', 'HEAD'], {
+        cwd: gitDir,
+        encoding: 'utf8',
+        timeout: 5000,
+      }).trim();
+
+      console.log('[settings-handlers] APP_BUILD_HASH returning:', hash);
+      return hash;
+    } catch (error) {
+      console.log('[settings-handlers] APP_BUILD_HASH failed:', error);
+      return null;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SYSTEM_HEALTH_CHECK, async (_event, projectId?: string): Promise<IPCResult<SystemHealthCheck>> => {
+    console.log('[settings-handlers] SYSTEM_HEALTH_CHECK invoked with projectId:', projectId);
+    try {
+      const settings = readSettingsFile();
+      const sourcePath = settings?.autoBuildPath || detectAutoBuildSourcePath();
+      console.log('[settings-handlers] Source path:', sourcePath);
+
+      if (!sourcePath || !existsSync(sourcePath)) {
+        console.log('[settings-handlers] Source path not found');
+        return {
+          success: false,
+          error: 'Auto Claude source path not configured or not found',
+        };
+      }
+
+      // For health check, prefer venv Python which has all packages installed
+      // Fall back to settings.pythonPath if venv doesn't exist
+      const venvPythonPath = path.join(sourcePath, '.venv', 'bin', 'python');
+      const pythonPath = existsSync(venvPythonPath) ? venvPythonPath : (settings?.pythonPath || 'python3');
+      const usingVenv = existsSync(venvPythonPath);
+
+      const healthCheckScript = path.join(sourcePath, 'check_health.py');
+      console.log('[settings-handlers] Health check script path:', healthCheckScript);
+
+      if (!existsSync(healthCheckScript)) {
+        console.log('[settings-handlers] Health check script not found');
+        return {
+          success: false,
+          error: 'Health check script not found',
+        };
+      }
+
+      console.log('[settings-handlers] Running health check with python:', pythonPath, usingVenv ? '(venv)' : '(system)');
+
+      // Get Python environment
+      // If using venv, don't set PYTHONNOUSERSITE as venv has its own site-packages
+      const pythonEnv = usingVenv ? {} : pythonEnvManager.getPythonEnv();
+
+      // Load project-specific environment variables if projectId provided
+      let projectEnv: Record<string, string> = {};
+      if (projectId) {
+        try {
+          const project = projectStore.getProject(projectId);
+          if (project) {
+            console.log('[settings-handlers] Loading project env for:', project.name);
+
+            // Load from project's .auto-claude/.env file if it exists
+            if (project.autoBuildPath) {
+              const projectEnvPath = path.join(project.path, project.autoBuildPath, '.env');
+              if (existsSync(projectEnvPath)) {
+                const envFileContent = readFileSync(projectEnvPath, 'utf-8');
+                projectEnv = parseEnvFile(envFileContent);
+                console.log('[settings-handlers] Loaded project .env with', Object.keys(projectEnv).length, 'vars');
+              }
+            }
+
+            // Override with ProjectSettings (these take precedence)
+            if (project.settings) {
+              if (project.settings.memoryBackend === 'graphiti') {
+                projectEnv['GRAPHITI_ENABLED'] = 'true';
+              }
+              if (project.settings.graphitiMcpEnabled) {
+                projectEnv['GRAPHITI_MCP_ENABLED'] = 'true';
+                if (project.settings.graphitiMcpUrl) {
+                  projectEnv['GRAPHITI_MCP_URL'] = project.settings.graphitiMcpUrl;
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[settings-handlers] Failed to load project env:', error);
+        }
+      }
+
+      // Parse Python command to handle space-separated commands like "py -3"
+      const [pythonCommand, pythonBaseArgs] = parsePythonCommand(pythonPath);
+
+      return new Promise((resolve) => {
+        console.log('[settings-handlers] Spawning health check process...');
+        const healthProcess = spawn(pythonCommand, [...pythonBaseArgs, healthCheckScript], {
+          cwd: sourcePath,
+          env: {
+            ...process.env,
+            ...pythonEnv,
+            ...projectEnv, // Project-specific vars override global
+            PYTHONUNBUFFERED: '1',
+            PYTHONUTF8: '1',
+          },
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        healthProcess.stdout?.on('data', (data) => {
+          const chunk = data.toString();
+          console.log('[settings-handlers] Health check stdout chunk:', chunk.substring(0, 100));
+          stdout += chunk;
+        });
+
+        healthProcess.stderr?.on('data', (data) => {
+          const chunk = data.toString();
+          console.log('[settings-handlers] Health check stderr chunk:', chunk);
+          stderr += chunk;
+        });
+
+        healthProcess.on('close', (code) => {
+          console.log('[settings-handlers] Health check process closed with code:', code);
+          console.log('[settings-handlers] Stdout length:', stdout.length);
+          console.log('[settings-handlers] Stderr length:', stderr.length);
+
+          if (code === 0 && stdout) {
+            try {
+              const healthData = JSON.parse(stdout) as SystemHealthCheck;
+              console.log('[settings-handlers] Health check data parsed successfully');
+              resolve({
+                success: true,
+                data: healthData,
+              });
+            } catch (parseError) {
+              console.error('[settings-handlers] Failed to parse health check JSON:', parseError);
+              console.error('[settings-handlers] Stdout was:', stdout.substring(0, 200));
+              resolve({
+                success: false,
+                error: `Failed to parse health check results: ${parseError}`,
+              });
+            }
+          } else {
+            console.error('[settings-handlers] Health check failed');
+            resolve({
+              success: false,
+              error: stderr || `Health check failed with code ${code}`,
+            });
+          }
+        });
+
+        healthProcess.on('error', (error) => {
+          console.error('[settings-handlers] Health check process error:', error);
+          resolve({
+            success: false,
+            error: `Failed to run health check: ${error.message}`,
+          });
+        });
+      });
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   });
 
   // ============================================

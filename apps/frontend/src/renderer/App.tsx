@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, RefreshCw, AlertCircle, LayoutGrid, Folder, ListChecks, CheckCircle2, FolderOpen, Activity } from 'lucide-react';
+import { Download, RefreshCw, AlertCircle, LayoutGrid, Folder, ListChecks, CheckCircle2, FolderOpen, Activity, CheckCircle, XCircle, Minus } from 'lucide-react';
 import { debugLog } from '../shared/utils/debug-logger';
+import { cn } from './lib/utils';
 import { TooltipProvider } from './components/ui/tooltip';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from './components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from './components/ui/dropdown-menu';
 import { ScrollArea } from './components/ui/scroll-area';
 import { Toaster } from './components/ui/toaster';
 import {
@@ -56,6 +58,7 @@ import { COLOR_THEMES, UI_SCALE_MIN, UI_SCALE_MAX, UI_SCALE_DEFAULT } from '../s
 import type { Task, Project, ColorTheme } from '../shared/types';
 import { AddProjectModal } from './components/AddProjectModal';
 import { ViewStateProvider } from './contexts/ViewStateContext';
+import { debugModeFeatures, debugCpuLog } from './utils/debug-mode';
 
 export function App() {
   // Load IPC listeners for real-time updates
@@ -175,12 +178,66 @@ export function App() {
   // Track if settings have been loaded at least once
   const [settingsHaveLoaded, setSettingsHaveLoaded] = useState(false);
 
+  // Health check state
+  const [healthCheck, setHealthCheck] = useState<import('../shared/types').SystemHealthCheck | null>(null);
+  const [healthCheckLoading, setHealthCheckLoading] = useState(false);
+  const [lastHealthCheckTime, setLastHealthCheckTime] = useState<Date | null>(null);
+
   // Mark settings as loaded when loading completes
   useEffect(() => {
     if (!settingsLoading && !settingsHaveLoaded) {
       setSettingsHaveLoaded(true);
     }
   }, [settingsLoading, settingsHaveLoaded]);
+
+  // Run health check on mount and when active project changes
+  // Can be disabled via VITE_DEBUG_CPU_INVESTIGATION=true for debugging
+  useEffect(() => {
+    // Don't run health check if no active project yet
+    if (!activeProjectId) return;
+
+    // Skip health check in debug mode
+    if (debugModeFeatures.disableHealthCheck) {
+      debugCpuLog('Health check disabled (VITE_DEBUG_CPU_INVESTIGATION=true)');
+      return;
+    }
+
+    const runHealthCheck = async () => {
+      setHealthCheckLoading(true);
+      try {
+        const result = await window.electronAPI.getSystemHealthCheck(activeProjectId);
+        if (result.success && result.data) {
+          setHealthCheck(result.data);
+          setLastHealthCheckTime(new Date());
+        } else {
+          console.error('[Health Check] Failed:', result.error);
+        }
+      } catch (error) {
+        console.error('[Health Check] Error:', error);
+      } finally {
+        setHealthCheckLoading(false);
+      }
+    };
+    runHealthCheck();
+  }, [activeProjectId]); // Re-run when active project changes
+
+  // Manual health check trigger
+  const runHealthCheck = async () => {
+    if (!activeProjectId) return;
+
+    setHealthCheckLoading(true);
+    try {
+      const result = await window.electronAPI.getSystemHealthCheck(activeProjectId);
+      if (result.success && result.data) {
+        setHealthCheck(result.data);
+        setLastHealthCheckTime(new Date());
+      }
+    } catch (error) {
+      console.error('[Health Check] Error:', error);
+    } finally {
+      setHealthCheckLoading(false);
+    }
+  };
 
   // First-run detection - show onboarding wizard if not completed
   // Only check AFTER settings have been loaded from disk to avoid race condition
@@ -317,7 +374,13 @@ export function App() {
     // Handle terminals on project change - DON'T destroy, just restore if needed
     // Terminals are now filtered by projectPath in TerminalGrid, so each project
     // sees only its own terminals. PTY processes stay alive across project switches.
+    if (debugModeFeatures.enableProjectChangeLogging) {
+      debugCpuLog('Project change effect - selectedProject.path:', selectedProject?.path);
+    }
     if (selectedProject?.path) {
+      if (debugModeFeatures.enableProjectChangeLogging) {
+        debugCpuLog('Calling restoreTerminalSessions for:', selectedProject.path);
+      }
       restoreTerminalSessions(selectedProject.path).catch((err) => {
         console.error('[App] Failed to restore sessions:', err);
       });
@@ -669,6 +732,179 @@ export function App() {
         {/* Global Title Bar */}
         <div className="electron-drag flex h-10 items-center bg-primary px-4 shrink-0">
           <div className="electron-no-drag flex items-center gap-3 ml-64 flex-1">
+            {/* Health Status Indicator */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "flex items-center gap-1.5 text-white cursor-pointer hover:brightness-110 transition-all",
+                    healthCheckLoading && "animate-pulse"
+                  )}
+                  style={{
+                    background: healthCheck?.healthy
+                      ? 'rgb(34 197 94 / 20%)'
+                      : 'rgb(239 68 68 / 20%)',
+                    border: healthCheck?.healthy
+                      ? '1px solid rgb(34 197 94 / 60%)'
+                      : '1px solid rgb(239 68 68 / 60%)',
+                    padding: '4px 12px',
+                  }}
+                >
+                  {healthCheckLoading ? (
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  ) : healthCheck?.healthy ? (
+                    <CheckCircle className="h-3.5 w-3.5 text-green-400" />
+                  ) : (
+                    <XCircle className="h-3.5 w-3.5 text-red-400" />
+                  )}
+                  <span className="text-xs font-semibold">
+                    {healthCheckLoading
+                      ? t('common:health.checking')
+                      : healthCheck?.healthy
+                      ? t('common:health.healthy')
+                      : t('common:health.unhealthy', { count: healthCheck?.summary.failed || 0 })}
+                  </span>
+                </Badge>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-80 p-0">
+                <div className="p-3 border-b border-border bg-muted/50">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      {healthCheck?.healthy ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      )}
+                      {t('common:health.title')}
+                    </h4>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        runHealthCheck();
+                      }}
+                      disabled={healthCheckLoading}
+                    >
+                      <RefreshCw className={cn("h-3.5 w-3.5", healthCheckLoading && "animate-spin")} />
+                    </Button>
+                  </div>
+                  {lastHealthCheckTime && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t('common:health.lastChecked', {
+                        time: lastHealthCheckTime.toLocaleTimeString()
+                      })}
+                    </p>
+                  )}
+                </div>
+                <div className="max-h-[500px] overflow-y-auto">
+                  <div className="p-2 space-y-2">
+                    {/* Debug info */}
+                    {healthCheck && (
+                      <div className="text-xs text-muted-foreground p-2 bg-muted/20 rounded">
+                        Checks count: {healthCheck.checks ? Object.keys(healthCheck.checks).length : 0} |
+                        Healthy: {healthCheck.healthy ? 'Yes' : 'No'}
+                      </div>
+                    )}
+
+                    {!healthCheck ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        Click refresh to run health check
+                      </div>
+                    ) : healthCheck?.checks && Object.entries(healthCheck.checks).length > 0 ? (
+                      Object.entries(healthCheck.checks).map(([key, check]) => (
+                      <div key={key} className="border border-border rounded-lg overflow-hidden">
+                        {/* Main category header */}
+                        <div className="flex items-center justify-between py-2 px-3 bg-muted/30">
+                          <span className="text-sm font-semibold">
+                            {t(`common:health.${key}`)}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {check.healthy ? (
+                              <>
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span className="text-xs text-green-600 font-semibold">
+                                  {t('common:health.passed')}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-4 w-4 text-red-400" />
+                                <span className="text-sm text-red-400 font-semibold">
+                                  {t('common:health.failed')}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Sub-checks details */}
+                        {check.checks && Object.keys(check.checks).length > 0 && (
+                          <div className="px-3 py-2 space-y-1.5 bg-card">
+                            {Object.entries(check.checks).map(([subKey, passed]) => {
+                              // Format the label - if it ends with _enabled, show status explicitly
+                              let label = subKey.replace(/_/g, ' ');
+                              if (subKey.endsWith('_enabled')) {
+                                const baseName = subKey.replace(/_enabled$/, '').replace(/_/g, ' ');
+                                label = `${baseName}: ${passed ? 'enabled' : 'disabled'}`;
+                              }
+
+                              return (
+                                <div key={subKey} className="flex items-center gap-2 text-sm">
+                                  {passed ? (
+                                    <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                  ) : (
+                                    <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                                  )}
+                                  <span className={cn(
+                                    "text-muted-foreground",
+                                    !passed && "text-red-400"
+                                  )}>
+                                    {label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+
+                            {/* Show message if available */}
+                            {check.message && (
+                              <div className="mt-2 pt-2 border-t border-border">
+                                <p className="text-xs text-muted-foreground italic">
+                                  {check.message}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Show details for failed checks */}
+                            {!check.healthy && check.details && Object.keys(check.details).length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-border">
+                                {check.details.inconsistencies && Array.isArray(check.details.inconsistencies) && check.details.inconsistencies.length > 0 && (
+                                  <div className="space-y-1">
+                                    <p className="text-sm font-semibold text-red-400">Issues found:</p>
+                                    {check.details.inconsistencies.map((item: any, idx: number) => (
+                                      <p key={idx} className="text-sm text-red-400 pl-2">
+                                        • {item.variable}: {item.issue}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No health check data available
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Active View Badge */}
             <Badge
               variant="secondary"
