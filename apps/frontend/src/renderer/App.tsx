@@ -58,6 +58,7 @@ import { COLOR_THEMES, UI_SCALE_MIN, UI_SCALE_MAX, UI_SCALE_DEFAULT } from '../s
 import type { Task, Project, ColorTheme } from '../shared/types';
 import { AddProjectModal } from './components/AddProjectModal';
 import { ViewStateProvider } from './contexts/ViewStateContext';
+import { debugModeFeatures, debugCpuLog } from './utils/debug-mode';
 
 export function App() {
   // Load IPC listeners for real-time updates
@@ -190,9 +191,16 @@ export function App() {
   }, [settingsLoading, settingsHaveLoaded]);
 
   // Run health check on mount and when active project changes
+  // Can be disabled via VITE_DEBUG_CPU_INVESTIGATION=true for debugging
   useEffect(() => {
     // Don't run health check if no active project yet
     if (!activeProjectId) return;
+
+    // Skip health check in debug mode
+    if (debugModeFeatures.disableHealthCheck) {
+      debugCpuLog('Health check disabled (VITE_DEBUG_CPU_INVESTIGATION=true)');
+      return;
+    }
 
     const runHealthCheck = async () => {
       setHealthCheckLoading(true);
@@ -366,7 +374,13 @@ export function App() {
     // Handle terminals on project change - DON'T destroy, just restore if needed
     // Terminals are now filtered by projectPath in TerminalGrid, so each project
     // sees only its own terminals. PTY processes stay alive across project switches.
+    if (debugModeFeatures.enableProjectChangeLogging) {
+      debugCpuLog('Project change effect - selectedProject.path:', selectedProject?.path);
+    }
     if (selectedProject?.path) {
+      if (debugModeFeatures.enableProjectChangeLogging) {
+        debugCpuLog('Calling restoreTerminalSessions for:', selectedProject.path);
+      }
       restoreTerminalSessions(selectedProject.path).catch((err) => {
         console.error('[App] Failed to restore sessions:', err);
       });

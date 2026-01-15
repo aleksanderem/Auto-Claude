@@ -485,6 +485,61 @@ The client automatically enables Electron MCP tools for QA agents when:
 
 **Note:** Screenshots are automatically compressed (1280x720, quality 60, JPEG) to stay under Claude SDK's 1MB JSON message buffer limit.
 
+### Debug Mode for CPU Investigation
+
+The frontend includes a debug mode for investigating CPU spikes and performance issues. These features were developed during debugging sessions and remain available for future investigations.
+
+**Enabling Debug Mode:**
+
+For main process (Electron main):
+```bash
+# Add to apps/frontend/.env
+DEBUG_CPU_INVESTIGATION=true
+
+# Optional: disable DevTools separately
+DISABLE_DEVTOOLS=true
+```
+
+For renderer process (React):
+```bash
+# Add to apps/frontend/.env (must use VITE_ prefix)
+VITE_DEBUG_CPU_INVESTIGATION=true
+```
+
+**Debug Features Enabled:**
+
+When `DEBUG_CPU_INVESTIGATION=true`:
+- Usage monitor polling disabled (prevents CPU overhead from status checks)
+- Task recovery service disabled (prevents auto-QA triggers that can cause CPU spikes)
+- IPC call loop detection enabled (warns if TASK_LIST called >10 times)
+- Terminal data event rate logging (tracks PTY output frequency every 5s)
+
+When `VITE_DEBUG_CPU_INVESTIGATION=true`:
+- Health check disabled on app startup (prevents initial API overhead)
+- Verbose project change logging enabled
+
+When `DISABLE_DEVTOOLS=true`:
+- Chrome DevTools disabled in development mode
+
+**Debug Utilities:**
+
+Main process: `apps/frontend/src/shared/utils/debug-mode.ts`
+Renderer process: `apps/frontend/src/renderer/utils/debug-mode.ts`
+
+```typescript
+import { debugModeFeatures, debugCpuLog } from '../shared/utils/debug-mode';
+
+// Check feature flags
+if (debugModeFeatures.disableUsageMonitor) { ... }
+
+// Conditional logging
+debugCpuLog('Message only shown when debug mode active');
+```
+
+**Historical Context:**
+
+These debug features were added while investigating a 100% CPU spike caused by PTY buffer overflow during Claude session restore. The root cause was a 1.5KB PATH prefix exceeding the ~1KB PTY write buffer, causing a deadlock. The fix removed the redundant PATH prefix (see `claude-integration-handler.ts:resumeClaudeAsync`).
+
 ## Running the Application
 
 **As a standalone CLI tool**:

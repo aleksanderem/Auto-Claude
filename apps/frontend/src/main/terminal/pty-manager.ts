@@ -14,6 +14,100 @@ import { debugLog, debugError } from '../../shared/utils/debug-logger';
 import type { SupportedTerminal } from '../../shared/types/settings';
 
 /**
+ * Terminal Output Batcher
+ *
+ * Batches terminal output to prevent IPC channel saturation.
+ * Without batching, rapid PTY output (e.g., Claude streaming) can fill
+ * the IPC pipe buffer, causing the main process to block on write() syscalls.
+ *
+ * This batches output and sends at ~60fps (16ms intervals) to balance
+ * responsiveness with IPC throughput.
+ */
+class TerminalOutputBatcher {
+  private buffers: Map<string, string> = new Map();
+  private timers: Map<string, NodeJS.Timeout> = new Map();
+  private windowGetter: WindowGetter | null = null;
+
+  // Batch interval in ms (~60fps for smooth terminal rendering)
+  private readonly BATCH_INTERVAL_MS = 16;
+  // Max buffer size before forcing immediate flush (prevent memory buildup)
+  private readonly MAX_BUFFER_SIZE = 64 * 1024; // 64KB
+
+  setWindowGetter(getter: WindowGetter): void {
+    this.windowGetter = getter;
+  }
+
+  /**
+   * Queue terminal output for batched sending
+   */
+  queue(terminalId: string, data: string): void {
+    // Append to buffer
+    const existing = this.buffers.get(terminalId) || '';
+    const newBuffer = existing + data;
+    this.buffers.set(terminalId, newBuffer);
+
+    // Force immediate flush if buffer is too large
+    if (newBuffer.length >= this.MAX_BUFFER_SIZE) {
+      this.flush(terminalId);
+      return;
+    }
+
+    // Schedule flush if not already scheduled
+    if (!this.timers.has(terminalId)) {
+      const timer = setTimeout(() => {
+        this.flush(terminalId);
+      }, this.BATCH_INTERVAL_MS);
+      this.timers.set(terminalId, timer);
+    }
+  }
+
+  /**
+   * Flush buffered output for a terminal
+   */
+  private flush(terminalId: string): void {
+    // Clear the timer
+    const timer = this.timers.get(terminalId);
+    if (timer) {
+      clearTimeout(timer);
+      this.timers.delete(terminalId);
+    }
+
+    // Get and clear buffer
+    const data = this.buffers.get(terminalId);
+    if (!data) return;
+    this.buffers.delete(terminalId);
+
+    // Send to renderer
+    const win = this.windowGetter?.();
+    if (win && !win.isDestroyed()) {
+      win.webContents.send(IPC_CHANNELS.TERMINAL_OUTPUT, terminalId, data);
+    }
+  }
+
+  /**
+   * Force flush all pending output for a terminal (e.g., on exit)
+   */
+  flushTerminal(terminalId: string): void {
+    this.flush(terminalId);
+  }
+
+  /**
+   * Clean up a terminal's resources
+   */
+  cleanup(terminalId: string): void {
+    const timer = this.timers.get(terminalId);
+    if (timer) {
+      clearTimeout(timer);
+      this.timers.delete(terminalId);
+    }
+    this.buffers.delete(terminalId);
+  }
+}
+
+// Singleton batcher instance
+const outputBatcher = new TerminalOutputBatcher();
+
+/**
  * Windows shell paths for different terminal preferences
  */
 const WINDOWS_SHELL_PATHS: Record<string, string[]> = {
@@ -121,6 +215,9 @@ export function setupPtyHandlers(
 ): void {
   const { id, pty: ptyProcess } = terminal;
 
+  // Ensure batcher has window getter
+  outputBatcher.setWindowGetter(getWindow);
+
   // Handle data from terminal
   ptyProcess.onData((data) => {
     // Append to output buffer (limit to 100KB)
@@ -129,19 +226,20 @@ export function setupPtyHandlers(
     // Call custom data handler
     onDataCallback(terminal, data);
 
-    // Send to renderer
-    const win = getWindow();
-    if (win) {
-      win.webContents.send(IPC_CHANNELS.TERMINAL_OUTPUT, id, data);
-    }
+    // Queue for batched sending to renderer (prevents IPC saturation)
+    outputBatcher.queue(id, data);
   });
 
   // Handle terminal exit
   ptyProcess.onExit(({ exitCode }) => {
     debugLog('[PtyManager] Terminal exited:', id, 'code:', exitCode);
 
+    // Flush any remaining output before sending exit
+    outputBatcher.flushTerminal(id);
+    outputBatcher.cleanup(id);
+
     const win = getWindow();
-    if (win) {
+    if (win && !win.isDestroyed()) {
       win.webContents.send(IPC_CHANNELS.TERMINAL_EXIT, id, exitCode);
     }
 
@@ -256,6 +354,9 @@ export function resizePty(terminal: TerminalProcess, cols: number, rows: number)
  * Kill a PTY process
  */
 export function killPty(terminal: TerminalProcess): void {
+  // Flush remaining output and cleanup batcher resources
+  outputBatcher.flushTerminal(terminal.id);
+  outputBatcher.cleanup(terminal.id);
   terminal.pty.kill();
 }
 

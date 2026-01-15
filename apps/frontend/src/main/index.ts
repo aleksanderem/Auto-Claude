@@ -45,6 +45,7 @@ import { initializeClaudeProfileManager } from './claude-profile-manager';
 import { TaskRecoveryService, DEFAULT_RECOVERY_CONFIG } from './task-recovery-service';
 import { projectStore } from './project-store';
 import type { AppSettings } from '../shared/types';
+import { debugModeFeatures, isDevToolsDisabled, debugCpuLog } from '../shared/utils/debug-mode';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Window sizing constants
@@ -218,8 +219,8 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
 
-  // Open DevTools in development
-  if (is.dev) {
+  // Open DevTools in development (can be disabled via DISABLE_DEVTOOLS=true for debugging)
+  if (is.dev && !isDevToolsDisabled()) {
     mainWindow.webContents.openDevTools({ mode: 'right' });
   }
 
@@ -397,16 +398,20 @@ app.whenReady().then(() => {
     .then(() => {
       // Only start monitoring if window is still available (app not quitting)
       if (mainWindow) {
-        // Setup event forwarding from usage monitor to renderer
-        initializeUsageMonitorForwarding(mainWindow);
+        // Usage monitor - can be disabled via DEBUG_CPU_INVESTIGATION=true
+        if (debugModeFeatures.disableUsageMonitor) {
+          debugCpuLog('Usage monitor DISABLED (DEBUG_CPU_INVESTIGATION=true)');
+        } else {
+          initializeUsageMonitorForwarding(mainWindow);
+          const usageMonitor = getUsageMonitor();
+          usageMonitor.start();
+          console.warn('[main] Usage monitor initialized and started');
+        }
 
-        // Start the usage monitor
-        const usageMonitor = getUsageMonitor();
-        usageMonitor.start();
-        console.warn('[main] Usage monitor initialized and started (after profile load)');
-
-        // Start task recovery service
-        if (taskRecoveryService) {
+        // Task recovery service - can be disabled via DEBUG_CPU_INVESTIGATION=true
+        if (debugModeFeatures.disableTaskRecovery) {
+          debugCpuLog('Task recovery service DISABLED (DEBUG_CPU_INVESTIGATION=true)');
+        } else if (taskRecoveryService) {
           taskRecoveryService.start();
           console.warn('[main] Task recovery service initialized and started');
         }
@@ -416,17 +421,16 @@ app.whenReady().then(() => {
       console.warn('[main] Failed to initialize profile manager:', error);
       // Fallback: try starting usage monitor anyway (might use defaults)
       if (mainWindow) {
-        initializeUsageMonitorForwarding(mainWindow);
-        const usageMonitor = getUsageMonitor();
-        usageMonitor.start();
+        if (!debugModeFeatures.disableUsageMonitor) {
+          initializeUsageMonitorForwarding(mainWindow);
+          const usageMonitor = getUsageMonitor();
+          usageMonitor.start();
+        }
 
-        // Start task recovery service even if profile manager failed
-        // TEMPORARILY DISABLED: Debug high CPU usage
-        console.warn('[main] Task recovery service temporarily disabled for debugging (fallback)');
-        // if (taskRecoveryService) {
-        //   taskRecoveryService.start();
-        //   console.warn('[main] Task recovery service initialized and started (fallback)');
-        // }
+        if (!debugModeFeatures.disableTaskRecovery && taskRecoveryService) {
+          taskRecoveryService.start();
+          console.warn('[main] Task recovery service initialized and started (fallback)');
+        }
       }
     });
 
