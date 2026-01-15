@@ -46,6 +46,7 @@ def check_python_environment() -> Dict[str, Any]:
         "dependencies_installed": False,
     }
     details = {}
+    missing_deps = []
 
     # Check Python version (3.12+)
     version = sys.version_info
@@ -56,17 +57,27 @@ def check_python_environment() -> Dict[str, Any]:
     checks["venv_active"] = hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
     details["venv_path"] = sys.prefix if checks["venv_active"] else None
 
-    # Check key dependencies
+    # Check key dependencies - claude-agent-sdk is the main SDK used
     try:
-        import anthropic
-        checks["dependencies_installed"] = True
-        details["anthropic_version"] = getattr(anthropic, '__version__', 'unknown')
-    except ImportError as e:
-        checks["dependencies_installed"] = False
-        details["import_error"] = str(e)
+        import claude_agent_sdk
+        details["claude_agent_sdk_version"] = getattr(claude_agent_sdk, '__version__', 'unknown')
+    except ImportError:
+        missing_deps.append("claude-agent-sdk")
+
+    checks["dependencies_installed"] = len(missing_deps) == 0
+    if missing_deps:
+        details["missing_dependencies"] = missing_deps
 
     healthy = all(checks.values())
-    message = "Python environment OK" if healthy else "Python environment issues detected"
+
+    if not checks["python_version_ok"]:
+        message = f"Python 3.12+ required (found {details['python_version']})"
+    elif not checks["venv_active"]:
+        message = "Virtual environment not active"
+    elif missing_deps:
+        message = f"Missing dependencies: {', '.join(missing_deps)}"
+    else:
+        message = "Python environment OK"
 
     return {
         "healthy": healthy,
@@ -140,45 +151,46 @@ def check_claude_authentication() -> Dict[str, Any]:
 
 
 def check_integrations() -> Dict[str, Any]:
-    """Check optional integrations (Graphiti, Linear, GitHub)."""
+    """Check integrations - Graphiti is required, others are optional."""
     checks = {}
     details = {}
+    optional_status = {}  # Optional integrations shown as status, not pass/fail
 
-    # Graphiti memory system
+    # Graphiti memory system - REQUIRED (shows as pass/fail)
     graphiti_health = check_graphiti_health()
-    checks["graphiti_enabled"] = graphiti_health["checks"].get("config_valid", False)
-    checks["graphiti_healthy"] = graphiti_health["healthy"]
+    checks["graphiti_configured"] = graphiti_health["checks"].get("config_valid", False)
     details["graphiti"] = graphiti_health
 
-    # Debug: log graphiti health result
-    print(f"DEBUG graphiti_health: healthy={graphiti_health['healthy']}, checks={graphiti_health['checks']}", file=sys.stderr)
-
+    # Optional integrations - just show status, don't mark as failed if disabled
     # Linear integration
     linear_enabled = is_linear_enabled()
-    checks["linear_enabled"] = linear_enabled
+    optional_status["linear"] = "enabled" if linear_enabled else "not configured"
     if linear_enabled:
         details["linear_api_key"] = "***" if os.getenv("LINEAR_API_KEY") else None
 
     # GitHub integration
     github_token = os.getenv("GITHUB_TOKEN")
-    checks["github_enabled"] = bool(github_token)
-    if github_token:
-        details["github_token"] = "***"
+    optional_status["github"] = "enabled" if github_token else "not configured"
 
     # GitLab integration
     gitlab_token = os.getenv("GITLAB_TOKEN")
-    checks["gitlab_enabled"] = bool(gitlab_token)
-    if gitlab_token:
-        details["gitlab_token"] = "***"
+    optional_status["gitlab"] = "enabled" if gitlab_token else "not configured"
 
     # Electron MCP (for E2E testing)
     electron_mcp_enabled = os.getenv("ELECTRON_MCP_ENABLED", "").lower() == "true"
-    checks["electron_mcp_enabled"] = electron_mcp_enabled
+    optional_status["electron_mcp"] = "enabled" if electron_mcp_enabled else "not configured"
     if electron_mcp_enabled:
         details["electron_debug_port"] = os.getenv("ELECTRON_DEBUG_PORT", "9222")
 
-    healthy = True  # Integrations are optional
-    message = "Integrations configured"
+    details["optional_integrations"] = optional_status
+
+    # Health based only on required integrations (Graphiti)
+    healthy = all(checks.values())
+
+    if healthy:
+        message = "Graphiti configured"
+    else:
+        message = "Graphiti not configured"
 
     return {
         "healthy": healthy,
@@ -190,62 +202,40 @@ def check_integrations() -> Dict[str, Any]:
 
 def check_environment_consistency() -> Dict[str, Any]:
     """
-    Check consistency between .env file, environment variables, and runtime configuration.
+    Check that .env file exists and is readable.
 
-    This validates that what's in .env matches what the application actually sees.
+    Note: We don't compare .env values with runtime because the health check runs
+    as a subprocess that doesn't inherit the backend's loaded .env values.
+    Actual configuration validation happens in the respective checks (Graphiti, Auth, etc.)
     """
     checks = {
-        "env_file_readable": False,
-        "critical_vars_consistent": True,
+        "env_file_exists": False,
     }
-    details = {
-        "inconsistencies": [],
-    }
+    details = {}
 
     # Find .env file
     backend_dir = Path(__file__).parent
     env_file = backend_dir / ".env"
 
     if env_file.exists():
-        checks["env_file_readable"] = True
+        checks["env_file_exists"] = True
         details["env_file_path"] = str(env_file)
 
-        # Parse .env file and compare with os.environ
+        # Count configured variables (informational only)
         try:
             from dotenv import dotenv_values
             env_values = dotenv_values(env_file)
-
-            # Check critical environment variables
-            critical_vars = [
-                "CLAUDE_CODE_OAUTH_TOKEN",
-                "ANTHROPIC_API_KEY",
-                "GRAPHITI_ENABLED",
-                "LINEAR_API_KEY",
-                "GITHUB_TOKEN",
-                "GITLAB_TOKEN",
-            ]
-
-            for var in critical_vars:
-                env_file_value = env_values.get(var)
-                runtime_value = os.getenv(var)
-
-                # Only check if variable exists in .env
-                if env_file_value is not None:
-                    if env_file_value != runtime_value:
-                        checks["critical_vars_consistent"] = False
-                        details["inconsistencies"].append({
-                            "variable": var,
-                            "env_file": "***" if env_file_value else None,
-                            "runtime": "***" if runtime_value else None,
-                            "issue": "Value mismatch"
-                        })
+            # Filter out empty values
+            configured_vars = [k for k, v in env_values.items() if v]
+            details["configured_variables"] = len(configured_vars)
         except Exception as e:
             details["parse_error"] = str(e)
     else:
-        details["env_file_path"] = "Not found"
+        details["env_file_path"] = "Not found (optional)"
 
-    healthy = all(checks.values())
-    message = "Environment consistent" if healthy else f"{len(details['inconsistencies'])} inconsistencies found"
+    # .env is optional - not having it is not a failure
+    healthy = True
+    message = f".env found ({details.get('configured_variables', 0)} vars)" if checks["env_file_exists"] else ".env not found (optional)"
 
     return {
         "healthy": healthy,
