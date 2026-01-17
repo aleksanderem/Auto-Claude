@@ -16,6 +16,7 @@
 
 import * as path from 'path';
 import * as os from 'os';
+import { existsSync } from 'fs';
 
 export const APP_NAME = 'ouro';
 
@@ -72,16 +73,22 @@ export function getAppCacheDir(): string {
  * This is where graph databases are stored (previously ~/.auto-claude/memories, now ~/.ouro/memories)
  */
 export function getMemoriesDir(): string {
-  // For compatibility, we still support the legacy path
-  const legacyPath = path.join(os.homedir(), '.ouro', 'memories');
+  const newPath = path.join(os.homedir(), '.ouro', 'memories');
+  const legacyPath = path.join(os.homedir(), '.auto-claude', 'memories');
 
   // On Linux with XDG variables set (AppImage, Flatpak, Snap), use XDG path
   if (process.platform === 'linux' && (process.env.XDG_DATA_HOME || process.env.APPIMAGE || process.env.SNAP || process.env.FLATPAK_ID)) {
     return path.join(getXdgDataHome(), APP_NAME, 'memories');
   }
 
-  // Default to legacy path for backwards compatibility
-  return legacyPath;
+  // Prefer new path if it exists, otherwise check legacy, finally default to new
+  if (existsSync(newPath)) {
+    return newPath;
+  }
+  if (existsSync(legacyPath)) {
+    return legacyPath;
+  }
+  return newPath;
 }
 
 /**

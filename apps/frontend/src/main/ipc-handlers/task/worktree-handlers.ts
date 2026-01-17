@@ -2114,36 +2114,25 @@ export function registerWorktreeHandlers(
 
                     if (!hasActualStagedChanges) {
                       // Check if worktree branch was already merged (merge commit exists)
-                      // Try new ouro/ prefix first, fall back to legacy auto-claude/ prefix
-                      const specBranchNew = `ouro/${task.specId}`;
-                      const specBranchLegacy = `auto-claude/${task.specId}`;
-                      try {
-                        // Check if current branch contains all commits from spec branch
-                        // git merge-base --is-ancestor returns exit code 0 if true, 1 if false
-                        // Try new branch naming first
+                      // git merge-base --is-ancestor returns exit code 0 if true, 1 if false
+                      const isBranchMerged = (branchName: string): boolean => {
                         try {
                           execFileSync(
                             getToolPath('git'),
-                            ['merge-base', '--is-ancestor', specBranchNew, 'HEAD'],
+                            ['merge-base', '--is-ancestor', branchName, 'HEAD'],
                             { cwd: project.path, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
                           );
-                          mergeAlreadyCommitted = true;
+                          return true;
                         } catch {
-                          // Try legacy branch naming
-                          execFileSync(
-                            getToolPath('git'),
-                            ['merge-base', '--is-ancestor', specBranchLegacy, 'HEAD'],
-                            { cwd: project.path, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
-                          );
-                          mergeAlreadyCommitted = true;
+                          return false;
                         }
-                        // If we reach here, the command succeeded (exit code 0) - branch is merged
-                        debug('Merge already committed check:', mergeAlreadyCommitted);
-                      } catch {
-                        // Exit code 1 means not merged, or branch may not exist
-                        mergeAlreadyCommitted = false;
-                        debug('Could not check merge status, assuming not merged');
-                      }
+                      };
+
+                      // Try new ouro/ prefix first, fall back to legacy auto-claude/ prefix
+                      const specBranchNew = `ouro/${task.specId}`;
+                      const specBranchLegacy = `auto-claude/${task.specId}`;
+                      mergeAlreadyCommitted = isBranchMerged(specBranchNew) || isBranchMerged(specBranchLegacy);
+                      debug('Merge already committed check:', mergeAlreadyCommitted);
                     }
                   } catch (e) {
                     debug('Failed to verify staged changes:', e);

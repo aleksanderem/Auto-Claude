@@ -66,19 +66,14 @@ async function executeMigration(projectPath: string): Promise<MigrationResult> {
     const gitignorePath = path.join(projectPath, '.gitignore');
     if (fs.existsSync(gitignorePath)) {
       try {
-        let gitignoreContent = await fs.promises.readFile(gitignorePath, 'utf-8');
+        const gitignoreContent = await fs.promises.readFile(gitignorePath, 'utf-8');
 
-        // Replace .auto-claude/ with .ouro/
-        if (gitignoreContent.includes('.auto-claude/')) {
-          gitignoreContent = gitignoreContent.replace(/\.auto-claude\//g, '.ouro/');
-          await fs.promises.writeFile(gitignorePath, gitignoreContent, 'utf-8');
+        // Replace all occurrences of .auto-claude with .ouro (single pass)
+        const newContent = gitignoreContent.replace(/\.auto-claude/g, '.ouro');
+
+        if (newContent !== gitignoreContent) {
+          await fs.promises.writeFile(gitignorePath, newContent, 'utf-8');
           logger.info('[Migration] Updated .gitignore');
-        }
-
-        // Also handle .auto-claude without trailing slash
-        if (gitignoreContent.includes('.auto-claude') && !gitignoreContent.includes('.ouro')) {
-          gitignoreContent = gitignoreContent.replace(/\.auto-claude(?!\/)/g, '.ouro');
-          await fs.promises.writeFile(gitignorePath, gitignoreContent, 'utf-8');
         }
       } catch (gitignoreError) {
         logger.warn('[Migration] Could not update .gitignore:', gitignoreError);

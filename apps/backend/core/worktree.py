@@ -180,13 +180,15 @@ class WorktreeManager:
     def __init__(self, project_dir: Path, base_branch: str | None = None):
         self.project_dir = project_dir
         self.base_branch = base_branch or self._detect_base_branch()
-        # Check new location first, then legacy
+        # Check new location first, then legacy, default to new for new projects
         new_worktrees_dir = project_dir / ".ouro" / "worktrees" / "tasks"
         legacy_worktrees_dir = project_dir / ".auto-claude" / "worktrees" / "tasks"
-        if legacy_worktrees_dir.exists() and not new_worktrees_dir.exists():
-            self.worktrees_dir = legacy_worktrees_dir  # Use legacy if it exists
+        if new_worktrees_dir.exists():
+            self.worktrees_dir = new_worktrees_dir
+        elif legacy_worktrees_dir.exists():
+            self.worktrees_dir = legacy_worktrees_dir
         else:
-            self.worktrees_dir = new_worktrees_dir  # Default to new location
+            self.worktrees_dir = new_worktrees_dir  # Default to new for new projects
         self._merge_lock = asyncio.Lock()
 
     def _detect_base_branch(self) -> str:
