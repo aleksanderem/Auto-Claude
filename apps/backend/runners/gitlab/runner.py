@@ -83,7 +83,9 @@ def get_config(args) -> GitLabRunnerConfig:
     if not project:
         # Try to detect from .ouro/gitlab/config.json (or legacy .auto-claude/gitlab/config.json for backwards compatibility)
         config_path = Path(args.project_dir) / ".ouro" / "gitlab" / "config.json"
-        legacy_config_path = Path(args.project_dir) / ".auto-claude" / "gitlab" / "config.json"
+        legacy_config_path = (
+            Path(args.project_dir) / ".auto-claude" / "gitlab" / "config.json"
+        )
         if config_path.exists():
             pass  # Use new path
         elif legacy_config_path.exists():

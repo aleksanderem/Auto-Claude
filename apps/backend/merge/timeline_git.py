@@ -191,12 +191,7 @@ class TimelineGitHelper:
 
         # Check .ouro path first
         worktree_path = (
-            self.project_path
-            / ".ouro"
-            / "worktrees"
-            / "tasks"
-            / spec_name
-            / file_path
+            self.project_path / ".ouro" / "worktrees" / "tasks" / spec_name / file_path
         )
         if worktree_path.exists():
             try:
@@ -217,7 +212,9 @@ class TimelineGitHelper:
             try:
                 return legacy_worktree_path.read_text(encoding="utf-8")
             except UnicodeDecodeError:
-                return legacy_worktree_path.read_text(encoding="utf-8", errors="replace")
+                return legacy_worktree_path.read_text(
+                    encoding="utf-8", errors="replace"
+                )
         return ""
 
     def get_changed_files_in_worktree(

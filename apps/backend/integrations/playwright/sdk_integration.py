@@ -39,7 +39,11 @@ def _create_sdk_tool(schema: dict):
         content_blocks = []
 
         # Check if result contains a screenshot image (base64)
-        if isinstance(result, dict) and "image_base64" in result and result.get("success"):
+        if (
+            isinstance(result, dict)
+            and "image_base64" in result
+            and result.get("success")
+        ):
             # Add text summary first
             summary = {
                 "success": result.get("success"),
@@ -47,26 +51,32 @@ def _create_sdk_tool(schema: dict):
                 "selector": result.get("selector"),
                 "full_page": result.get("full_page"),
             }
-            content_blocks.append({
-                "type": "text",
-                "text": f"Screenshot saved successfully:\n{str(summary)}\n\nVerify the screenshot below:"
-            })
+            content_blocks.append(
+                {
+                    "type": "text",
+                    "text": f"Screenshot saved successfully:\n{str(summary)}\n\nVerify the screenshot below:",
+                }
+            )
 
             # Add image content block so Claude can see the screenshot
-            content_blocks.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": result.get("media_type", "image/png"),
-                    "data": result["image_base64"],
+            content_blocks.append(
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": result.get("media_type", "image/png"),
+                        "data": result["image_base64"],
+                    },
                 }
-            })
+            )
         else:
             # Regular text response for other tools
-            content_blocks.append({
-                "type": "text",
-                "text": str(result) if not isinstance(result, str) else result,
-            })
+            content_blocks.append(
+                {
+                    "type": "text",
+                    "text": str(result) if not isinstance(result, str) else result,
+                }
+            )
 
         return {"content": content_blocks}
 
@@ -101,7 +111,9 @@ PLAYWRIGHT_HANDLERS = {
     "playwright_screenshot": lambda input: execute_playwright_tool(
         "playwright_screenshot", input
     ),
-    "playwright_click": lambda input: execute_playwright_tool("playwright_click", input),
+    "playwright_click": lambda input: execute_playwright_tool(
+        "playwright_click", input
+    ),
     "playwright_fill": lambda input: execute_playwright_tool("playwright_fill", input),
     "playwright_assert": lambda input: execute_playwright_tool(
         "playwright_assert", input

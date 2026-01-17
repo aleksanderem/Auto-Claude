@@ -242,10 +242,14 @@ class ImplementationPlan:
                 completed_phases.add(p.phase)  # Add integer
                 # Also add any string format that starts with "phase-{num}-"
                 completed_phases.add(f"phase-{p.phase}")  # Prefix for matching
-                print(f"[DEBUG-PLAN] Phase {p.phase} ({p.name}) is COMPLETE", flush=True)
+                print(
+                    f"[DEBUG-PLAN] Phase {p.phase} ({p.name}) is COMPLETE", flush=True
+                )
             else:
                 pending = [s for s in p.subtasks if s.status.value == "pending"]
-                print(f"[DEBUG-PLAN] Phase {p.phase} ({p.name}) NOT complete, pending subtasks: {len(pending)}")
+                print(
+                    f"[DEBUG-PLAN] Phase {p.phase} ({p.name}) NOT complete, pending subtasks: {len(pending)}"
+                )
 
         print(f"[DEBUG-PLAN] Completed phases set: {completed_phases}")
 
@@ -255,7 +259,9 @@ class ImplementationPlan:
             if phase.is_complete():
                 continue
 
-            print(f"[DEBUG-PLAN] Checking phase {phase.phase} ({phase.name}), depends_on: {phase.depends_on}")
+            print(
+                f"[DEBUG-PLAN] Checking phase {phase.phase} ({phase.name}), depends_on: {phase.depends_on}"
+            )
 
             # Check if all dependencies are met
             deps_met = True
@@ -277,11 +283,15 @@ class ImplementationPlan:
                         if len(parts) >= 2 and parts[1].isdigit():
                             dep_phase_num = int(parts[1])
 
-                    print(f"[DEBUG-PLAN]   Dep '{dep}' (str) -> phase_num: {dep_phase_num}")
+                    print(
+                        f"[DEBUG-PLAN]   Dep '{dep}' (str) -> phase_num: {dep_phase_num}"
+                    )
 
                     if dep_phase_num is not None:
                         if dep_phase_num not in completed_phases:
-                            print(f"[DEBUG-PLAN]   Dep phase {dep_phase_num} NOT in completed_phases")
+                            print(
+                                f"[DEBUG-PLAN]   Dep phase {dep_phase_num} NOT in completed_phases"
+                            )
                             deps_met = False
                             break
                         else:
@@ -308,7 +318,9 @@ class ImplementationPlan:
         print(f"[DEBUG-PLAN] Available phases count: {len(available)}")
         for phase in available:
             pending = phase.get_pending_subtasks()
-            print(f"[DEBUG-PLAN] Phase {phase.phase} ({phase.name}) has {len(pending)} pending subtasks")
+            print(
+                f"[DEBUG-PLAN] Phase {phase.phase} ({phase.name}) has {len(pending)} pending subtasks"
+            )
             if pending:
                 print(f"[DEBUG-PLAN] Returning subtask: {pending[0].id}")
                 return phase, pending[0]

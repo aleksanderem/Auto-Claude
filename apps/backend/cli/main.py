@@ -366,6 +366,7 @@ def _run_cli() -> None:
     # Handle --check-graphiti command
     if args.check_graphiti:
         from graphiti_config import print_graphiti_health_report
+
         print_banner()
         healthy = print_graphiti_health_report()
         sys.exit(0 if healthy else 1)

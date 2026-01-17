@@ -88,7 +88,9 @@ load_dotenv = import_dotenv()
 
 env_file = Path(__file__).parent.parent / ".env"
 dev_env_file = Path(__file__).parent.parent.parent / "dev" / "ouro" / ".env"
-legacy_dev_env_file = Path(__file__).parent.parent.parent / "dev" / "auto-claude" / ".env"  # Legacy path for backwards compatibility
+legacy_dev_env_file = (
+    Path(__file__).parent.parent.parent / "dev" / "auto-claude" / ".env"
+)  # Legacy path for backwards compatibility
 if env_file.exists():
     load_dotenv(env_file)
 elif dev_env_file.exists():
@@ -254,7 +256,10 @@ Examples:
     elif project_dir.name == "auto-claude" and (project_dir / "run.py").exists():
         # Legacy: Running from within auto-claude/ source directory (backwards compatibility), go up 1 level
         project_dir = project_dir.parent
-    elif not (project_dir / ".ouro").exists() and not (project_dir / ".auto-claude").exists():
+    elif (
+        not (project_dir / ".ouro").exists()
+        and not (project_dir / ".auto-claude").exists()
+    ):
         # No .ouro or .auto-claude folder found - try to find project root
         # First check for .ouro (new) or .auto-claude (legacy backwards compatibility)
         for parent in project_dir.parents:
@@ -326,9 +331,7 @@ Examples:
                 print(
                     f"  {muted('Or re-run spec_runner with --auto-approve to skip review:')}"
                 )
-                example_cmd = (
-                    'python ouro/spec_runner.py --task "..." --auto-approve'
-                )
+                example_cmd = 'python ouro/spec_runner.py --task "..." --auto-approve'
                 print(f"  {highlight(example_cmd)}")
                 sys.exit(1)
 

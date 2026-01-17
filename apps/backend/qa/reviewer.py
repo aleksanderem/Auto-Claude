@@ -323,6 +323,7 @@ This is attempt {previous_error.get("consecutive_errors", 1) + 1}. If you fail t
 
         # Collect and save screenshots from QA session
         from .criteria import save_qa_screenshots_to_plan
+
         save_qa_screenshots_to_plan(spec_dir)
 
         debug(

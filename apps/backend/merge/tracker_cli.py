@@ -24,7 +24,11 @@ def find_project_root() -> Path:
 
     # Walk up until we find .ouro, .auto-claude (legacy), or .git
     while current != current.parent:
-        if (current / ".ouro").exists() or (current / ".auto-claude").exists() or (current / ".git").exists():
+        if (
+            (current / ".ouro").exists()
+            or (current / ".auto-claude").exists()
+            or (current / ".git").exists()
+        ):
             return current
         current = current.parent
 

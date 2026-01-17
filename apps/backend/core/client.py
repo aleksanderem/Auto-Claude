@@ -733,10 +733,7 @@ def get_claude_cli_version() -> tuple[int, int, int] | None:
             return None
 
         result = subprocess.run(
-            [cli_path, "--version"],
-            capture_output=True,
-            text=True,
-            timeout=5
+            [cli_path, "--version"], capture_output=True, text=True, timeout=5
         )
 
         if result.returncode != 0:
@@ -771,7 +768,9 @@ def supports_max_thinking_tokens() -> bool:
         True if --max-thinking-tokens is supported, False otherwise
     """
     # Allow override via environment variable
-    force_thinking = os.environ.get("CLAUDE_FORCE_THINKING_TOKENS", "").lower() == "true"
+    force_thinking = (
+        os.environ.get("CLAUDE_FORCE_THINKING_TOKENS", "").lower() == "true"
+    )
     if force_thinking:
         logger.info("CLAUDE_FORCE_THINKING_TOKENS=true, enabling --max-thinking-tokens")
         return True
@@ -779,7 +778,9 @@ def supports_max_thinking_tokens() -> bool:
     # Check CLI version
     version = get_claude_cli_version()
     if version is None:
-        logger.debug("Could not determine Claude CLI version, disabling --max-thinking-tokens")
+        logger.debug(
+            "Could not determine Claude CLI version, disabling --max-thinking-tokens"
+        )
         return False
 
     major, minor, patch = version
@@ -1119,7 +1120,9 @@ def create_client(
 
         playwright_server = get_playwright_mcp_server()
         mcp_servers["playwright"] = playwright_server
-        logger.info("Playwright SDK MCP server added (native Python, not external process)")
+        logger.info(
+            "Playwright SDK MCP server added (native Python, not external process)"
+        )
 
     # Add custom MCP servers from project config
     custom_servers = mcp_config.get("CUSTOM_MCP_SERVERS", [])

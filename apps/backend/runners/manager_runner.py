@@ -79,11 +79,13 @@ def load_project_context(project_dir: str) -> str:
                     if plan_path.exists():
                         with open(plan_path) as f:
                             plan = json.load(f)
-                        task_summaries.append({
-                            "spec": spec_dir.name,
-                            "status": plan.get("status", "unknown"),
-                            "feature": plan.get("feature", spec_dir.name),
-                        })
+                        task_summaries.append(
+                            {
+                                "spec": spec_dir.name,
+                                "status": plan.get("status", "unknown"),
+                                "feature": plan.get("feature", spec_dir.name),
+                            }
+                        )
             if task_summaries:
                 context_parts.append(
                     f"## Current Tasks\n```json\n{json.dumps(task_summaries, indent=2)}\n```"
@@ -157,7 +159,7 @@ When you create a spec - you hand it off. The orchestrator and agents take over.
 
 You don't interfere with them. You start builds, monitor progress, decide what's next.
 
-## Commands (from `{auto_claude_source or 'apps/backend'}`)
+## Commands (from `{auto_claude_source or "apps/backend"}`)
 
 ```bash
 # Create spec (hands off to spec agents)
@@ -299,14 +301,16 @@ Current message: {message}"""
     if images:
         for img in images:
             if img.get("data") and img.get("mimeType"):
-                message_content.append({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": img["mimeType"],
-                        "data": img["data"]
+                message_content.append(
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": img["mimeType"],
+                            "data": img["data"],
+                        },
                     }
-                })
+                )
         debug(
             "manager_runner",
             "Added images to message",
@@ -314,10 +318,7 @@ Current message: {message}"""
         )
 
     # Add text content
-    message_content.append({
-        "type": "text",
-        "text": full_prompt
-    })
+    message_content.append({"type": "text", "text": full_prompt})
 
     # If we have structured content (images), we need to pass it differently
     # The SDK query method may need the full content array
@@ -415,6 +416,7 @@ Current message: {message}"""
     except Exception as e:
         print(f"Error using Claude SDK: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
 
@@ -488,7 +490,11 @@ def main():
 
     # Run the async SDK function
     debug("manager_runner", "Running SDK query")
-    asyncio.run(run_manager_query(project_dir, user_message, history, auto_claude_source, images))
+    asyncio.run(
+        run_manager_query(
+            project_dir, user_message, history, auto_claude_source, images
+        )
+    )
     debug_success("manager_runner", "Query completed")
 
 

@@ -219,7 +219,9 @@ AGENT_CONFIGS = {
     "planner": {
         "tools": BASE_READ_TOOLS + BASE_WRITE_TOOLS + WEB_TOOLS,
         "mcp_servers": ["context7", "graphiti", "ouro"],
-        "mcp_servers_optional": ["linear"],  # Removed "browser" - Electron tools scoped to QA agents only
+        "mcp_servers_optional": [
+            "linear"
+        ],  # Removed "browser" - Electron tools scoped to QA agents only
         "ouro_tools": [
             TOOL_GET_BUILD_PROGRESS,
             TOOL_GET_SESSION_CONTEXT,
@@ -230,7 +232,9 @@ AGENT_CONFIGS = {
     "coder": {
         "tools": BASE_READ_TOOLS + BASE_WRITE_TOOLS + WEB_TOOLS,
         "mcp_servers": ["context7", "graphiti", "ouro"],
-        "mcp_servers_optional": ["linear"],  # Removed "browser" - use npx playwright CLI instead
+        "mcp_servers_optional": [
+            "linear"
+        ],  # Removed "browser" - use npx playwright CLI instead
         # Note: Playwright MCP tools removed for coder agent due to server bugs.
         # Coder should use `npx playwright` CLI commands with relative paths instead.
         "ouro_tools": [
@@ -481,10 +485,9 @@ def get_required_mcp_servers(
         else:
             # No explicit setting - autodiscover based on project type
             if project_capabilities:
-                has_frontend = (
-                    project_capabilities.get("is_web_frontend", False)
-                    or project_capabilities.get("is_electron", False)
-                )
+                has_frontend = project_capabilities.get(
+                    "is_web_frontend", False
+                ) or project_capabilities.get("is_electron", False)
                 # Auto-enable for frontend projects
                 if has_frontend:
                     should_enable_browser = True

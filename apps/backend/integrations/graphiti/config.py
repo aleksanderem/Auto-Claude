@@ -654,12 +654,14 @@ def get_graphiti_status() -> dict:
         kuzu_available = False
         try:
             import real_ladybug  # noqa: F401
+
             ladybug_available = True
         except ImportError:
             pass
 
         try:
             import kuzu  # noqa: F401
+
             kuzu_available = True
         except ImportError:
             pass
@@ -796,14 +798,19 @@ def check_graphiti_health() -> dict:
         results["details"]["embedder_provider"] = config.embedder_provider
     else:
         errors = config.get_validation_errors()
-        results["message"] = f"Configuration invalid: {errors[0] if errors else 'Unknown error'}"
+        results["message"] = (
+            f"Configuration invalid: {errors[0] if errors else 'Unknown error'}"
+        )
         return results
 
     # Check 2: Packages installed
     try:
         import graphiti_core  # noqa: F401
+
         results["checks"]["packages_installed"] = True
-        results["details"]["graphiti_version"] = getattr(graphiti_core, "__version__", "unknown")
+        results["details"]["graphiti_version"] = getattr(
+            graphiti_core, "__version__", "unknown"
+        )
     except ImportError as e:
         results["message"] = f"graphiti-core not installed: {e}"
         return results
@@ -812,11 +819,13 @@ def check_graphiti_health() -> dict:
     driver_name = None
     try:
         import real_ladybug  # noqa: F401
+
         driver_name = "ladybug"
         results["checks"]["driver_available"] = True
     except ImportError:
         try:
             import kuzu  # noqa: F401
+
             driver_name = "kuzu"
             results["checks"]["driver_available"] = True
         except ImportError:

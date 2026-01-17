@@ -171,7 +171,9 @@ def fetch_from_firecrawl(
         total_chars = 0
 
         for url in urls_to_fetch:
-            print(f"Fetching {framework_name} documentation from {url} via Firecrawl...")
+            print(
+                f"Fetching {framework_name} documentation from {url} via Firecrawl..."
+            )
 
             # Use Firecrawl scrape endpoint for single page
             response = requests.post(
@@ -230,7 +232,10 @@ def fetch_from_firecrawl(
         print(
             f"✓ Successfully fetched {framework_name} documentation via Firecrawl ({total_chars} chars from {len(all_content)} sections)"
         )
-        return True, f"Documentation cached at {docs_file} (source: Firecrawl, {len(all_content)} sections)"
+        return (
+            True,
+            f"Documentation cached at {docs_file} (source: Firecrawl, {len(all_content)} sections)",
+        )
 
     except requests.exceptions.RequestException as e:
         return False, f"Network error with Firecrawl: {e}"

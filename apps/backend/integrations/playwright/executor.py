@@ -97,7 +97,9 @@ async def get_page():
         # Setup error monitoring
         def handle_page_error(error):
             logger.error(f"Page error: {error}")
-            _console_logs.append({"type": "error", "text": str(error), "location": None})
+            _console_logs.append(
+                {"type": "error", "text": str(error), "location": None}
+            )
 
         _page.on("pageerror", handle_page_error)
 
@@ -198,7 +200,9 @@ async def execute_screenshot(
             spec_dir = os.environ.get("SPEC_DIR")
             if spec_dir:
                 screenshot_path = Path(spec_dir) / screenshot_path
-                logger.info(f"Using SPEC_DIR for relative screenshot path: {screenshot_path}")
+                logger.info(
+                    f"Using SPEC_DIR for relative screenshot path: {screenshot_path}"
+                )
 
         # Ensure directory exists
         screenshot_path.parent.mkdir(parents=True, exist_ok=True)
@@ -343,7 +347,9 @@ async def execute_assert(
                 "actual": actual_count,
                 "pass": count_pass,
             }
-            logger.info(f"Count assertion: expected={count}, actual={actual_count}, pass={count_pass}")
+            logger.info(
+                f"Count assertion: expected={count}, actual={actual_count}, pass={count_pass}"
+            )
 
         # Visibility assertion (default: true)
         if visible is not None or visible is None:
@@ -381,7 +387,9 @@ async def execute_assert(
                     "actual": actual_text,
                     "pass": text_match,
                 }
-                logger.info(f"Text assertion: expected='{text}', actual='{actual_text}', pass={text_match}")
+                logger.info(
+                    f"Text assertion: expected='{text}', actual='{actual_text}', pass={text_match}"
+                )
             except Exception as e:
                 results["text"] = {
                     "expected": text,
@@ -430,9 +438,13 @@ async def execute_get_console(filter_level: str = "all") -> dict[str, Any]:
         if filter_level == "all":
             filtered_logs = _console_logs
         else:
-            filtered_logs = [log for log in _console_logs if log["type"] == filter_level]
+            filtered_logs = [
+                log for log in _console_logs if log["type"] == filter_level
+            ]
 
-        logger.info(f"Retrieved {len(filtered_logs)} console logs (filter={filter_level})")
+        logger.info(
+            f"Retrieved {len(filtered_logs)} console logs (filter={filter_level})"
+        )
 
         return {
             "success": True,
@@ -557,7 +569,9 @@ test.describe('{test_name}', () => {{
 # =============================================================================
 
 
-async def execute_playwright_tool(tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
+async def execute_playwright_tool(
+    tool_name: str, tool_input: dict[str, Any]
+) -> dict[str, Any]:
     """
     Route tool execution to appropriate handler.
 

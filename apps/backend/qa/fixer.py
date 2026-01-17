@@ -236,10 +236,10 @@ async def run_qa_fixer_session(
                     "type": "user",
                     "message": {
                         "role": "user",
-                        "content": content_blocks  # Content as list of blocks
+                        "content": content_blocks,  # Content as list of blocks
                     },
                     "parent_tool_use_id": None,
-                    "session_id": "default"
+                    "session_id": "default",
                 }
 
             await client.query(multimodal_message())

@@ -251,12 +251,16 @@ class ContextBuilder:
         # Add UI framework info for frontend services
         if service_info.get("type") == "frontend":
             # Get styling framework (auto-detected or from ENV override)
-            styling = os.environ.get("UI_FRAMEWORK_STYLING") or service_info.get("styling")
+            styling = os.environ.get("UI_FRAMEWORK_STYLING") or service_info.get(
+                "styling"
+            )
             if styling:
                 context["styling"] = styling
 
             # Get UI component library (auto-detected or from ENV override)
-            ui_library = os.environ.get("UI_FRAMEWORK_LIBRARY") or service_info.get("ui_library")
+            ui_library = os.environ.get("UI_FRAMEWORK_LIBRARY") or service_info.get(
+                "ui_library"
+            )
             if ui_library:
                 context["ui_library"] = ui_library
 
@@ -284,13 +288,17 @@ class ContextBuilder:
                 context["ui_framework_instructions"] = ui_instructions
 
             # Get component path prefix (from ENV or default)
-            component_path = os.environ.get("UI_FRAMEWORK_COMPONENT_PATH", "@/components")
+            component_path = os.environ.get(
+                "UI_FRAMEWORK_COMPONENT_PATH", "@/components"
+            )
             context["component_path"] = component_path
 
         # Backend/CMS framework documentation
         if service_info.get("type") in ("backend", "cms"):
             # Get backend framework (auto-detected or from ENV override)
-            backend_framework = os.environ.get("BACKEND_FRAMEWORK") or service_info.get("framework")
+            backend_framework = os.environ.get("BACKEND_FRAMEWORK") or service_info.get(
+                "framework"
+            )
             if backend_framework:
                 context["framework"] = backend_framework
 

@@ -133,7 +133,11 @@ def find_spec(project_dir: Path, spec_identifier: str) -> Path | None:
             # Check both new and legacy paths inside worktree
             for inner_ouro_dir in [".ouro", ".auto-claude"]:
                 worktree_spec = (
-                    worktree_base / spec_identifier / inner_ouro_dir / "specs" / spec_identifier
+                    worktree_base
+                    / spec_identifier
+                    / inner_ouro_dir
+                    / "specs"
+                    / spec_identifier
                 )
                 if worktree_spec.exists() and (worktree_spec / "spec.md").exists():
                     return worktree_spec

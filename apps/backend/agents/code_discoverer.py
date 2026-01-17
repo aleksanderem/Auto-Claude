@@ -181,7 +181,7 @@ def _generate_discovery_prompt(
 
 **Working Directory**: `{project_dir}`
 **Spec Directory**: `{spec_dir.relative_to(project_dir)}`
-**Discovery Output**: `{spec_dir.relative_to(project_dir)}/discovery_{subtask.get('id')}.json`
+**Discovery Output**: `{spec_dir.relative_to(project_dir)}/discovery_{subtask.get("id")}.json`
 
 ---
 
@@ -191,10 +191,10 @@ def _generate_discovery_prompt(
 
     # Add subtask details
     subtask_section = f"""
-**Subtask ID**: {subtask.get('id')}
-**Description**: {subtask.get('description')}
-**Service**: {subtask.get('service', 'N/A')}
-**Phase**: {phase.get('name') if phase else 'N/A'}
+**Subtask ID**: {subtask.get("id")}
+**Description**: {subtask.get("description")}
+**Service**: {subtask.get("service", "N/A")}
+**Phase**: {phase.get("name") if phase else "N/A"}
 
 **Files to Modify**:
 """
@@ -207,7 +207,7 @@ def _generate_discovery_prompt(
 
     subtask_section += f"""
 **Verification Strategy**:
-{subtask.get('verification', 'No specific verification defined')}
+{subtask.get("verification", "No specific verification defined")}
 
 ---
 

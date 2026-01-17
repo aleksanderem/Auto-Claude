@@ -12,4 +12,8 @@ from .fetcher import (
     get_cached_docs_path,
 )
 
-__all__ = ["ensure_ui_docs_available", "fetch_ui_framework_docs", "get_cached_docs_path"]
+__all__ = [
+    "ensure_ui_docs_available",
+    "fetch_ui_framework_docs",
+    "get_cached_docs_path",
+]

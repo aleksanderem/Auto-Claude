@@ -284,7 +284,10 @@ class FrameworkDetector:
         }
 
         # WordPress via Composer (Bedrock, custom setups)
-        if any(pkg in deps for pkg in ["johnpbloch/wordpress", "roots/wordpress", "roots/bedrock"]):
+        if any(
+            pkg in deps
+            for pkg in ["johnpbloch/wordpress", "roots/wordpress", "roots/bedrock"]
+        ):
             self.frameworks.append("wordpress")
         if "laravel/framework" in deps:
             self.frameworks.append("laravel")

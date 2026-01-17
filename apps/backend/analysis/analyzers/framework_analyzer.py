@@ -92,7 +92,11 @@ class FrameworkAnalyzer(BaseAnalyzer):
             self._detect_ruby_framework(content)
 
         # PHP detection (check root AND common subdirectories for WordPress)
-        elif self._exists("composer.json") or self._exists("wp-config.php") or self._php_exists_in_subdirs():
+        elif (
+            self._exists("composer.json")
+            or self._exists("wp-config.php")
+            or self._php_exists_in_subdirs()
+        ):
             self.analysis["language"] = "PHP"
             self.analysis["package_manager"] = "composer"
             self._detect_php_framework()
@@ -222,22 +226,32 @@ class FrameworkAnalyzer(BaseAnalyzer):
         # Check for @untitledui packages in dependencies
         if any("@untitledui/" in k.lower() for k in deps_lower):
             untitled_ui_detected = True
-        elif self._exists("src/components/untitled-ui") or self._exists("components/untitled-ui"):
+        elif self._exists("src/components/untitled-ui") or self._exists(
+            "components/untitled-ui"
+        ):
             untitled_ui_detected = True
         elif self._exists("src/design-system") or self._exists("design-system"):
             # Check if design-system folder contains Untitled UI references
             design_system_paths = [
                 self.path / "src" / "design-system",
-                self.path / "design-system"
+                self.path / "design-system",
             ]
             for ds_path in design_system_paths:
                 if ds_path.exists():
                     # Look for Untitled UI markers in first few component files
-                    component_files = list(ds_path.glob("**/*.tsx"))[:5] + list(ds_path.glob("**/*.ts"))[:5]
+                    component_files = (
+                        list(ds_path.glob("**/*.tsx"))[:5]
+                        + list(ds_path.glob("**/*.ts"))[:5]
+                    )
                     for comp_file in component_files:
                         try:
-                            content = comp_file.read_text(encoding="utf-8", errors="ignore")
-                            if "untitled" in content.lower() and ("ui" in content.lower() or "design system" in content.lower()):
+                            content = comp_file.read_text(
+                                encoding="utf-8", errors="ignore"
+                            )
+                            if "untitled" in content.lower() and (
+                                "ui" in content.lower()
+                                or "design system" in content.lower()
+                            ):
                                 untitled_ui_detected = True
                                 break
                         except Exception:
@@ -370,11 +384,24 @@ class FrameworkAnalyzer(BaseAnalyzer):
         Check if PHP/WordPress files exist in common subdirectories.
         This enables PHP detection even when project root doesn't have composer.json.
         """
-        common_dirs = ["public", "app/public", "web", "wordpress", "wp", "html", "htdocs", "public_html", "www", "site"]
+        common_dirs = [
+            "public",
+            "app/public",
+            "web",
+            "wordpress",
+            "wp",
+            "html",
+            "htdocs",
+            "public_html",
+            "www",
+            "site",
+        ]
         for subdir in common_dirs:
             check_path = self.path / subdir
             if check_path.is_dir():
-                if (check_path / "wp-config.php").exists() or (check_path / "composer.json").exists():
+                if (check_path / "wp-config.php").exists() or (
+                    check_path / "composer.json"
+                ).exists():
                     return True
         return False
 
@@ -447,7 +474,10 @@ class FrameworkAnalyzer(BaseAnalyzer):
             }
 
             # WordPress via Composer (Bedrock, custom setups)
-            if any(pkg in deps for pkg in ["johnpbloch/wordpress", "roots/wordpress", "roots/bedrock"]):
+            if any(
+                pkg in deps
+                for pkg in ["johnpbloch/wordpress", "roots/wordpress", "roots/bedrock"]
+            ):
                 self.analysis["framework"] = "WordPress"
                 self.analysis["type"] = "cms"
                 detected_port = port_detector.detect_port_from_sources(8000)

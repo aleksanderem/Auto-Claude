@@ -52,7 +52,9 @@ def test_provider_naming():
         print(f"  Embedding Dimension: {dimension}")
         print(f"  Provider Signature: {signature}")
         print(f"  Database Name: {db_name}")
-        print(f"  Full Path: ~/.ouro/memories/{db_name}/ (legacy: ~/.auto-claude/memories/)")
+        print(
+            f"  Full Path: ~/.ouro/memories/{db_name}/ (legacy: ~/.auto-claude/memories/)"
+        )
         print()
 
     print("=" * 70)

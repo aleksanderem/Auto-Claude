@@ -262,7 +262,10 @@ class ServiceAnalyzer(BaseAnalyzer):
             if self._exists("package.json"):
                 pkg = self._read_json("package.json")
                 if pkg:
-                    deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
+                    deps = {
+                        **pkg.get("dependencies", {}),
+                        **pkg.get("devDependencies", {}),
+                    }
                     if "vitest" in deps:
                         self.analysis["testing"] = "Vitest"
                         self.analysis["test_command"] = "npm run test"

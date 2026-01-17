@@ -379,9 +379,7 @@ async def test_ollama_embeddings() -> bool:
         print()
         print("  Generating test embedding...")
 
-        test_text = (
-            "This is a test embedding for Ouro memory system using LadybugDB."
-        )
+        test_text = "This is a test embedding for Ouro memory system using LadybugDB."
 
         resp = requests.post(
             f"{ollama_base_url}/api/embeddings",
