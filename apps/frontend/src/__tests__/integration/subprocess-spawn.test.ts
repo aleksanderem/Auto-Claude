@@ -4,12 +4,13 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
-import { mkdirSync, rmSync, existsSync, writeFileSync } from 'fs';
+import { mkdirSync, rmSync, existsSync, writeFileSync, mkdtempSync } from 'fs';
+import { tmpdir } from 'os';
 import path from 'path';
 import { findPythonCommand, parsePythonCommand } from '../../main/python-detector';
 
-// Test directories
-const TEST_DIR = '/tmp/subprocess-spawn-test';
+// Test directories - use secure temp directory with unique name
+const TEST_DIR = mkdtempSync(path.join(tmpdir(), 'subprocess-spawn-test-'));
 const TEST_PROJECT_PATH = path.join(TEST_DIR, 'test-project');
 
 // Detect the Python command that will actually be used

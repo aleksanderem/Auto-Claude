@@ -62,23 +62,24 @@ async function executeMigration(projectPath: string): Promise<MigrationResult> {
     logger.info(`[Migration] Renaming ${legacyPath} to ${newPath}`);
     await fs.promises.rename(legacyPath, newPath);
 
-    // 2. Update .gitignore if it exists
+    // 2. Update .gitignore if it exists (use try/catch to avoid race condition)
     const gitignorePath = path.join(projectPath, '.gitignore');
-    if (fs.existsSync(gitignorePath)) {
-      try {
-        const gitignoreContent = await fs.promises.readFile(gitignorePath, 'utf-8');
+    try {
+      const gitignoreContent = await fs.promises.readFile(gitignorePath, 'utf-8');
 
-        // Replace all occurrences of .auto-claude with .ouro (single pass)
-        const newContent = gitignoreContent.replace(/\.auto-claude/g, '.ouro');
+      // Replace all occurrences of .auto-claude with .ouro (single pass)
+      const newContent = gitignoreContent.replace(/\.auto-claude/g, '.ouro');
 
-        if (newContent !== gitignoreContent) {
-          await fs.promises.writeFile(gitignorePath, newContent, 'utf-8');
-          logger.info('[Migration] Updated .gitignore');
-        }
-      } catch (gitignoreError) {
-        logger.warn('[Migration] Could not update .gitignore:', gitignoreError);
-        // Non-fatal, continue
+      if (newContent !== gitignoreContent) {
+        await fs.promises.writeFile(gitignorePath, newContent, 'utf-8');
+        logger.info('[Migration] Updated .gitignore');
       }
+    } catch (gitignoreError) {
+      // ENOENT means file doesn't exist - that's fine, skip silently
+      if ((gitignoreError as NodeJS.ErrnoException).code !== 'ENOENT') {
+        logger.warn('[Migration] Could not update .gitignore:', gitignoreError);
+      }
+      // Non-fatal, continue
     }
 
     // 3. Update project in store

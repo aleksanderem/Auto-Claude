@@ -324,20 +324,25 @@ async function updateClaudeMdSection(
 
   try {
     if (enable) {
-      // Read the supervisor section content
-      if (!fs.existsSync(sectionPath)) {
-        return {
-          success: false,
-          message: `Supervisor section file not found: ${sectionPath}`
-        };
+      // Read the supervisor section content (use try/catch to avoid race condition)
+      let sectionContent: string;
+      try {
+        sectionContent = fs.readFileSync(sectionPath, 'utf-8');
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+          return {
+            success: false,
+            message: `Supervisor section file not found: ${sectionPath}`
+          };
+        }
+        throw err;
       }
 
-      const sectionContent = fs.readFileSync(sectionPath, 'utf-8');
       const wrappedSection = `\n${CLAUDE_MD_START_MARKER}\n${sectionContent}\n${CLAUDE_MD_END_MARKER}\n`;
 
-      // Read or create CLAUDE.md
+      // Read or create CLAUDE.md (use try/catch to avoid race condition)
       let existingContent = '';
-      if (fs.existsSync(claudeMdPath)) {
+      try {
         existingContent = fs.readFileSync(claudeMdPath, 'utf-8');
 
         // Check if section already exists
@@ -347,9 +352,14 @@ async function updateClaudeMdSection(
             message: 'Supervisor section already present in CLAUDE.md'
           };
         }
+      } catch (err) {
+        // ENOENT means file doesn't exist - that's fine, we'll create it
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+          throw err;
+        }
       }
 
-      // Append section
+      // Append section (atomic write by writing complete content)
       const newContent = existingContent + wrappedSection;
       fs.writeFileSync(claudeMdPath, newContent, 'utf-8');
 
@@ -359,15 +369,19 @@ async function updateClaudeMdSection(
         filesCreated: [claudeMdPath]
       };
     } else {
-      // Remove section from CLAUDE.md
-      if (!fs.existsSync(claudeMdPath)) {
-        return {
-          success: true,
-          message: 'CLAUDE.md does not exist, nothing to remove'
-        };
+      // Remove section from CLAUDE.md (use try/catch to avoid race condition)
+      let content: string;
+      try {
+        content = fs.readFileSync(claudeMdPath, 'utf-8');
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+          return {
+            success: true,
+            message: 'CLAUDE.md does not exist, nothing to remove'
+          };
+        }
+        throw err;
       }
-
-      let content = fs.readFileSync(claudeMdPath, 'utf-8');
 
       // Remove section between markers
       const startIndex = content.indexOf(CLAUDE_MD_START_MARKER);
