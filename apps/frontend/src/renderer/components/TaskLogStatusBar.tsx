@@ -9,7 +9,7 @@ const MAX_LOG_LENGTH = 200; // Truncate long log lines
 
 function cleanLogContent(content: string): string {
   return content
-    .replace(/\x1b\[[0-9;]*m/g, '') // Remove ANSI codes
+    .replace(/\u001b\[[0-9;]*m/g, '') // Remove ANSI codes
     .replace(/__TASK_LOG[^:]*:[^\n]*/g, '') // Remove task log markers
     .replace(/\n/g, ' ') // Replace newlines with spaces
     .trim()

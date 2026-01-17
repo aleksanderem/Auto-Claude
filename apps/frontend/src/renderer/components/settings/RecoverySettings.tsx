@@ -16,7 +16,7 @@ interface RecoverySettingsProps {
  * Task Recovery settings component
  * Displays auto-recovery stats and allows configuration
  */
-export function RecoverySettings({}: RecoverySettingsProps) {
+export function RecoverySettings(_props: RecoverySettingsProps) {
   const { t } = useTranslation('settings');
   const [config, setConfig] = useState<RecoveryConfig | null>(null);
   const [stats, setStats] = useState<RecoveryStats | null>(null);
