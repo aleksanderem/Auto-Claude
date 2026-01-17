@@ -3,11 +3,25 @@
  */
 
 import path from 'path';
+import { existsSync } from 'fs';
 import type { IpcMainInvokeEvent } from 'electron';
-import { AUTO_BUILD_PATHS } from '../../../shared/constants';
+import { AUTO_BUILD_PATHS, LEGACY_BUILD_PATHS, getIdeationDir } from '../../../shared/constants';
 import type { IPCResult, IdeationStatus } from '../../../shared/types';
 import { projectStore } from '../../project-store';
 import { readIdeationFile, writeIdeationFile, updateIdeationTimestamp } from './file-utils';
+
+/**
+ * Find ideation path with legacy fallback
+ */
+function findIdeationPath(projectPath: string, autoBuildPath: string | undefined): string | null {
+  const newPath = path.join(projectPath, getIdeationDir(autoBuildPath), AUTO_BUILD_PATHS.IDEATION_FILE);
+  if (existsSync(newPath)) return newPath;
+
+  const legacyPath = path.join(projectPath, LEGACY_BUILD_PATHS.IDEATION_DIR, AUTO_BUILD_PATHS.IDEATION_FILE);
+  if (existsSync(legacyPath)) return legacyPath;
+
+  return null;
+}
 
 /**
  * Update an idea's status
@@ -23,11 +37,10 @@ export async function updateIdeaStatus(
     return { success: false, error: 'Project not found' };
   }
 
-  const ideationPath = path.join(
-    project.path,
-    AUTO_BUILD_PATHS.IDEATION_DIR,
-    AUTO_BUILD_PATHS.IDEATION_FILE
-  );
+  const ideationPath = findIdeationPath(project.path, project.autoBuildPath);
+  if (!ideationPath) {
+    return { success: false, error: 'Ideation not found' };
+  }
 
   const ideation = readIdeationFile(ideationPath);
   if (!ideation) {
@@ -67,11 +80,10 @@ export async function dismissIdea(
     return { success: false, error: 'Project not found' };
   }
 
-  const ideationPath = path.join(
-    project.path,
-    AUTO_BUILD_PATHS.IDEATION_DIR,
-    AUTO_BUILD_PATHS.IDEATION_FILE
-  );
+  const ideationPath = findIdeationPath(project.path, project.autoBuildPath);
+  if (!ideationPath) {
+    return { success: false, error: 'Ideation not found' };
+  }
 
   const ideation = readIdeationFile(ideationPath);
   if (!ideation) {
@@ -110,11 +122,10 @@ export async function dismissAllIdeas(
     return { success: false, error: 'Project not found' };
   }
 
-  const ideationPath = path.join(
-    project.path,
-    AUTO_BUILD_PATHS.IDEATION_DIR,
-    AUTO_BUILD_PATHS.IDEATION_FILE
-  );
+  const ideationPath = findIdeationPath(project.path, project.autoBuildPath);
+  if (!ideationPath) {
+    return { success: false, error: 'Ideation not found' };
+  }
 
   const ideation = readIdeationFile(ideationPath);
   if (!ideation) {
@@ -156,11 +167,10 @@ export async function archiveIdea(
     return { success: false, error: 'Project not found' };
   }
 
-  const ideationPath = path.join(
-    project.path,
-    AUTO_BUILD_PATHS.IDEATION_DIR,
-    AUTO_BUILD_PATHS.IDEATION_FILE
-  );
+  const ideationPath = findIdeationPath(project.path, project.autoBuildPath);
+  if (!ideationPath) {
+    return { success: false, error: 'Ideation not found' };
+  }
 
   const ideation = readIdeationFile(ideationPath);
   if (!ideation) {
@@ -199,11 +209,10 @@ export async function deleteIdea(
     return { success: false, error: 'Project not found' };
   }
 
-  const ideationPath = path.join(
-    project.path,
-    AUTO_BUILD_PATHS.IDEATION_DIR,
-    AUTO_BUILD_PATHS.IDEATION_FILE
-  );
+  const ideationPath = findIdeationPath(project.path, project.autoBuildPath);
+  if (!ideationPath) {
+    return { success: false, error: 'Ideation not found' };
+  }
 
   const ideation = readIdeationFile(ideationPath);
   if (!ideation) {
@@ -242,11 +251,10 @@ export async function deleteMultipleIdeas(
     return { success: false, error: 'Project not found' };
   }
 
-  const ideationPath = path.join(
-    project.path,
-    AUTO_BUILD_PATHS.IDEATION_DIR,
-    AUTO_BUILD_PATHS.IDEATION_FILE
-  );
+  const ideationPath = findIdeationPath(project.path, project.autoBuildPath);
+  if (!ideationPath) {
+    return { success: false, error: 'Ideation not found' };
+  }
 
   const ideation = readIdeationFile(ideationPath);
   if (!ideation) {
