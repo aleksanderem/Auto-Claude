@@ -177,3 +177,4 @@ OPUS_ANALYSIS_AND_IDEAS.md
 # Auto Claude generated files
 logs/security/
 /shared_docs
+.ouro-security.json

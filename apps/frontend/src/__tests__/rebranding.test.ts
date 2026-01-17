@@ -139,12 +139,14 @@ describe('Frontend Rebranding Tests', () => {
 
 describe('Package Configuration', () => {
   it('should have correct product name in package.json', async () => {
-    // This test verifies the package.json was updated
-    const packageJson = await import('../../../../package.json');
+    // This test verifies the frontend package.json was updated
+    const packageJson = await import('../../package.json') as {
+      default: { name: string; build: { productName: string; appId: string } }
+    };
 
-    expect(packageJson.name).toBe('ouro-ui');
-    expect(packageJson.build?.productName).toBe('Ouro');
-    expect(packageJson.build?.appId).toBe('com.ouro.app');
+    expect(packageJson.default.name).toBe('ouro');
+    expect(packageJson.default.build?.productName).toBe('Ouro');
+    expect(packageJson.default.build?.appId).toBe('com.ouro.app');
   });
 });
 
