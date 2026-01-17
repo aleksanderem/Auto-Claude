@@ -62,11 +62,14 @@ Thumbs.db
 # Tests (development only)
 tests/
 
-# Auto Claude data directory
-.auto-claude/
+# Ouro data directory
+.ouro/
+.auto-claude/  # Legacy support
 
-# Auto Claude generated files
-.auto-claude-security.json
-.auto-claude-status
+# Ouro generated files
+.ouro-security.json
+.ouro-status
+.auto-claude-security.json  # Legacy
+.auto-claude-status  # Legacy
 .security-key
 logs/security/

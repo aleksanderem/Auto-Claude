@@ -176,7 +176,13 @@ class GitHubMemoryIntegration:
             project_dir: Project root directory (for Graphiti namespacing)
         """
         self.repo = repo
-        self.state_dir = state_dir or Path(".auto-claude/github")
+        if state_dir is None:
+            # Prefer .ouro, fallback to .auto-claude for backwards compatibility
+            state_dir = Path(".ouro/github")
+            legacy_state_dir = Path(".auto-claude/github")
+            if not state_dir.exists() and legacy_state_dir.exists():
+                state_dir = legacy_state_dir
+        self.state_dir = state_dir
         self.project_dir = project_dir or Path.cwd()
         self.memory_dir = self.state_dir / "memory"
         self.memory_dir.mkdir(parents=True, exist_ok=True)

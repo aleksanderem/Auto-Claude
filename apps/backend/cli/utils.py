@@ -2,7 +2,7 @@
 CLI Utilities
 ==============
 
-Shared utility functions for the Auto Claude CLI.
+Shared utility functions for the Ouro CLI.
 """
 
 import os
@@ -77,19 +77,22 @@ def setup_environment() -> Path:
     Set up the environment and return the script directory.
 
     Returns:
-        Path to the auto-claude directory
+        Path to the ouro directory
     """
-    # Add auto-claude directory to path for imports
+    # Add ouro directory to path for imports
     script_dir = Path(__file__).parent.parent.resolve()
     sys.path.insert(0, str(script_dir))
 
-    # Load .env file - check both auto-claude/ and dev/auto-claude/ locations
+    # Load .env file - check ouro/, dev/ouro/, and legacy auto-claude/ locations
     env_file = script_dir / ".env"
-    dev_env_file = script_dir.parent / "dev" / "auto-claude" / ".env"
+    dev_env_file = script_dir.parent / "dev" / "ouro" / ".env"
+    legacy_dev_env_file = script_dir.parent / "dev" / "auto-claude" / ".env"
     if env_file.exists():
         load_dotenv(env_file)
     elif dev_env_file.exists():
         load_dotenv(dev_env_file)
+    elif legacy_dev_env_file.exists():
+        load_dotenv(legacy_dev_env_file)
 
     return script_dir
 
@@ -122,28 +125,33 @@ def find_spec(project_dir: Path, spec_identifier: str) -> Path | None:
                     return spec_folder
 
     # Check worktree specs (for merge-preview, merge, review, discard operations)
-    worktree_base = project_dir / ".auto-claude" / "worktrees" / "tasks"
-    if worktree_base.exists():
-        # Try exact match in worktree
-        worktree_spec = (
-            worktree_base / spec_identifier / ".auto-claude" / "specs" / spec_identifier
-        )
-        if worktree_spec.exists() and (worktree_spec / "spec.md").exists():
-            return worktree_spec
-
-        # Try matching by prefix in worktrees
-        for worktree_dir in worktree_base.iterdir():
-            if worktree_dir.is_dir() and worktree_dir.name.startswith(
-                spec_identifier + "-"
-            ):
-                spec_in_worktree = (
-                    worktree_dir / ".auto-claude" / "specs" / worktree_dir.name
+    # Try new .ouro path first, then legacy .auto-claude path for backwards compatibility
+    for ouro_dir in [".ouro", ".auto-claude"]:
+        worktree_base = project_dir / ouro_dir / "worktrees" / "tasks"
+        if worktree_base.exists():
+            # Try exact match in worktree
+            # Check both new and legacy paths inside worktree
+            for inner_ouro_dir in [".ouro", ".auto-claude"]:
+                worktree_spec = (
+                    worktree_base / spec_identifier / inner_ouro_dir / "specs" / spec_identifier
                 )
-                if (
-                    spec_in_worktree.exists()
-                    and (spec_in_worktree / "spec.md").exists()
+                if worktree_spec.exists() and (worktree_spec / "spec.md").exists():
+                    return worktree_spec
+
+            # Try matching by prefix in worktrees
+            for worktree_dir in worktree_base.iterdir():
+                if worktree_dir.is_dir() and worktree_dir.name.startswith(
+                    spec_identifier + "-"
                 ):
-                    return spec_in_worktree
+                    for inner_ouro_dir in [".ouro", ".auto-claude"]:
+                        spec_in_worktree = (
+                            worktree_dir / inner_ouro_dir / "specs" / worktree_dir.name
+                        )
+                        if (
+                            spec_in_worktree.exists()
+                            and (spec_in_worktree / "spec.md").exists()
+                        ):
+                            return spec_in_worktree
 
     return None
 
@@ -163,7 +171,7 @@ def validate_environment(spec_dir: Path) -> bool:
     # Check for OAuth token (API keys are not supported)
     if not get_auth_token():
         print("Error: No OAuth token found")
-        print("\nAuto Claude requires Claude Code OAuth authentication.")
+        print("\nOuro requires Claude Code OAuth authentication.")
         print("Direct API keys (ANTHROPIC_API_KEY) are not supported.")
         print("\nTo authenticate, run:")
         print("  claude setup-token")
@@ -270,8 +278,8 @@ def find_specs_dir(project_dir: Path) -> Path:
     """
     Find the specs directory for a project.
 
-    Returns the '.auto-claude/specs' directory path.
-    The directory is guaranteed to exist (get_specs_dir calls init_auto_claude_dir).
+    Returns the '.ouro/specs' directory path (or legacy '.auto-claude/specs' if it exists).
+    The directory is guaranteed to exist (get_specs_dir calls init_ouro_dir).
 
     Args:
         project_dir: Project root directory

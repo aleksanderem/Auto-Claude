@@ -40,17 +40,17 @@ class PrereqsValidator:
         # Check project_index.json
         project_index = self.spec_dir / "project_index.json"
         if not project_index.exists():
-            # Check if it exists at auto-claude level
-            auto_build_index = self.spec_dir.parent.parent / "project_index.json"
-            if auto_build_index.exists():
+            # Check if it exists at .ouro level (or legacy .auto-claude level)
+            ouro_index = self.spec_dir.parent.parent / "project_index.json"
+            if ouro_index.exists():
                 warnings.append(
-                    "project_index.json exists at auto-claude/ but not in spec folder"
+                    "project_index.json exists at .ouro/ but not in spec folder"
                 )
-                fixes.append(f"Copy: cp {auto_build_index} {project_index}")
+                fixes.append(f"Copy: cp {ouro_index} {project_index}")
             else:
                 errors.append("project_index.json not found")
                 fixes.append(
-                    "Run: python auto-claude/analyzer.py --output auto-claude/project_index.json"
+                    "Run: python ouro/analyzer.py --output .ouro/project_index.json"
                 )
 
         return ValidationResult(

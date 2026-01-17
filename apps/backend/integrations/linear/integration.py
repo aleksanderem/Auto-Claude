@@ -2,7 +2,7 @@
 Linear Integration Manager
 ==========================
 
-Manages synchronization between Auto-Build subtasks and Linear issues.
+Manages synchronization between Ouro subtasks and Linear issues.
 Provides real-time visibility into build progress through Linear.
 
 The integration is OPTIONAL - if LINEAR_API_KEY is not set, all operations
@@ -35,7 +35,7 @@ from .config import (
 
 class LinearManager:
     """
-    Manages Linear integration for an Auto-Build spec.
+    Manages Linear integration for an Ouro spec.
 
     This class provides a high-level interface for:
     - Creating/syncing issues from implementation_plan.json
@@ -473,7 +473,7 @@ Use mcp__linear-server__create_issue with:
 - title: "[subtask-id] Description"
 - description: Formatted subtask details
 - priority: Based on phase (1=urgent for early phases, 4=low for polish)
-- labels: ["auto-claude", "phase-N", "service-NAME"]
+- labels: ["ouro", "phase-N", "service-NAME"]
 ```
 Save the subtask_id -> issue_id mapping to .linear_project.json
 

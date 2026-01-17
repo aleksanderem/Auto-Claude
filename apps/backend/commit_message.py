@@ -265,11 +265,14 @@ def generate_commit_message_sync(
     Returns:
         Generated commit message or fallback message
     """
-    # Find spec directory
-    spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
+    # Find spec directory (check new location first, then legacy)
+    spec_dir = project_dir / ".ouro" / "specs" / spec_name
     if not spec_dir.exists():
-        # Try alternative location
-        spec_dir = project_dir / "auto-claude" / "specs" / spec_name
+        # Try legacy location
+        spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
+    if not spec_dir.exists():
+        # Try alternative legacy location
+        spec_dir = project_dir / "ouro" / "specs" / spec_name
 
     # Get context from spec files
     spec_context = _get_spec_context(spec_dir) if spec_dir.exists() else {}
@@ -342,10 +345,12 @@ async def generate_commit_message(
     Returns:
         Generated commit message or fallback message
     """
-    # Find spec directory
-    spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
+    # Find spec directory (check new location first, then legacy)
+    spec_dir = project_dir / ".ouro" / "specs" / spec_name
     if not spec_dir.exists():
-        spec_dir = project_dir / "auto-claude" / "specs" / spec_name
+        spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
+    if not spec_dir.exists():
+        spec_dir = project_dir / "ouro" / "specs" / spec_name
 
     # Get context from spec files
     spec_context = _get_spec_context(spec_dir) if spec_dir.exists() else {}

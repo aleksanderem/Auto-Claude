@@ -82,8 +82,11 @@ class GitLabOrchestrator:
         self.config = config
         self.progress_callback = progress_callback
 
-        # GitLab directory for storing state
-        self.gitlab_dir = self.project_dir / ".auto-claude" / "gitlab"
+        # GitLab directory for storing state (prefer .ouro, fallback to .auto-claude for backwards compatibility)
+        self.gitlab_dir = self.project_dir / ".ouro" / "gitlab"
+        legacy_gitlab_dir = self.project_dir / ".auto-claude" / "gitlab"
+        if not self.gitlab_dir.exists() and legacy_gitlab_dir.exists():
+            self.gitlab_dir = legacy_gitlab_dir  # Use legacy path for backwards compatibility
         self.gitlab_dir.mkdir(parents=True, exist_ok=True)
 
         # Load GitLab config

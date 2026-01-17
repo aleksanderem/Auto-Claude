@@ -170,9 +170,13 @@ Environment variables:
 
         print(f"Project directory: {project_dir}")
 
-        # Create manager
+        # Create manager with backwards compatibility for .auto-claude
+        worktree_dir = ".ouro/github/pr/worktrees"
+        legacy_worktree_dir = ".auto-claude/github/pr/worktrees"
+        if not (project_dir / worktree_dir).exists() and (project_dir / legacy_worktree_dir).exists():
+            worktree_dir = legacy_worktree_dir
         manager = PRWorktreeManager(
-            project_dir=project_dir, worktree_dir=".auto-claude/github/pr/worktrees"
+            project_dir=project_dir, worktree_dir=worktree_dir
         )
 
         # Execute actions

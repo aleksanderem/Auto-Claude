@@ -432,7 +432,7 @@ def main():
     )
     parser.add_argument(
         "--auto-claude-source",
-        help="Path to Auto-Claude source (DEV mode)",
+        help="Path to Ouro source (DEV mode, legacy flag name for backwards compatibility)",
     )
     args = parser.parse_args()
 
@@ -440,7 +440,7 @@ def main():
 
     project_dir = args.project_dir
     user_message = args.message
-    auto_claude_source = args.auto_claude_source
+    auto_claude_source = args.auto_claude_source  # Legacy name, refers to Ouro source
 
     debug(
         "manager_runner",

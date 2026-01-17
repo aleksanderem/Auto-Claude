@@ -5,7 +5,7 @@ Git Hook Installer for FileTimelineTracker
 Installs the post-commit hook for tracking main branch commits.
 
 Usage:
-    python -m auto_claude.merge.install_hook [--project-path /path/to/project]
+    python -m ouro.merge.install_hook [--project-path /path/to/project]
 """
 
 import argparse
@@ -44,7 +44,7 @@ if [[ "$BRANCH" == "main" ]] || [[ "$BRANCH" == "master" ]]; then
 
         # Try to notify the tracker
         # Run in background to avoid slowing down commits
-        ($PYTHON -m auto_claude.merge.tracker_cli notify-commit "$COMMIT_HASH" 2>/dev/null &) &
+        ($PYTHON -m ouro.merge.tracker_cli notify-commit "$COMMIT_HASH" 2>/dev/null &) &
 
         # Don't let hook failures block commits
         exit 0

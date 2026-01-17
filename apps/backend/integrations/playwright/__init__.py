@@ -2,7 +2,7 @@
 Playwright Integration Package
 ================================
 
-First-class Playwright testing tools for Auto Claude QA agents.
+First-class Playwright testing tools for Ouro QA agents.
 Provides browser automation, screenshot capture, console monitoring,
 and E2E test generation capabilities.
 """

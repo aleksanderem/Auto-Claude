@@ -16,7 +16,7 @@ from pathlib import Path
 
 def load_project_index(project_dir: Path) -> dict:
     """
-    Load project_index.json from the project's .auto-claude directory.
+    Load project_index.json from the project's .ouro directory (or legacy .auto-claude).
 
     Args:
         project_dir: Root directory of the project
@@ -24,7 +24,11 @@ def load_project_index(project_dir: Path) -> dict:
     Returns:
         Parsed project index dict, or empty dict if not found
     """
-    index_file = project_dir / ".auto-claude" / "project_index.json"
+    # Check .ouro first, fall back to .auto-claude for backwards compatibility
+    index_file = project_dir / ".ouro" / "project_index.json"
+    if not index_file.exists():
+        index_file = project_dir / ".auto-claude" / "project_index.json"
+
     if not index_file.exists():
         return {}
 

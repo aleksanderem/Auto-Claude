@@ -22,7 +22,10 @@ def run_script(project_dir: Path, script: str, args: list[str]) -> tuple[bool, s
     Returns:
         Tuple of (success: bool, output: str)
     """
-    script_path = project_dir / "auto-claude" / script
+    # Try new path first, fall back to legacy for backwards compatibility
+    script_path = project_dir / "ouro" / script
+    if not script_path.exists():
+        script_path = project_dir / "auto-claude" / script
 
     if not script_path.exists():
         return False, f"Script not found: {script_path}"

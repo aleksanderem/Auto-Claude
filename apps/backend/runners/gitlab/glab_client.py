@@ -246,11 +246,16 @@ class GitLabClient:
 
 
 def load_gitlab_config(project_dir: Path) -> GitLabConfig | None:
-    """Load GitLab config from project's .auto-claude/gitlab/config.json."""
-    config_path = project_dir / ".auto-claude" / "gitlab" / "config.json"
+    """Load GitLab config from project's .ouro/gitlab/config.json (legacy: .auto-claude/gitlab/config.json)."""
+    # Prefer .ouro, fallback to .auto-claude for backwards compatibility
+    config_path = project_dir / ".ouro" / "gitlab" / "config.json"
+    legacy_config_path = project_dir / ".auto-claude" / "gitlab" / "config.json"
 
     if not config_path.exists():
-        return None
+        if legacy_config_path.exists():
+            config_path = legacy_config_path  # Use legacy path
+        else:
+            return None
 
     try:
         with open(config_path) as f:

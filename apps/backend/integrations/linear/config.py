@@ -42,7 +42,7 @@ LABELS = {
     "phase": "phase",  # Phase label prefix (e.g., "phase-1")
     "service": "service",  # Service label prefix (e.g., "service-backend")
     "stuck": "stuck",  # Mark stuck subtasks
-    "auto_build": "auto-claude",  # All auto-claude issues
+    "auto_build": "ouro",  # All Ouro issues (legacy: "auto-claude")
     "needs_review": "needs-review",
 }
 
@@ -83,7 +83,7 @@ class LinearConfig:
 
 @dataclass
 class LinearProjectState:
-    """State of a Linear project for an auto-claude spec."""
+    """State of a Linear project for an Ouro spec."""
 
     initialized: bool = False
     team_id: str | None = None
@@ -245,9 +245,9 @@ def format_subtask_description(subtask: dict, phase: dict = None) -> str:
         if v.get("scenario"):
             lines.append(f"**Scenario:** {v['scenario']}")
 
-    # Auto-build metadata
+    # Ouro metadata
     lines.append("\n---")
-    lines.append("*This issue was created by the Auto-Build Framework*")
+    lines.append("*This issue was created by Ouro*")
 
     return "\n".join(lines)
 

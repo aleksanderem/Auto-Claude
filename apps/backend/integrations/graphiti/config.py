@@ -18,8 +18,9 @@ Environment Variables:
     GRAPHITI_EMBEDDER_PROVIDER: openai|voyage|azure_openai|ollama|google (default: openai)
 
     # Database
-    GRAPHITI_DATABASE: Graph database name (default: auto_claude_memory)
-    GRAPHITI_DB_PATH: Database storage path (default: ~/.auto-claude/memories)
+    GRAPHITI_DATABASE: Graph database name (default: ouro_memory)
+    GRAPHITI_DB_PATH: Database storage path (default: ~/.ouro/memories)
+                      Legacy path ~/.auto-claude/memories supported for backwards compatibility
 
     # OpenAI
     OPENAI_API_KEY: Required for OpenAI provider
@@ -64,9 +65,13 @@ from pathlib import Path
 from typing import Optional
 
 # Default configuration values
-DEFAULT_DATABASE = "auto_claude_memory"
-DEFAULT_DB_PATH = "~/.auto-claude/memories"
+DEFAULT_DATABASE = "ouro_memory"
+DEFAULT_DB_PATH = "~/.ouro/memories"
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
+
+# Legacy values (for backwards compatibility / migration detection)
+LEGACY_DATABASE = "auto_claude_memory"
+LEGACY_DB_PATH = "~/.auto-claude/memories"
 
 # Graphiti state marker file (stores connection info and status)
 GRAPHITI_STATE_MARKER = ".graphiti_state.json"
@@ -347,14 +352,25 @@ class GraphitiConfig:
 
     def get_db_path(self) -> Path:
         """
-        Get the resolved database path.
+        Get the resolved database path with backwards compatibility.
 
+        Checks for new .ouro path first, then falls back to legacy .auto-claude path.
         Expands ~ to home directory and appends the database name.
         Creates the parent directory if it doesn't exist (not the final
         database file/directory itself, which is created by the driver).
         """
         base_path = Path(self.db_path).expanduser()
         full_path = base_path / self.database
+
+        # Check if we should use legacy path for backwards compatibility
+        if str(self.db_path) == DEFAULT_DB_PATH:
+            legacy_base = Path(LEGACY_DB_PATH).expanduser()
+            legacy_full = legacy_base / self.database
+            # If legacy path exists and new path doesn't, use legacy
+            if legacy_full.exists() and not full_path.exists():
+                full_path = legacy_full
+                base_path = legacy_base
+
         full_path.parent.mkdir(parents=True, exist_ok=True)
         return full_path
 
@@ -440,7 +456,7 @@ class GraphitiConfig:
             base_name: Base database name (default: from config)
 
         Returns:
-            Database name with provider signature (e.g., "auto_claude_memory_ollama_768")
+            Database name with provider signature (e.g., "ouro_memory_ollama_768")
         """
         if base_name is None:
             base_name = self.database
@@ -464,7 +480,7 @@ class GraphitiConfig:
 
 @dataclass
 class GraphitiState:
-    """State of Graphiti integration for an auto-claude spec."""
+    """State of Graphiti integration for an Ouro spec."""
 
     initialized: bool = False
     database: str | None = None

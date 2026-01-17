@@ -1,21 +1,33 @@
 """
-Auto Claude project initialization utilities.
+Ouro project initialization utilities.
 
-Handles first-time setup of .auto-claude directory and ensures proper gitignore configuration.
+Handles first-time setup of .ouro directory and ensures proper gitignore configuration.
+Includes migration support for legacy .auto-claude directories.
 """
 
+import logging
 from pathlib import Path
 
-# All entries that should be added to .gitignore for auto-claude projects
-AUTO_CLAUDE_GITIGNORE_ENTRIES = [
-    ".auto-claude/",
-    ".auto-claude-security.json",
-    ".auto-claude-status",
+log = logging.getLogger(__name__)
+
+# All entries that should be added to .gitignore for Ouro projects
+OURO_GITIGNORE_ENTRIES = [
+    ".ouro/",
+    ".ouro-security.json",
+    ".ouro-status",
     ".claude_settings.json",
     ".worktrees/",
     ".security-key",
     "logs/security/",
+    # Legacy entries (for backwards compatibility during transition)
+    ".auto-claude/",
+    ".auto-claude-security.json",
+    ".auto-claude-status",
 ]
+
+# Legacy directory name (for migration)
+LEGACY_DATA_DIR = ".auto-claude"
+CURRENT_DATA_DIR = ".ouro"
 
 
 def _entry_exists_in_gitignore(lines: list[str], entry: str) -> bool:
@@ -33,7 +45,7 @@ def _entry_exists_in_gitignore(lines: list[str], entry: str) -> bool:
     return False
 
 
-def ensure_gitignore_entry(project_dir: Path, entry: str = ".auto-claude/") -> bool:
+def ensure_gitignore_entry(project_dir: Path, entry: str = ".ouro/") -> bool:
     """
     Ensure an entry exists in the project's .gitignore file.
 
@@ -41,7 +53,7 @@ def ensure_gitignore_entry(project_dir: Path, entry: str = ".auto-claude/") -> b
 
     Args:
         project_dir: The project root directory
-        entry: The gitignore entry to add (default: ".auto-claude/")
+        entry: The gitignore entry to add (default: ".ouro/")
 
     Returns:
         True if entry was added, False if it already existed
@@ -62,14 +74,14 @@ def ensure_gitignore_entry(project_dir: Path, entry: str = ".auto-claude/") -> b
             content += "\n"
 
         # Add a comment and the entry
-        content += "\n# Auto Claude data directory\n"
+        content += "\n# Ouro data directory\n"
         content += entry + "\n"
 
         gitignore_path.write_text(content)
         return True
     else:
         # Create new .gitignore with the entry
-        content = "# Auto Claude data directory\n"
+        content = "# Ouro data directory\n"
         content += entry + "\n"
 
         gitignore_path.write_text(content)
@@ -78,7 +90,7 @@ def ensure_gitignore_entry(project_dir: Path, entry: str = ".auto-claude/") -> b
 
 def ensure_all_gitignore_entries(project_dir: Path) -> list[str]:
     """
-    Ensure all auto-claude related entries exist in the project's .gitignore file.
+    Ensure all Ouro related entries exist in the project's .gitignore file.
 
     Creates .gitignore if it doesn't exist.
 
@@ -102,7 +114,7 @@ def ensure_all_gitignore_entries(project_dir: Path) -> list[str]:
     # Find entries that need to be added
     entries_to_add = [
         entry
-        for entry in AUTO_CLAUDE_GITIGNORE_ENTRIES
+        for entry in OURO_GITIGNORE_ENTRIES
         if not _entry_exists_in_gitignore(lines, entry)
     ]
 
@@ -114,7 +126,7 @@ def ensure_all_gitignore_entries(project_dir: Path) -> list[str]:
     if content and not content.endswith("\n"):
         content += "\n"
 
-    content += "\n# Auto Claude generated files\n"
+    content += "\n# Ouro generated files\n"
     for entry in entries_to_add:
         content += entry + "\n"
         added_entries.append(entry)
@@ -123,26 +135,58 @@ def ensure_all_gitignore_entries(project_dir: Path) -> list[str]:
     return added_entries
 
 
-def init_auto_claude_dir(project_dir: Path) -> tuple[Path, bool]:
+def _migrate_legacy_dir(project_dir: Path) -> bool:
     """
-    Initialize the .auto-claude directory for a project.
-
-    Creates the directory if needed and ensures all auto-claude files are in .gitignore.
+    Migrate legacy .auto-claude directory to .ouro if it exists.
 
     Args:
         project_dir: The project root directory
 
     Returns:
-        Tuple of (auto_claude_dir path, gitignore_was_updated)
+        True if migration was performed, False otherwise
     """
     project_dir = Path(project_dir)
-    auto_claude_dir = project_dir / ".auto-claude"
+    legacy_dir = project_dir / LEGACY_DATA_DIR
+    new_dir = project_dir / CURRENT_DATA_DIR
+
+    # Only migrate if legacy exists and new doesn't
+    if legacy_dir.exists() and not new_dir.exists():
+        try:
+            legacy_dir.rename(new_dir)
+            log.info(f"Migrated {LEGACY_DATA_DIR}/ → {CURRENT_DATA_DIR}/")
+            return True
+        except OSError as e:
+            log.warning(f"Failed to migrate legacy directory: {e}")
+            return False
+
+    return False
+
+
+def init_ouro_dir(project_dir: Path) -> tuple[Path, bool]:
+    """
+    Initialize the .ouro directory for a project.
+
+    Creates the directory if needed, migrates from legacy .auto-claude if present,
+    and ensures all Ouro files are in .gitignore.
+
+    Args:
+        project_dir: The project root directory
+
+    Returns:
+        Tuple of (ouro_dir path, gitignore_was_updated)
+    """
+    project_dir = Path(project_dir)
+
+    # Check for and migrate legacy directory
+    _migrate_legacy_dir(project_dir)
+
+    ouro_dir = project_dir / CURRENT_DATA_DIR
 
     # Create the directory if it doesn't exist
-    dir_created = not auto_claude_dir.exists()
-    auto_claude_dir.mkdir(parents=True, exist_ok=True)
+    dir_created = not ouro_dir.exists()
+    ouro_dir.mkdir(parents=True, exist_ok=True)
 
-    # Ensure all auto-claude entries are in .gitignore (only on first creation)
+    # Ensure all Ouro entries are in .gitignore (only on first creation)
     gitignore_updated = False
     if dir_created:
         added = ensure_all_gitignore_entries(project_dir)
@@ -150,36 +194,54 @@ def init_auto_claude_dir(project_dir: Path) -> tuple[Path, bool]:
     else:
         # Even if dir exists, check gitignore on first run
         # Use a marker file to track if we've already checked
-        marker = auto_claude_dir / ".gitignore_checked"
+        marker = ouro_dir / ".gitignore_checked"
         if not marker.exists():
             added = ensure_all_gitignore_entries(project_dir)
             gitignore_updated = len(added) > 0
             marker.touch()
 
-    return auto_claude_dir, gitignore_updated
+    return ouro_dir, gitignore_updated
 
 
-def get_auto_claude_dir(project_dir: Path, ensure_exists: bool = True) -> Path:
+# Backwards compatibility alias
+def init_auto_claude_dir(project_dir: Path) -> tuple[Path, bool]:
+    """Deprecated: Use init_ouro_dir instead."""
+    return init_ouro_dir(project_dir)
+
+
+def get_ouro_dir(project_dir: Path, ensure_exists: bool = True) -> Path:
     """
-    Get the .auto-claude directory path, optionally ensuring it exists.
+    Get the .ouro directory path, optionally ensuring it exists.
+
+    Automatically migrates from legacy .auto-claude directory if present.
 
     Args:
         project_dir: The project root directory
         ensure_exists: If True, create directory and update gitignore if needed
 
     Returns:
-        Path to the .auto-claude directory
+        Path to the .ouro directory
     """
     if ensure_exists:
-        auto_claude_dir, _ = init_auto_claude_dir(project_dir)
-        return auto_claude_dir
+        ouro_dir, _ = init_ouro_dir(project_dir)
+        return ouro_dir
 
-    return Path(project_dir) / ".auto-claude"
+    # Check for migration even when not ensuring exists
+    project_dir = Path(project_dir)
+    _migrate_legacy_dir(project_dir)
+
+    return project_dir / CURRENT_DATA_DIR
+
+
+# Backwards compatibility alias
+def get_auto_claude_dir(project_dir: Path, ensure_exists: bool = True) -> Path:
+    """Deprecated: Use get_ouro_dir instead."""
+    return get_ouro_dir(project_dir, ensure_exists)
 
 
 def repair_gitignore(project_dir: Path) -> list[str]:
     """
-    Repair an existing project's .gitignore to include all auto-claude entries.
+    Repair an existing project's .gitignore to include all Ouro entries.
 
     This is useful for projects created before all entries were being added,
     or when gitignore entries were manually removed.
@@ -193,10 +255,10 @@ def repair_gitignore(project_dir: Path) -> list[str]:
         List of entries that were added (empty if all already existed)
     """
     project_dir = Path(project_dir)
-    auto_claude_dir = project_dir / ".auto-claude"
+    ouro_dir = project_dir / CURRENT_DATA_DIR
 
     # Remove the marker file so future checks will also run
-    marker = auto_claude_dir / ".gitignore_checked"
+    marker = ouro_dir / ".gitignore_checked"
     if marker.exists():
         marker.unlink()
 
@@ -204,7 +266,7 @@ def repair_gitignore(project_dir: Path) -> list[str]:
     added = ensure_all_gitignore_entries(project_dir)
 
     # Re-create the marker
-    if auto_claude_dir.exists():
+    if ouro_dir.exists():
         marker.touch()
 
     return added

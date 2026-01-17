@@ -81,8 +81,13 @@ def get_config(args) -> GitLabRunnerConfig:
                     break
 
     if not project:
-        # Try to detect from .auto-claude/gitlab/config.json
-        config_path = Path(args.project_dir) / ".auto-claude" / "gitlab" / "config.json"
+        # Try to detect from .ouro/gitlab/config.json (or legacy .auto-claude/gitlab/config.json for backwards compatibility)
+        config_path = Path(args.project_dir) / ".ouro" / "gitlab" / "config.json"
+        legacy_config_path = Path(args.project_dir) / ".auto-claude" / "gitlab" / "config.json"
+        if config_path.exists():
+            pass  # Use new path
+        elif legacy_config_path.exists():
+            config_path = legacy_config_path  # Fallback to legacy path
         if config_path.exists():
             try:
                 with open(config_path) as f:
