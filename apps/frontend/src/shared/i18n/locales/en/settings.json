@@ -357,6 +357,13 @@
       "integrationTitle": "UI Framework Documentation",
       "integrationDescription": "Automatic documentation fetching for UI component libraries",
       "syncDescription": "Configure automatic UI framework documentation fetching"
+    },
+    "supervisor": {
+      "title": "Supervisor",
+      "description": "Claude Code supervisor mode",
+      "integrationTitle": "Supervisor Mode",
+      "integrationDescription": "Force Claude Code into supervisor role for this project",
+      "syncDescription": "Configure Claude Code supervisor mode"
     }
   },
   "agentProfile": {
@@ -485,6 +492,30 @@
       "title": "No Project Selected",
       "description": "Select a project from the sidebar to configure its settings."
     }
+  },
+  "supervisor": {
+    "title": "Supervisor Mode",
+    "description": "When enabled, Claude Code acts as a supervisor that delegates tasks to Ouro instead of implementing them directly.",
+    "installed": "Installed",
+    "notInstalled": "Not Installed",
+    "install": "Install Plugin",
+    "installing": "Installing...",
+    "uninstall": "Uninstall Plugin",
+    "uninstalling": "Uninstalling...",
+    "includeClaude": "Include CLAUDE.md Section",
+    "includeClaudeDescription": "Add supervisor role instructions to project's CLAUDE.md file",
+    "claudeMdToggle": "CLAUDE.md Section",
+    "claudeMdSection": "CLAUDE.md Section",
+    "hookifyRules": "Hookify Protection Rules",
+    "commands": "Slash Commands",
+    "whatItDoes": "What Supervisor Mode Does",
+    "feature1": "Blocks destructive commands on .ouro/ directory (rm, rmdir, mv)",
+    "feature2": "Warns when editing implementation files in .ouro/specs/",
+    "feature3": "Provides slash commands for managing Ouro builds (/ouro-status, /ouro-run, etc.)",
+    "errorLoadingStatus": "Failed to load supervisor plugin status",
+    "errorInstalling": "Failed to install supervisor plugin",
+    "errorUninstalling": "Failed to uninstall supervisor plugin",
+    "errorUpdatingClaudeMd": "Failed to update CLAUDE.md"
   },
   "mcp": {
     "title": "MCP Server Overview",

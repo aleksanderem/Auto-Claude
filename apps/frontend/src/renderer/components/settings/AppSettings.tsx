@@ -21,7 +21,8 @@ import {
   Bug,
   Server,
   FileText,
-  RefreshCw
+  RefreshCw,
+  Shield
 } from 'lucide-react';
 
 // GitLab icon component (lucide-react doesn't have one)
@@ -99,7 +100,8 @@ const projectNavItemsConfig: NavItemConfig<ProjectSettingsSection>[] = [
   { id: 'github', icon: Github },
   { id: 'gitlab', icon: GitLabIcon },
   { id: 'memory', icon: Database },
-  { id: 'ui-docs', icon: FileText }
+  { id: 'ui-docs', icon: FileText },
+  { id: 'supervisor', icon: Shield }
 ];
 
 /**

@@ -357,6 +357,13 @@
       "integrationTitle": "Documentation des Frameworks UI",
       "integrationDescription": "Récupération automatique de la documentation des bibliothèques de composants UI",
       "syncDescription": "Configurer la récupération automatique de documentation UI"
+    },
+    "supervisor": {
+      "title": "Superviseur",
+      "description": "Mode superviseur Claude Code",
+      "integrationTitle": "Mode Superviseur",
+      "integrationDescription": "Forcer Claude Code en rôle superviseur pour ce projet",
+      "syncDescription": "Configurer le mode superviseur Claude Code"
     }
   },
   "agentProfile": {
@@ -485,6 +492,30 @@
       "title": "Aucun projet sélectionné",
       "description": "Sélectionnez un projet dans la barre latérale pour configurer ses paramètres."
     }
+  },
+  "supervisor": {
+    "title": "Mode Superviseur",
+    "description": "Quand activé, Claude Code agit comme superviseur qui délègue les tâches à Ouro au lieu de les implémenter directement.",
+    "installed": "Installé",
+    "notInstalled": "Non installé",
+    "install": "Installer le plugin",
+    "installing": "Installation...",
+    "uninstall": "Désinstaller le plugin",
+    "uninstalling": "Désinstallation...",
+    "includeClaude": "Inclure la section CLAUDE.md",
+    "includeClaudeDescription": "Ajouter les instructions du rôle superviseur au fichier CLAUDE.md du projet",
+    "claudeMdToggle": "Section CLAUDE.md",
+    "claudeMdSection": "Section CLAUDE.md",
+    "hookifyRules": "Règles de protection Hookify",
+    "commands": "Commandes slash",
+    "whatItDoes": "Ce que fait le mode superviseur",
+    "feature1": "Bloque les commandes destructrices sur le répertoire .ouro/ (rm, rmdir, mv)",
+    "feature2": "Avertit lors de l'édition des fichiers d'implémentation dans .ouro/specs/",
+    "feature3": "Fournit des commandes slash pour gérer les builds Ouro (/ouro-status, /ouro-run, etc.)",
+    "errorLoadingStatus": "Échec du chargement du statut du plugin superviseur",
+    "errorInstalling": "Échec de l'installation du plugin superviseur",
+    "errorUninstalling": "Échec de la désinstallation du plugin superviseur",
+    "errorUpdatingClaudeMd": "Échec de la mise à jour de CLAUDE.md"
   },
   "mcp": {
     "title": "Aperçu des serveurs MCP",

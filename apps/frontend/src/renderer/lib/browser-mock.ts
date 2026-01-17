@@ -337,7 +337,30 @@ const browserMockAPI: ElectronAPI = {
   openLogsFolder: async () => ({ success: false, error: 'Not available in browser mode' }),
   copyDebugInfo: async () => ({ success: false, error: 'Not available in browser mode' }),
   getRecentErrors: async () => [],
-  listLogFiles: async () => []
+  listLogFiles: async () => [],
+
+  // Supervisor Plugin Operations
+  getSupervisorStatus: async () => ({
+    success: true,
+    data: {
+      installed: false,
+      hookifyRulesPresent: false,
+      commandsPresent: false,
+      claudeMdSectionPresent: false
+    }
+  }),
+  installSupervisor: async () => ({
+    success: false,
+    data: { success: false, message: 'Not available in browser mode' }
+  }),
+  uninstallSupervisor: async () => ({
+    success: false,
+    data: { success: false, message: 'Not available in browser mode' }
+  }),
+  updateSupervisorClaudeMd: async () => ({
+    success: false,
+    data: { success: false, message: 'Not available in browser mode' }
+  })
 };
 
 /**

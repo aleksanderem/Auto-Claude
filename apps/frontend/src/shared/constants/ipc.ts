@@ -542,5 +542,11 @@ export const IPC_CHANNELS = {
   // Sentry error reporting
   SENTRY_STATE_CHANGED: 'sentry:state-changed',  // Notify main process when setting changes
   GET_SENTRY_DSN: 'sentry:get-dsn',              // Get DSN from main process (env var)
-  GET_SENTRY_CONFIG: 'sentry:get-config'         // Get full Sentry config (DSN + sample rates)
+  GET_SENTRY_CONFIG: 'sentry:get-config',        // Get full Sentry config (DSN + sample rates)
+
+  // Supervisor plugin operations (Claude Code supervisor mode)
+  SUPERVISOR_GET_STATUS: 'supervisor:getStatus',           // Check if plugin installed for project
+  SUPERVISOR_INSTALL: 'supervisor:install',                // Install plugin files to project
+  SUPERVISOR_UNINSTALL: 'supervisor:uninstall',            // Remove plugin files from project
+  SUPERVISOR_UPDATE_CLAUDE_MD: 'supervisor:updateClaudeMd' // Add/remove supervisor section from CLAUDE.md
 } as const;

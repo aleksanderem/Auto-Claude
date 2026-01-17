@@ -7,6 +7,7 @@ import { UIFrameworkDocsSection } from '../../project-settings/UIFrameworkDocsSe
 import { LinearIntegration } from '../integrations/LinearIntegration';
 import { GitHubIntegration } from '../integrations/GitHubIntegration';
 import { GitLabIntegration } from '../integrations/GitLabIntegration';
+import { SupervisorModeSection } from '../SupervisorModeSection';
 import { InitializationGuard } from '../common/InitializationGuard';
 import type { ProjectSettingsSection } from '../ProjectSettingsContent';
 
@@ -218,6 +219,16 @@ export function SectionRouter({
               projectId={project.id}
             />
           </InitializationGuard>
+        </SettingsSection>
+      );
+
+    case 'supervisor':
+      return (
+        <SettingsSection
+          title={t('projectSections.supervisor.integrationTitle')}
+          description={t('projectSections.supervisor.integrationDescription')}
+        >
+          <SupervisorModeSection projectPath={project.path} />
         </SettingsSection>
       );
 
