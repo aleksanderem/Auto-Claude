@@ -13,5 +13,6 @@ export { contextMock } from './context-mock';
 export { integrationMock } from './integration-mock';
 export { changelogMock } from './changelog-mock';
 export { insightsMock } from './insights-mock';
+export { managerMock } from './manager-mock';
 export { infrastructureMock } from './infrastructure-mock';
 export { settingsMock } from './settings-mock';

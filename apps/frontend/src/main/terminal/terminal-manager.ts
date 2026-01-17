@@ -171,6 +171,40 @@ export class TerminalManager {
   }
 
   /**
+   * Invoke Claude with a custom system prompt (for Project Manager sidebar)
+   */
+  async invokeClaudeWithSystemPromptAsync(
+    id: string,
+    systemPrompt: string,
+    cwd?: string,
+    profileId?: string,
+    dangerouslySkipPermissions?: boolean
+  ): Promise<void> {
+    const terminal = this.terminals.get(id);
+    if (!terminal) {
+      return;
+    }
+
+    await ClaudeIntegration.invokeClaudeWithSystemPromptAsync(
+      terminal,
+      systemPrompt,
+      cwd,
+      profileId,
+      this.getWindow,
+      (terminalId, projectPath, startTime) => {
+        SessionHandler.captureClaudeSessionId(
+          terminalId,
+          projectPath,
+          startTime,
+          this.terminals,
+          this.getWindow
+        );
+      },
+      dangerouslySkipPermissions
+    );
+  }
+
+  /**
    * Invoke Claude in a terminal with optional profile override
    * @deprecated Use invokeClaudeAsync for non-blocking behavior
    */

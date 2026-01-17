@@ -283,6 +283,9 @@ export interface AppSettings {
   dangerouslySkipPermissions?: boolean;
   // Anonymous error reporting (Sentry) - enabled by default to help improve the app
   sentryEnabled?: boolean;
+  // Project Manager sidebar
+  managerSidebarOpen?: boolean;
+  managerSidebarWidth?: number; // pixels, default 400
 }
 
 // Auto-Claude Source Environment Configuration (for auto-claude repo .env)

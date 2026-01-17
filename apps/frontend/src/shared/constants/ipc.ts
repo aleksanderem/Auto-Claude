@@ -69,6 +69,7 @@ export const IPC_CHANNELS = {
   TERMINAL_INPUT: 'terminal:input',
   TERMINAL_RESIZE: 'terminal:resize',
   TERMINAL_INVOKE_CLAUDE: 'terminal:invokeClaude',
+  TERMINAL_INVOKE_CLAUDE_WITH_SYSTEM_PROMPT: 'terminal:invokeClaudeWithSystemPrompt',
   TERMINAL_GENERATE_NAME: 'terminal:generateName',
   TERMINAL_SET_TITLE: 'terminal:setTitle',  // Renderer -> Main: user renamed terminal
   TERMINAL_SET_WORKTREE_CONFIG: 'terminal:setWorktreeConfig',  // Renderer -> Main: worktree association changed
@@ -474,6 +475,13 @@ export const IPC_CHANNELS = {
   INSIGHTS_STREAM_CHUNK: 'insights:streamChunk',
   INSIGHTS_STATUS: 'insights:status',
   INSIGHTS_ERROR: 'insights:error',
+
+  // Manager operations (Project Manager chat sidebar)
+  MANAGER_SEND_MESSAGE: 'manager:sendMessage',
+  MANAGER_CANCEL: 'manager:cancel',
+
+  // Manager events (main -> renderer)
+  MANAGER_STREAM_CHUNK: 'manager:streamChunk',
 
   // File explorer operations
   FILE_EXPLORER_LIST: 'fileExplorer:list',

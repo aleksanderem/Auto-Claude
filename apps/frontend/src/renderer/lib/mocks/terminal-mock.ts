@@ -25,6 +25,10 @@ export const terminalMock = {
     console.warn('[Browser Mock] invokeClaudeInTerminal called');
   },
 
+  invokeClaudeWithSystemPrompt: () => {
+    console.warn('[Browser Mock] invokeClaudeWithSystemPrompt called');
+  },
+
   generateTerminalName: async () => ({
     success: true,
     data: 'Mock Terminal'
