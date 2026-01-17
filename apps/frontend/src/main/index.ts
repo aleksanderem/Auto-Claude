@@ -1,25 +1,21 @@
 // EARLY DEBUG: Write to file to track startup since console.log may not work in packaged app
-import { appendFileSync as debugAppendFileSync, writeFileSync as debugWriteFileSync } from 'fs';
+import { appendFileSync as debugAppendFileSync, writeFileSync as debugWriteFileSync, mkdirSync as debugMkdirSync, existsSync as debugExistsSync } from 'fs';
 import { homedir as debugHomedir } from 'os';
 import { join as debugJoin } from 'path';
 
-// Try multiple locations for debug log
-const DEBUG_LOG_PATHS = [
-  '/tmp/ouro-startup-debug.log',
-  debugJoin(debugHomedir(), 'ouro-startup-debug.log'),
-];
+// Use secure log location in user's home directory (avoid /tmp for security)
+// ~/.ouro/logs/ is user-owned and not world-writable
+const DEBUG_LOG_DIR = debugJoin(debugHomedir(), '.ouro', 'logs');
+const DEBUG_LOG_PATH = debugJoin(DEBUG_LOG_DIR, 'startup-debug.log');
 
-let DEBUG_LOG_PATH = DEBUG_LOG_PATHS[0];
-
-// Clear previous log and start fresh - try each location
-for (const path of DEBUG_LOG_PATHS) {
-  try {
-    debugWriteFileSync(path, `=== Ouro Startup Debug Log ===\nStarted: ${new Date().toISOString()}\nPath: ${path}\n\n`);
-    DEBUG_LOG_PATH = path;
-    break;
-  } catch (e) {
-    // Try next path
+// Ensure log directory exists and start fresh log
+try {
+  if (!debugExistsSync(DEBUG_LOG_DIR)) {
+    debugMkdirSync(DEBUG_LOG_DIR, { recursive: true, mode: 0o700 }); // User-only permissions
   }
+  debugWriteFileSync(DEBUG_LOG_PATH, `=== Ouro Startup Debug Log ===\nStarted: ${new Date().toISOString()}\nPath: ${DEBUG_LOG_PATH}\n\n`, { mode: 0o600 });
+} catch {
+  // If we can't write logs, continue silently - startup logging is optional
 }
 
 function startupLog(msg: string): void {

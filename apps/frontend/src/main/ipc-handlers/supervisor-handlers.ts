@@ -19,6 +19,16 @@ import type {
 } from '../../shared/types/supervisor';
 import type { IPCResult } from '../../shared/types/common';
 import { logger } from '../app-logger';
+import { projectStore } from '../project-store';
+
+/**
+ * Validate that projectPath is a registered project directory.
+ * This prevents arbitrary file operations on non-project directories.
+ */
+function isValidProjectPath(projectPath: string): boolean {
+  const projects = projectStore.getProjects();
+  return projects.some(p => p.path === projectPath);
+}
 
 // Plugin file names (rebranded to Ouro)
 const HOOK_FILES = [
@@ -131,6 +141,15 @@ async function installPlugin(
   projectPath: string,
   options: SupervisorPluginInstallOptions = {}
 ): Promise<SupervisorPluginResult> {
+  // Security: validate projectPath is a registered project
+  if (!isValidProjectPath(projectPath)) {
+    logger.warn(`[Supervisor] Rejected install for unregistered project path: ${projectPath}`);
+    return {
+      success: false,
+      message: 'Invalid project path: not a registered project'
+    };
+  }
+
   const resourcesPath = getPluginResourcesPath();
   const claudeDir = path.join(projectPath, '.claude');
   const hooksDir = path.join(claudeDir, 'hooks');
@@ -233,6 +252,15 @@ async function installPlugin(
  * Uninstall supervisor plugin from a project
  */
 async function uninstallPlugin(projectPath: string): Promise<SupervisorPluginResult> {
+  // Security: validate projectPath is a registered project
+  if (!isValidProjectPath(projectPath)) {
+    logger.warn(`[Supervisor] Rejected uninstall for unregistered project path: ${projectPath}`);
+    return {
+      success: false,
+      message: 'Invalid project path: not a registered project'
+    };
+  }
+
   const claudeDir = path.join(projectPath, '.claude');
   const hooksDir = path.join(claudeDir, 'hooks');
   const commandsDir = path.join(claudeDir, 'commands');
