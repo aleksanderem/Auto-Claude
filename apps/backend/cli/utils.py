@@ -224,7 +224,7 @@ def validate_environment(spec_dir: Path) -> bool:
         print(f"  Providers: LLM={llm}, Embedder={embedder}")
     elif graphiti_health["checks"].get("config_valid"):
         # Configured but something is wrong
-        print(f"Graphiti memory: ⚠ UNHEALTHY")
+        print("Graphiti memory: ⚠ UNHEALTHY")
         print(f"  Issue: {graphiti_health['message']}")
         # Show which checks failed
         failed_checks = [k for k, v in graphiti_health["checks"].items() if not v]

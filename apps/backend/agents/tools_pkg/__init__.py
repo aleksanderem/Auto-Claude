@@ -63,10 +63,10 @@ from .permissions import (
     get_allowed_tools,
 )
 from .registry import (
-    create_ouro_mcp_server,
-    is_tools_available,
     # Backwards compatibility alias
     create_auto_claude_mcp_server,
+    create_ouro_mcp_server,
+    is_tools_available,
 )
 
 __all__ = [

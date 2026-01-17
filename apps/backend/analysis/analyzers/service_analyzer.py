@@ -12,12 +12,12 @@ import re
 from pathlib import Path
 from typing import Any
 
+from ..test_discovery import TestDiscovery
 from .base import BaseAnalyzer
 from .context_analyzer import ContextAnalyzer
 from .database_detector import DatabaseDetector
 from .framework_analyzer import FrameworkAnalyzer
 from .route_detector import RouteDetector
-from ..test_discovery import TestDiscovery
 
 
 class ServiceAnalyzer(BaseAnalyzer):

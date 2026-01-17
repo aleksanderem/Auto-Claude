@@ -593,7 +593,8 @@ async def run_autonomous_agent(
                     task_logger.log_error(f"Build stopped: {stop_reason}", current_log_phase)
 
                 # Save circuit breaker error to implementation_plan for UI display
-                from qa.criteria import load_implementation_plan as load_plan, save_implementation_plan
+                from qa.criteria import load_implementation_plan as load_plan
+                from qa.criteria import save_implementation_plan
                 plan = load_plan(spec_dir)
                 if plan:
                     plan["status"] = "error"

@@ -6,7 +6,6 @@ Specialized agent using Opus 4.5 with ultrathink for deep codebase exploration
 before subtask implementation.
 """
 
-import asyncio
 import json
 import logging
 from pathlib import Path

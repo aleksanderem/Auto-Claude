@@ -79,7 +79,7 @@ async def bash_security_hook(
 
         # Get spec directory from environment (set by coder/qa agents)
         spec_dir = os.environ.get("SPEC_DIR")
-        project_root = os.environ.get(PROJECT_DIR_ENV_VAR) or cwd
+        project_root = os.environ.get("PROJECT_DIR") or os.getcwd()
 
         for file_path in file_paths:
             # Skip relative paths - they're fine (will resolve to cwd)
@@ -92,8 +92,8 @@ async def bash_security_hook(
                     "decision": "block",
                     "reason": (
                         "Paths to /tmp are blocked (files will be deleted after task completion).\n"
-                        f"Use absolute path to spec directory: $SPEC_DIR/qa-screenshots/file.png\n"
-                        f"Or use relative path: ./qa-screenshots/file.png"
+                        "Use absolute path to spec directory: $SPEC_DIR/qa-screenshots/file.png\n"
+                        "Or use relative path: ./qa-screenshots/file.png"
                     ),
                 }
 

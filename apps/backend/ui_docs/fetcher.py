@@ -13,10 +13,8 @@ Priority order:
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 import requests
-
 
 # UI Framework documentation URLs
 FRAMEWORK_DOCS = {
@@ -49,7 +47,7 @@ FRAMEWORK_DOCS = {
 }
 
 
-def get_cached_docs_path(framework_name: str, project_dir: Path) -> Optional[Path]:
+def get_cached_docs_path(framework_name: str, project_dir: Path) -> Path | None:
     """
     Get path to cached UI framework documentation.
 
@@ -214,7 +212,7 @@ def fetch_from_firecrawl(
 
 
 def fetch_ui_framework_docs(
-    framework_name: str, project_dir: Path, firecrawl_api_key: Optional[str] = None
+    framework_name: str, project_dir: Path, firecrawl_api_key: str | None = None
 ) -> tuple[bool, str]:
     """
     Fetch UI framework documentation and cache it locally.
@@ -280,7 +278,7 @@ def fetch_ui_framework_docs(
 
 def ensure_ui_docs_available(
     framework_name: str, project_dir: Path
-) -> tuple[bool, Optional[Path], str]:
+) -> tuple[bool, Path | None, str]:
     """
     Ensure UI framework documentation is available, fetching if necessary.
 

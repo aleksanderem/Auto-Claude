@@ -9,7 +9,7 @@ Validates .env configuration vs application settings vs actual runtime state.
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any
 
 # Ensure parent directory is in path for imports
 _PARENT_DIR = Path(__file__).parent
@@ -38,7 +38,7 @@ except Exception as e:
     def is_linear_enabled(): return False
 
 
-def check_python_environment() -> Dict[str, Any]:
+def check_python_environment() -> dict[str, Any]:
     """Check Python environment is properly configured."""
     checks = {
         "python_version_ok": False,
@@ -87,7 +87,7 @@ def check_python_environment() -> Dict[str, Any]:
     }
 
 
-def check_git_configuration() -> Dict[str, Any]:
+def check_git_configuration() -> dict[str, Any]:
     """Check Git is available and configured."""
     checks = {
         "git_available": False,
@@ -123,7 +123,7 @@ def check_git_configuration() -> Dict[str, Any]:
     }
 
 
-def check_claude_authentication() -> Dict[str, Any]:
+def check_claude_authentication() -> dict[str, Any]:
     """Check Claude OAuth token is available."""
     checks = {
         "oauth_token_present": False,
@@ -150,7 +150,7 @@ def check_claude_authentication() -> Dict[str, Any]:
     }
 
 
-def check_integrations() -> Dict[str, Any]:
+def check_integrations() -> dict[str, Any]:
     """Check integrations - Graphiti is required, others are optional."""
     checks = {}
     details = {}
@@ -200,7 +200,7 @@ def check_integrations() -> Dict[str, Any]:
     }
 
 
-def check_environment_consistency() -> Dict[str, Any]:
+def check_environment_consistency() -> dict[str, Any]:
     """
     Check that .env file exists and is readable.
 
@@ -245,7 +245,7 @@ def check_environment_consistency() -> Dict[str, Any]:
     }
 
 
-def run_system_health_check() -> Dict[str, Any]:
+def run_system_health_check() -> dict[str, Any]:
     """
     Run comprehensive system health check.
 

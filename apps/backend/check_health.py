@@ -9,7 +9,6 @@ Outputs JSON results for consumption by Electron IPC handlers.
 
 import json
 import sys
-import os
 from pathlib import Path
 
 # Ensure parent directory is in path for imports

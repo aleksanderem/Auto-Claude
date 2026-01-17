@@ -6,10 +6,9 @@ Actual execution handlers for Playwright tools.
 Manages browser lifecycle, executes automation commands, and captures results.
 """
 
-import asyncio
 import base64
-import json
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -362,7 +361,7 @@ async def execute_assert(
                     "actual": is_visible,
                     "pass": True,
                 }
-                logger.info(f"Visibility assertion: pass")
+                logger.info("Visibility assertion: pass")
             except Exception as e:
                 results["visible"] = {
                     "expected": check_visible,

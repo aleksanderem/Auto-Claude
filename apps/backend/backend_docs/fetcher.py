@@ -13,10 +13,8 @@ Priority order:
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 import requests
-
 
 # Backend Framework documentation URLs
 BACKEND_FRAMEWORK_DOCS = {
@@ -59,7 +57,7 @@ BACKEND_FRAMEWORK_DOCS = {
 }
 
 
-def get_cached_docs_path(framework_name: str, project_dir: Path) -> Optional[Path]:
+def get_cached_docs_path(framework_name: str, project_dir: Path) -> Path | None:
     """
     Get path to cached backend framework documentation.
 
@@ -241,7 +239,7 @@ def fetch_from_firecrawl(
 
 
 def fetch_backend_framework_docs(
-    framework_name: str, project_dir: Path, firecrawl_api_key: Optional[str] = None
+    framework_name: str, project_dir: Path, firecrawl_api_key: str | None = None
 ) -> tuple[bool, str]:
     """
     Fetch backend framework documentation and cache it locally.
@@ -307,7 +305,7 @@ def fetch_backend_framework_docs(
 
 def ensure_backend_docs_available(
     framework_name: str, project_dir: Path
-) -> tuple[bool, Optional[Path], str]:
+) -> tuple[bool, Path | None, str]:
     """
     Ensure backend framework documentation is available, fetching if necessary.
 

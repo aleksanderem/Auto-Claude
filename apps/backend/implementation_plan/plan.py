@@ -288,7 +288,7 @@ class ImplementationPlan:
                             print(f"[DEBUG-PLAN]   Dep phase {dep_phase_num} MET")
                     else:
                         # Unknown format - treat as unmet
-                        print(f"[DEBUG-PLAN]   Unknown dep format, treating as unmet")
+                        print("[DEBUG-PLAN]   Unknown dep format, treating as unmet")
                         deps_met = False
                         break
 
