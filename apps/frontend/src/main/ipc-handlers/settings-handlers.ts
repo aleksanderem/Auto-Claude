@@ -435,7 +435,7 @@ export function registerSettingsHandlers(
     console.log('[settings-handlers] SYSTEM_HEALTH_CHECK invoked with projectId:', projectId);
     try {
       const settings = readSettingsFile();
-      const sourcePath = settings?.autoBuildPath || detectAutoBuildSourcePath();
+      const sourcePath = (settings?.autoBuildPath as string | undefined) || detectAutoBuildSourcePath();
       console.log('[settings-handlers] Source path:', sourcePath);
 
       if (!sourcePath || !existsSync(sourcePath)) {
@@ -452,7 +452,7 @@ export function registerSettingsHandlers(
       const venvPythonPath = process.platform === 'win32'
         ? path.join(sourcePath, '.venv', 'Scripts', 'python.exe')
         : path.join(sourcePath, '.venv', 'bin', 'python');
-      const pythonPath = existsSync(venvPythonPath) ? venvPythonPath : (settings?.pythonPath || 'python3');
+      const pythonPath = existsSync(venvPythonPath) ? venvPythonPath : ((settings?.pythonPath as string | undefined) || 'python3');
       const usingVenv = existsSync(venvPythonPath);
 
       const healthCheckScript = path.join(sourcePath, 'check_health.py');
