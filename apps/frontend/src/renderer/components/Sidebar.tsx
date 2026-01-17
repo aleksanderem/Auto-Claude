@@ -491,32 +491,20 @@ export function Sidebar({
 
           {/* Version Info */}
           {appVersion && (
-            <div className="flex flex-col items-center gap-1.5 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground/80">
-                  v{appVersion}
-                </span>
-                <span
-                  className={cn(
-                    'px-1.5 py-0.5 rounded font-semibold text-[10px]',
-                    isPackaged
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-orange-500/20 text-orange-400'
-                  )}
-                >
-                  {isPackaged ? t('common:labels.prodMode') : t('common:labels.devMode')}
-                </span>
-              </div>
-              {buildHash && (
-                <div className="flex items-center gap-2 px-2 py-1 rounded bg-muted/50">
-                  <span className="text-[11px] font-mono text-foreground/70">
-                    {buildHash}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    @ {appStartTime}
-                  </span>
-                </div>
-              )}
+            <div className="flex items-center justify-center gap-2 text-xs">
+              <span className="font-medium text-foreground/80">
+                v{appVersion}
+              </span>
+              <span
+                className={cn(
+                  'px-1.5 py-0.5 rounded font-semibold text-[10px]',
+                  isPackaged
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-orange-500/20 text-orange-400'
+                )}
+              >
+                {isPackaged ? t('common:labels.prodMode') : t('common:labels.devMode')}
+              </span>
             </div>
           )}
 
