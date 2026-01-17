@@ -35,6 +35,21 @@ const COMMAND_FILES = [
   'ouro-help.md'
 ];
 
+// Legacy file names (for cleanup during uninstall)
+const LEGACY_HOOK_FILES = [
+  'hookify.auto-claude-protection.local.md',
+  'hookify.auto-claude-file-protection.local.md'
+];
+
+const LEGACY_COMMAND_FILES = [
+  'ac-status.md',
+  'ac-run.md',
+  'ac-create.md',
+  'ac-review.md',
+  'ac-merge.md',
+  'ac-help.md'
+];
+
 const CLAUDE_MD_SECTION_FILE = 'ouro_supervisor.md';
 
 // Markers for CLAUDE.md section
@@ -50,8 +65,9 @@ function getPluginResourcesPath(): string {
   const isDev = !app.isPackaged;
 
   if (isDev) {
-    // Development: relative to the frontend app directory
-    return path.join(__dirname, '..', '..', '..', 'resources', 'supervisor-plugin');
+    // Development: app.getAppPath() returns the frontend app directory
+    // e.g., /Users/.../Auto-Claude/apps/frontend
+    return path.join(app.getAppPath(), 'resources', 'supervisor-plugin');
   } else {
     // Production: use extraResources (configured in electron-builder)
     return path.join(process.resourcesPath, 'supervisor-plugin');
@@ -121,6 +137,7 @@ async function installPlugin(
   const commandsDir = path.join(claudeDir, 'commands');
 
   const filesCreated: string[] = [];
+  const filesRemoved: string[] = [];
 
   try {
     // Ensure directories exist
@@ -132,6 +149,26 @@ async function installPlugin(
     }
     if (!fs.existsSync(commandsDir)) {
       fs.mkdirSync(commandsDir, { recursive: true });
+    }
+
+    // Clean up legacy hook files before installing new ones
+    for (const legacyHook of LEGACY_HOOK_FILES) {
+      const legacyPath = path.join(hooksDir, legacyHook);
+      if (fs.existsSync(legacyPath)) {
+        fs.unlinkSync(legacyPath);
+        filesRemoved.push(legacyPath);
+        logger.info(`Removed legacy hook: ${legacyHook}`);
+      }
+    }
+
+    // Clean up legacy command files before installing new ones
+    for (const legacyCmd of LEGACY_COMMAND_FILES) {
+      const legacyPath = path.join(commandsDir, legacyCmd);
+      if (fs.existsSync(legacyPath)) {
+        fs.unlinkSync(legacyPath);
+        filesRemoved.push(legacyPath);
+        logger.info(`Removed legacy command: ${legacyCmd}`);
+      }
     }
 
     // Copy hook files
@@ -172,10 +209,15 @@ async function installPlugin(
       }
     }
 
+    const message = filesRemoved.length > 0
+      ? `Supervisor plugin installed (${filesCreated.length} files created, ${filesRemoved.length} legacy files removed)`
+      : `Supervisor plugin installed successfully (${filesCreated.length} files)`;
+
     return {
       success: true,
-      message: `Supervisor plugin installed successfully (${filesCreated.length} files)`,
-      filesCreated
+      message,
+      filesCreated,
+      filesRemoved
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -198,8 +240,9 @@ async function uninstallPlugin(projectPath: string): Promise<SupervisorPluginRes
   const filesRemoved: string[] = [];
 
   try {
-    // Remove hook files
-    for (const hookFile of HOOK_FILES) {
+    // Remove hook files (current + legacy)
+    const allHookFiles = [...HOOK_FILES, ...LEGACY_HOOK_FILES];
+    for (const hookFile of allHookFiles) {
       const filePath = path.join(hooksDir, hookFile);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -208,8 +251,9 @@ async function uninstallPlugin(projectPath: string): Promise<SupervisorPluginRes
       }
     }
 
-    // Remove command files
-    for (const cmdFile of COMMAND_FILES) {
+    // Remove command files (current + legacy)
+    const allCommandFiles = [...COMMAND_FILES, ...LEGACY_COMMAND_FILES];
+    for (const cmdFile of allCommandFiles) {
       const filePath = path.join(commandsDir, cmdFile);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);

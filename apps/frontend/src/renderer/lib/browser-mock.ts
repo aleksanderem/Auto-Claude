@@ -360,6 +360,20 @@ const browserMockAPI: ElectronAPI = {
   updateSupervisorClaudeMd: async () => ({
     success: false,
     data: { success: false, message: 'Not available in browser mode' }
+  }),
+
+  // Legacy Migration Operations (.auto-claude → .ouro)
+  checkLegacy: async () => ({
+    success: true,
+    data: {
+      hasLegacy: false,
+      hasNew: false,
+      legacyPath: null
+    }
+  }),
+  executeMigration: async () => ({
+    success: false,
+    error: 'Migration not available in browser mode'
   })
 };
 

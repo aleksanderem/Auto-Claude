@@ -548,5 +548,9 @@ export const IPC_CHANNELS = {
   SUPERVISOR_GET_STATUS: 'supervisor:getStatus',           // Check if plugin installed for project
   SUPERVISOR_INSTALL: 'supervisor:install',                // Install plugin files to project
   SUPERVISOR_UNINSTALL: 'supervisor:uninstall',            // Remove plugin files from project
-  SUPERVISOR_UPDATE_CLAUDE_MD: 'supervisor:updateClaudeMd' // Add/remove supervisor section from CLAUDE.md
+  SUPERVISOR_UPDATE_CLAUDE_MD: 'supervisor:updateClaudeMd', // Add/remove supervisor section from CLAUDE.md
+
+  // Legacy migration operations (.auto-claude → .ouro)
+  MIGRATION_CHECK_LEGACY: 'migration:checkLegacy',  // Check if project has legacy .auto-claude directory
+  MIGRATION_EXECUTE: 'migration:execute'            // Execute migration to .ouro
 } as const;

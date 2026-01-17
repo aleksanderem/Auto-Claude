@@ -159,5 +159,16 @@
     "downloadError": "Échec du téléchargement de la mise à jour",
     "claudeCodeChangelog": "Voir le journal des modifications Claude Code",
     "claudeCodeChangelogAriaLabel": "Voir le journal des modifications Claude Code (s'ouvre dans une nouvelle fenêtre)"
+  },
+  "legacyMigration": {
+    "title": "Répertoire Legacy Détecté",
+    "errorTitle": "Échec de la Migration",
+    "description": "Ce projet utilise l'ancien répertoire .auto-claude.",
+    "willMigrate": "Il sera renommé en .ouro pour la compatibilité avec le nouveau système Ouro.",
+    "warning": "Commitez vos changements en attente avant la migration.",
+    "migrate": "Migrer vers .ouro",
+    "migrating": "Migration en cours...",
+    "success": "Migration terminée avec succès !",
+    "skip": "Ignorer pour l'instant"
   }
 }

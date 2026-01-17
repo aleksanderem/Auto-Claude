@@ -131,6 +131,7 @@ import type {
 } from './integrations';
 import type { APIProfile, ProfilesFile, TestConnectionResult, DiscoverModelsResult } from './profile';
 import type { SupervisorPluginStatus, SupervisorPluginResult, SupervisorPluginInstallOptions } from './supervisor';
+import type { LegacyCheckResult, MigrationResult } from './migration';
 
 // Electron API exposed via contextBridge
 // Tab state interface (persisted in main process)
@@ -822,6 +823,10 @@ export interface ElectronAPI {
   installSupervisor: (projectPath: string, options?: SupervisorPluginInstallOptions) => Promise<IPCResult<SupervisorPluginResult>>;
   uninstallSupervisor: (projectPath: string) => Promise<IPCResult<SupervisorPluginResult>>;
   updateSupervisorClaudeMd: (projectPath: string, enable: boolean) => Promise<IPCResult<SupervisorPluginResult>>;
+
+  // Legacy migration operations (.auto-claude → .ouro)
+  checkLegacy: (projectPath: string) => Promise<IPCResult<LegacyCheckResult>>;
+  executeMigration: (projectPath: string) => Promise<IPCResult<MigrationResult>>;
 }
 
 declare global {

@@ -11,29 +11,20 @@ You are a SUPERVISOR checking Ouro status. Do NOT implement anything.
 
 ## Current project specs
 
-Check for .ouro directory:
-!`ls -la .ouro/ 2>/dev/null || echo "No .ouro directory found"`
+Check for .ouro directory (with fallback to legacy .auto-claude):
+!`if [ -d ".ouro" ]; then echo "Found .ouro directory:" && ls -la .ouro/; elif [ -d ".auto-claude" ]; then echo "Found legacy .auto-claude directory (consider migrating to .ouro):" && ls -la .auto-claude/; else echo "No .ouro or .auto-claude directory found"; fi`
 
 ## Specs status
 
-!`for dir in .ouro/specs/*/; do
-  if [ -d "$dir" ]; then
-    spec=$(basename "$dir")
-    status=$(cat "${dir}implementation_plan.json" 2>/dev/null | jq -r '.status // "unknown"')
-    completed=$(cat "${dir}implementation_plan.json" 2>/dev/null | jq '[.phases[].subtasks[] | select(.status == "completed")] | length')
-    total=$(cat "${dir}implementation_plan.json" 2>/dev/null | jq '[.phases[].subtasks[]] | length')
-    feature=$(cat "${dir}implementation_plan.json" 2>/dev/null | jq -r '.feature // "unknown"')
-    echo "[$status] $spec: $feature ($completed/$total subtasks)"
-  fi
-done 2>/dev/null || echo "No specs found"`
+!`find .ouro/specs .auto-claude/specs -maxdepth 1 -type d 2>/dev/null | while read dir; do [ -f "$dir/implementation_plan.json" ] && echo "$(jq -r '"\(.status // "unknown") | \(.feature // "unknown")"' "$dir/implementation_plan.json") [$(basename "$dir")]"; done | head -20 || echo "No specs found"`
 
 ## Worktrees status
 
-!`git worktree list 2>/dev/null | grep ouro || echo "No Ouro worktrees"`
+!`git worktree list 2>/dev/null | grep -E "ouro|auto-claude" || echo "No Ouro worktrees"`
 
 ## Active builds
 
-!`cat .ouro-status 2>/dev/null | jq '{active_spec: .spec, state: .state, progress: "\(.subtasks.completed)/\(.subtasks.total)"}' || echo "No active build status"`
+!`cat .ouro-status 2>/dev/null | jq -c '{spec,state,progress:"\(.subtasks.completed)/\(.subtasks.total)"}' || cat .auto-claude-status 2>/dev/null | jq -c '{spec,state,progress:"\(.subtasks.completed)/\(.subtasks.total)"}' || echo "No active build status"`
 
 ## Your task
 

@@ -159,5 +159,16 @@
     "downloadError": "Failed to download update",
     "claudeCodeChangelog": "View Claude Code Changelog",
     "claudeCodeChangelogAriaLabel": "View Claude Code Changelog (opens in new window)"
+  },
+  "legacyMigration": {
+    "title": "Legacy Directory Detected",
+    "errorTitle": "Migration Failed",
+    "description": "This project uses the old .auto-claude directory structure.",
+    "willMigrate": "It will be renamed to .ouro for compatibility with the new Ouro system.",
+    "warning": "Make sure to commit any pending changes before migrating.",
+    "migrate": "Migrate to .ouro",
+    "migrating": "Migrating...",
+    "success": "Migration completed successfully!",
+    "skip": "Skip for Now"
   }
 }
