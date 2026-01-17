@@ -1,7 +1,7 @@
 /**
  * Manager Store
  * Handles state for the Project Manager chat sidebar
- * Uses Claude Opus 4.5 with comprehensive Auto-Claude knowledge
+ * Uses Claude Opus 4.5 with comprehensive Ouro knowledge
  */
 
 import { create } from 'zustand';

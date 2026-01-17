@@ -48,7 +48,7 @@ export function getBundledSourcePath(): string {
  * Get the path for storing downloaded updates
  */
 export function getUpdateCachePath(): string {
-  return path.join(app.getPath('userData'), 'auto-claude-updates');
+  return path.join(app.getPath('userData'), 'ouro-updates');
 }
 
 /**

@@ -49,10 +49,19 @@ export class ManagerService extends EventEmitter {
 
   /**
    * Get the path to the manager history file for a project
+   * Uses .ouro directory, with fallback to legacy .auto-claude for backwards compatibility
    */
   private getHistoryFilePath(projectPath: string): string {
-    const autoClaudeDir = path.join(projectPath, '.auto-claude');
-    return path.join(autoClaudeDir, 'manager-history.json');
+    const ouroDir = path.join(projectPath, '.ouro');
+    const legacyDir = path.join(projectPath, '.auto-claude');
+
+    // Check if legacy directory has the history file (backwards compatibility)
+    const legacyHistoryPath = path.join(legacyDir, 'manager-history.json');
+    if (existsSync(legacyHistoryPath) && !existsSync(path.join(ouroDir, 'manager-history.json'))) {
+      return legacyHistoryPath;
+    }
+
+    return path.join(ouroDir, 'manager-history.json');
   }
 
   /**
@@ -83,12 +92,12 @@ export class ManagerService extends EventEmitter {
       console.warn('[Manager] No project path for saving history');
       return;
     }
-    const autoClaudeDir = path.join(projectPath, '.auto-claude');
+    const ouroDir = path.join(projectPath, '.ouro');
     const historyFile = this.getHistoryFilePath(projectPath);
     try {
-      // Ensure .auto-claude directory exists
-      if (!existsSync(autoClaudeDir)) {
-        mkdirSync(autoClaudeDir, { recursive: true });
+      // Ensure .ouro directory exists
+      if (!existsSync(ouroDir)) {
+        mkdirSync(ouroDir, { recursive: true });
       }
       writeFileSync(historyFile, JSON.stringify(history, null, 2), 'utf-8');
       console.log(`[Manager] Saved ${history.length} messages to history file`);
@@ -157,7 +166,7 @@ export class ManagerService extends EventEmitter {
     if (!autoBuildSource) {
       this.emit('stream-chunk', {
         type: 'error',
-        error: 'Auto Claude source not found'
+        error: 'Ouro source not found'
       } as ManagerStreamChunk);
       return;
     }
@@ -166,7 +175,7 @@ export class ManagerService extends EventEmitter {
     if (!existsSync(runnerPath)) {
       this.emit('stream-chunk', {
         type: 'error',
-        error: 'manager_runner.py not found in auto-claude directory'
+        error: 'manager_runner.py not found in ouro directory'
       } as ManagerStreamChunk);
       return;
     }

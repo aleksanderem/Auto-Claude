@@ -136,7 +136,7 @@ export function UIFrameworkDocsSection({
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 AI agents automatically fetch UI framework documentation when building frontend features.
-                Documentation is cached locally in <code className="text-xs bg-background px-1.5 py-0.5 rounded">.auto-claude/ui-framework-docs/</code>
+                Documentation is cached locally in <code className="text-xs bg-background px-1.5 py-0.5 rounded">.ouro/ui-framework-docs/</code>
               </p>
             </div>
           </div>

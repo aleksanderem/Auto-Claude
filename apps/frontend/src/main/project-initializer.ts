@@ -126,7 +126,7 @@ export function initializeGit(projectPath: string): InitializationResult {
     } catch {
       // No user.name configured, set a default
       debug('Setting default git user.name');
-      execFileSync(git, ['config', 'user.name', 'Auto Claude'], {
+      execFileSync(git, ['config', 'user.name', 'Ouro'], {
         cwd: projectPath,
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -144,7 +144,7 @@ export function initializeGit(projectPath: string): InitializationResult {
     } catch {
       // No user.email configured, set a default
       debug('Setting default git user.email');
-      execFileSync(git, ['config', 'user.email', 'auto-claude@local'], {
+      execFileSync(git, ['config', 'user.email', 'ouro@local'], {
         cwd: projectPath,
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -204,7 +204,7 @@ export function initializeGit(projectPath: string): InitializationResult {
 /**
  * Entries to add to .gitignore when initializing a project
  */
-const GITIGNORE_ENTRIES = ['.auto-claude/'];
+const GITIGNORE_ENTRIES = ['.ouro/'];
 
 /**
  * Ensure entries exist in the project's .gitignore file.
@@ -248,7 +248,7 @@ function ensureGitignoreEntries(projectPath: string, entries: string[]): void {
     appendContent += '\n';
   }
 
-  appendContent += '\n# Auto Claude data directory\n';
+  appendContent += '\n# Ouro data directory\n';
   for (const entry of entriesToAdd) {
     appendContent += entry + '\n';
   }
@@ -256,7 +256,7 @@ function ensureGitignoreEntries(projectPath: string, entries: string[]): void {
   if (existsSync(gitignorePath)) {
     appendFileSync(gitignorePath, appendContent);
   } else {
-    writeFileSync(gitignorePath, '# Auto Claude data directory\n' + entriesToAdd.join('\n') + '\n');
+    writeFileSync(gitignorePath, '# Ouro data directory\n' + entriesToAdd.join('\n') + '\n');
   }
 
   debug('Added entries to .gitignore', { entries: entriesToAdd });

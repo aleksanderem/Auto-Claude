@@ -2,6 +2,7 @@ import { Sparkles, Zap, Brain, FileCode } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
+import ouroLogo from '../../assets/images/ouro-logo.png';
 
 interface WelcomeStepProps {
   onGetStarted: () => void;
@@ -67,6 +68,11 @@ export function WelcomeStep({ onGetStarted, onSkip }: WelcomeStepProps) {
       <div className="w-full max-w-2xl">
         {/* Hero Section */}
         <div className="text-center mb-8">
+          <img
+            src={ouroLogo}
+            alt="Ouro"
+            className="h-24 mx-auto mb-6 drop-shadow-lg"
+          />
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
             {t('welcome.title')}
           </h1>

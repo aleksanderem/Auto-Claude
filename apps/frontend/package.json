@@ -1,8 +1,8 @@
 {
-  "name": "auto-claude-ui",
+  "name": "ouro",
   "version": "2.7.4",
   "type": "module",
-  "description": "Desktop UI for Auto Claude autonomous coding framework",
+  "description": "Desktop UI for Ouro autonomous coding framework",
   "homepage": "https://github.com/AndyMik90/Auto-Claude",
   "repository": {
     "type": "git",
@@ -10,7 +10,7 @@
   },
   "main": "./out/main/index.js",
   "author": {
-    "name": "Auto Claude Team",
+    "name": "Ouro Team",
     "email": "119136210+AndyMik90@users.noreply.github.com"
   },
   "license": "AGPL-3.0",
@@ -38,9 +38,9 @@
     "package:win": "npm run python:download && electron-vite build && electron-builder --win --publish never",
     "package:linux": "npm run python:download && electron-vite build && electron-builder --linux --publish never",
     "package:flatpak": "npm run python:download && electron-vite build && electron-builder --linux flatpak --publish never",
-    "start:packaged:mac": "open dist/mac-arm64/Auto-Claude.app || open dist/mac/Auto-Claude.app",
-    "start:packaged:win": "start \"\" \"dist\\win-unpacked\\Auto-Claude.exe\"",
-    "start:packaged:linux": "./dist/linux-unpacked/auto-claude",
+    "start:packaged:mac": "open dist/mac-arm64/Ouro.app || open dist/mac/Ouro.app",
+    "start:packaged:win": "start \"\" \"dist\\win-unpacked\\Ouro.exe\"",
+    "start:packaged:linux": "./dist/linux-unpacked/ouro",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -142,8 +142,8 @@
     "dmg-builder": "^26.0.12"
   },
   "build": {
-    "appId": "com.autoclaude.ui",
-    "productName": "Auto-Claude",
+    "appId": "com.ouro.app",
+    "productName": "Ouro",
     "artifactName": "${productName}-${version}-${platform}-${arch}.${ext}",
     "publish": [
       {
@@ -159,6 +159,13 @@
     "files": [
       "out/**/*",
       "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "node_modules/@lydell",
+        "to": "node_modules/@lydell",
+        "filter": ["**/*"]
+      }
     ],
     "extraResources": [
       {

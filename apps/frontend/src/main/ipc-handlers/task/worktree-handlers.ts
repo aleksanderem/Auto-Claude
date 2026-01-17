@@ -4,9 +4,7 @@ import type { IPCResult, WorktreeStatus, WorktreeDiff, WorktreeDiffFile, Worktre
 import path from 'path';
 import { existsSync, readdirSync, statSync, readFileSync } from 'fs';
 import { execSync, execFileSync, spawn, spawnSync, exec, execFile } from 'child_process';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { minimatch } = require('minimatch');
+import { minimatch } from 'minimatch';
 import { projectStore } from '../../project-store';
 import { getConfiguredPythonPath, PythonEnvManager, pythonEnvManager as pythonEnvManagerSingleton } from '../../python-env-manager';
 import { getEffectiveSourcePath } from '../../updater/path-resolver';
@@ -1325,8 +1323,11 @@ function getTaskBaseBranch(specDir: string): string | undefined {
  * as the user may be on a feature branch when viewing worktree status.
  */
 function getEffectiveBaseBranch(projectPath: string, specId: string, projectMainBranch?: string): string {
-  // 1. Try task metadata baseBranch
-  const specDir = path.join(projectPath, '.auto-claude', 'specs', specId);
+  // 1. Try task metadata baseBranch (check new .ouro path first, then legacy .auto-claude)
+  let specDir = path.join(projectPath, '.ouro', 'specs', specId);
+  if (!existsSync(specDir)) {
+    specDir = path.join(projectPath, '.auto-claude', 'specs', specId);
+  }
   const taskBaseBranch = getTaskBaseBranch(specDir);
   if (taskBaseBranch) {
     return taskBaseBranch;
@@ -1558,7 +1559,7 @@ async function initializePythonEnvForPR(
 
   const autoBuildSource = getEffectiveSourcePath();
   if (!autoBuildSource) {
-    return 'Python environment not ready and Auto Claude source not found';
+    return 'Python environment not ready and Ouro source not found';
   }
 
   const status = await pythonEnvManager.initialize(autoBuildSource);
@@ -1625,7 +1626,7 @@ export function registerWorktreeHandlers(
 ): void {
   /**
    * Get the worktree status for a task
-   * Per-spec architecture: Each spec has its own worktree at .auto-claude/worktrees/tasks/{spec-name}/
+   * Per-spec architecture: Each spec has its own worktree at .ouro/worktrees/tasks/{spec-name}/
    */
   ipcMain.handle(
     IPC_CHANNELS.TASK_WORKTREE_STATUS,
@@ -1636,7 +1637,7 @@ export function registerWorktreeHandlers(
           return { success: false, error: 'Task not found' };
         }
 
-        // Find worktree at .auto-claude/worktrees/tasks/{spec-name}/
+        // Find worktree at .ouro/worktrees/tasks/{spec-name}/ (with legacy fallback)
         const worktreePath = findTaskWorktree(project.path, task.specId);
 
         if (!worktreePath) {
@@ -1739,7 +1740,7 @@ export function registerWorktreeHandlers(
 
   /**
    * Get the diff for a task's worktree
-   * Per-spec architecture: Each spec has its own worktree at .auto-claude/worktrees/tasks/{spec-name}/
+   * Per-spec architecture: Each spec has its own worktree at .ouro/worktrees/tasks/{spec-name}/
    */
   ipcMain.handle(
     IPC_CHANNELS.TASK_WORKTREE_DIFF,
@@ -1750,7 +1751,7 @@ export function registerWorktreeHandlers(
           return { success: false, error: 'Task not found' };
         }
 
-        // Find worktree at .auto-claude/worktrees/tasks/{spec-name}/
+        // Find worktree at .ouro/worktrees/tasks/{spec-name}/ (with legacy fallback)
         const worktreePath = findTaskWorktree(project.path, task.specId);
 
         if (!worktreePath) {
@@ -1854,7 +1855,7 @@ export function registerWorktreeHandlers(
               return { success: false, error: `Python environment not ready: ${status.error || 'Unknown error'}` };
             }
           } else {
-            return { success: false, error: 'Python environment not ready and Auto Claude source not found' };
+            return { success: false, error: 'Python environment not ready and Ouro source not found' };
           }
         }
 
@@ -1875,11 +1876,15 @@ export function registerWorktreeHandlers(
         // Use run.py --merge to handle the merge
         const sourcePath = getEffectiveSourcePath();
         if (!sourcePath) {
-          return { success: false, error: 'Auto Claude source not found' };
+          return { success: false, error: 'Ouro source not found' };
         }
 
         const runScript = path.join(sourcePath, 'run.py');
-        const specDir = path.join(project.path, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+        // Try new .ouro path first, fall back to legacy .auto-claude
+        let specDir = path.join(project.path, '.ouro', 'specs', task.specId);
+        if (!existsSync(specDir)) {
+          specDir = path.join(project.path, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+        }
 
         if (!existsSync(specDir)) {
           debug('Spec directory not found:', specDir);
@@ -2109,17 +2114,30 @@ export function registerWorktreeHandlers(
 
                     if (!hasActualStagedChanges) {
                       // Check if worktree branch was already merged (merge commit exists)
-                      const specBranch = `auto-claude/${task.specId}`;
+                      // Try new ouro/ prefix first, fall back to legacy auto-claude/ prefix
+                      const specBranchNew = `ouro/${task.specId}`;
+                      const specBranchLegacy = `auto-claude/${task.specId}`;
                       try {
                         // Check if current branch contains all commits from spec branch
                         // git merge-base --is-ancestor returns exit code 0 if true, 1 if false
-                        execFileSync(
-                          getToolPath('git'),
-                          ['merge-base', '--is-ancestor', specBranch, 'HEAD'],
-                          { cwd: project.path, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
-                        );
+                        // Try new branch naming first
+                        try {
+                          execFileSync(
+                            getToolPath('git'),
+                            ['merge-base', '--is-ancestor', specBranchNew, 'HEAD'],
+                            { cwd: project.path, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+                          );
+                          mergeAlreadyCommitted = true;
+                        } catch {
+                          // Try legacy branch naming
+                          execFileSync(
+                            getToolPath('git'),
+                            ['merge-base', '--is-ancestor', specBranchLegacy, 'HEAD'],
+                            { cwd: project.path, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+                          );
+                          mergeAlreadyCommitted = true;
+                        }
                         // If we reach here, the command succeeded (exit code 0) - branch is merged
-                        mergeAlreadyCommitted = true;
                         debug('Merge already committed check:', mergeAlreadyCommitted);
                       } catch {
                         // Exit code 1 means not merged, or branch may not exist
@@ -2186,15 +2204,26 @@ export function registerWorktreeHandlers(
                     debug('Worktree cleaned up after full merge:', worktreePath);
 
                     // Also delete the task branch since we merged successfully
-                    const taskBranch = `auto-claude/${task.specId}`;
+                    // Try new ouro/ prefix first, then legacy auto-claude/ prefix
+                    const taskBranchNew = `ouro/${task.specId}`;
+                    const taskBranchLegacy = `auto-claude/${task.specId}`;
                     try {
-                      execFileSync(getToolPath('git'), ['branch', '-D', taskBranch], {
+                      execFileSync(getToolPath('git'), ['branch', '-D', taskBranchNew], {
                         cwd: project.path,
                         encoding: 'utf-8'
                       });
-                      debug('Task branch deleted:', taskBranch);
+                      debug('Task branch deleted:', taskBranchNew);
                     } catch {
-                      // Branch might not exist or already deleted
+                      // Try legacy branch name
+                      try {
+                        execFileSync(getToolPath('git'), ['branch', '-D', taskBranchLegacy], {
+                          cwd: project.path,
+                          encoding: 'utf-8'
+                        });
+                        debug('Task branch deleted (legacy):', taskBranchLegacy);
+                      } catch {
+                        // Branch might not exist or already deleted
+                      }
                     }
                   }
                 } catch (cleanupErr) {
@@ -2229,9 +2258,12 @@ export function registerWorktreeHandlers(
               const planPaths: { path: string; isMain: boolean }[] = [
                 { path: path.join(specDir, AUTO_BUILD_PATHS.IMPLEMENTATION_PLAN), isMain: true },
               ];
-              // Add worktree plan path if worktree exists
+              // Add worktree plan path if worktree exists (check new .ouro path first)
               if (worktreePath) {
-                const worktreeSpecDir = path.join(worktreePath, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+                let worktreeSpecDir = path.join(worktreePath, '.ouro', 'specs', task.specId);
+                if (!existsSync(worktreeSpecDir)) {
+                  worktreeSpecDir = path.join(worktreePath, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+                }
                 planPaths.push({ path: path.join(worktreeSpecDir, AUTO_BUILD_PATHS.IMPLEMENTATION_PLAN), isMain: false });
               }
 
@@ -2400,8 +2432,8 @@ export function registerWorktreeHandlers(
               return { success: false, error: `Python environment not ready: ${status.error || 'Unknown error'}` };
             }
           } else {
-            console.error('[IPC] Auto Claude source not found');
-            return { success: false, error: 'Python environment not ready and Auto Claude source not found' };
+            console.error('[IPC] Ouro source not found');
+            return { success: false, error: 'Python environment not ready and Ouro source not found' };
           }
         }
 
@@ -2441,12 +2473,16 @@ export function registerWorktreeHandlers(
 
         const sourcePath = getEffectiveSourcePath();
         if (!sourcePath) {
-          console.error('[IPC] Auto Claude source not found');
-          return { success: false, error: 'Auto Claude source not found' };
+          console.error('[IPC] Ouro source not found');
+          return { success: false, error: 'Ouro source not found' };
         }
 
         const runScript = path.join(sourcePath, 'run.py');
-        const specDir = path.join(project.path, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+        // Try new .ouro path first, fall back to legacy .auto-claude
+        let specDir = path.join(project.path, '.ouro', 'specs', task.specId);
+        if (!existsSync(specDir)) {
+          specDir = path.join(project.path, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+        }
         const args = [
           runScript,
           '--spec', task.specId,
@@ -2572,7 +2608,7 @@ export function registerWorktreeHandlers(
 
   /**
    * Discard the worktree changes
-   * Per-spec architecture: Each spec has its own worktree at .auto-claude/worktrees/tasks/{spec-name}/
+   * Per-spec architecture: Each spec has its own worktree at .ouro/worktrees/tasks/{spec-name}/
    */
   ipcMain.handle(
     IPC_CHANNELS.TASK_WORKTREE_DISCARD,
@@ -2583,7 +2619,7 @@ export function registerWorktreeHandlers(
           return { success: false, error: 'Task not found' };
         }
 
-        // Find worktree at .auto-claude/worktrees/tasks/{spec-name}/
+        // Find worktree at .ouro/worktrees/tasks/{spec-name}/ (with legacy fallback)
         const worktreePath = findTaskWorktree(project.path, task.specId);
 
         if (!worktreePath) {
@@ -2654,7 +2690,7 @@ export function registerWorktreeHandlers(
 
   /**
    * List all spec worktrees for a project
-   * Per-spec architecture: Each spec has its own worktree at .auto-claude/worktrees/tasks/{spec-name}/
+   * Per-spec architecture: Each spec has its own worktree at .ouro/worktrees/tasks/{spec-name}/
    */
   ipcMain.handle(
     IPC_CHANNELS.TASK_LIST_WORKTREES,
@@ -2946,11 +2982,15 @@ export function registerWorktreeHandlers(
         // Use run.py --create-pr to handle the PR creation
         const sourcePath = getEffectiveSourcePath();
         if (!sourcePath) {
-          return { success: false, error: 'Auto Claude source not found' };
+          return { success: false, error: 'Ouro source not found' };
         }
 
         const runScript = path.join(sourcePath, 'run.py');
-        const specDir = path.join(project.path, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+        // Try new .ouro path first, fall back to legacy .auto-claude
+        let specDir = path.join(project.path, '.ouro', 'specs', task.specId);
+        if (!existsSync(specDir)) {
+          specDir = path.join(project.path, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+        }
 
         // Use EAFP pattern - try to read specDir and catch ENOENT
         try {

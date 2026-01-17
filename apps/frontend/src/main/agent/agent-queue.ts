@@ -245,7 +245,7 @@ export class AgentQueueManager {
   ): Promise<void> {
     debugLog('[Agent Queue] Spawning ideation process:', { projectId, projectPath });
 
-    // Run from auto-claude source directory so imports work correctly
+    // Run from ouro source directory so imports work correctly
     const autoBuildSource = this.processManager.getAutoBuildSourcePath();
     const cwd = autoBuildSource || process.cwd();
 
@@ -296,7 +296,7 @@ export class AgentQueueManager {
     // Build final environment with proper precedence:
     // 1. process.env (system)
     // 2. pythonEnv (bundled packages environment)
-    // 3. combinedEnv (auto-claude/.env for CLI usage)
+    // 3. combinedEnv (.ouro/.env for CLI usage)
     // 4. oauthModeClearVars (clear stale ANTHROPIC_* vars when in OAuth mode)
     // 5. profileEnv (Electron app OAuth token)
     // 6. apiProfileEnv (Active API profile config - highest priority for ANTHROPIC_* vars)
@@ -316,7 +316,7 @@ export class AgentQueueManager {
     // Debug: Show OAuth token source (token values intentionally omitted for security - AC4)
     const tokenSource = profileEnv['CLAUDE_CODE_OAUTH_TOKEN']
       ? 'Electron app profile'
-      : (combinedEnv['CLAUDE_CODE_OAUTH_TOKEN'] ? 'auto-claude/.env' : 'not found');
+      : (combinedEnv['CLAUDE_CODE_OAUTH_TOKEN'] ? '.ouro/.env' : 'not found');
     const hasToken = !!(finalEnv as Record<string, string | undefined>)['CLAUDE_CODE_OAUTH_TOKEN'];
     debugLog('[Agent Queue] OAuth token status:', {
       source: tokenSource,
@@ -381,12 +381,12 @@ export class AgentQueueManager {
           totalCompleted: completedTypes.size
         });
 
-        const typeFilePath = path.join(
-          projectPath,
-          '.auto-claude',
-          'ideation',
-          `${ideationType}_ideas.json`
-        );
+        // Check both new .ouro and legacy .auto-claude directories for backwards compatibility
+        const ouroTypeFilePath = path.join(projectPath, '.ouro', 'ideation', `${ideationType}_ideas.json`);
+        const legacyTypeFilePath = path.join(projectPath, '.auto-claude', 'ideation', `${ideationType}_ideas.json`);
+        const typeFilePath = existsSync(ouroTypeFilePath) ? ouroTypeFilePath :
+                            existsSync(legacyTypeFilePath) ? legacyTypeFilePath :
+                            ouroTypeFilePath; // Default to new path if neither exists
 
         const loadIdeationType = async (): Promise<void> => {
           try {
@@ -507,12 +507,12 @@ export class AgentQueueManager {
         // Load and emit the complete ideation session
         if (storedProjectPath) {
           try {
-            const ideationFilePath = path.join(
-              storedProjectPath,
-              '.auto-claude',
-              'ideation',
-              'ideation.json'
-            );
+            // Check both new .ouro and legacy .auto-claude directories for backwards compatibility
+            const ouroIdeationPath = path.join(storedProjectPath, '.ouro', 'ideation', 'ideation.json');
+            const legacyIdeationPath = path.join(storedProjectPath, '.auto-claude', 'ideation', 'ideation.json');
+            const ideationFilePath = existsSync(ouroIdeationPath) ? ouroIdeationPath :
+                                     existsSync(legacyIdeationPath) ? legacyIdeationPath :
+                                     ouroIdeationPath; // Default to new path if neither exists
             debugLog('[Agent Queue] Loading ideation session from:', ideationFilePath);
             if (existsSync(ideationFilePath)) {
               const loadSession = async (): Promise<void> => {
@@ -572,7 +572,7 @@ export class AgentQueueManager {
   ): Promise<void> {
     debugLog('[Agent Queue] Spawning roadmap process:', { projectId, projectPath });
 
-    // Run from auto-claude source directory so imports work correctly
+    // Run from ouro source directory so imports work correctly
     const autoBuildSource = this.processManager.getAutoBuildSourcePath();
     const cwd = autoBuildSource || process.cwd();
 
@@ -623,7 +623,7 @@ export class AgentQueueManager {
     // Build final environment with proper precedence:
     // 1. process.env (system)
     // 2. pythonEnv (bundled packages environment)
-    // 3. combinedEnv (auto-claude/.env for CLI usage)
+    // 3. combinedEnv (.ouro/.env for CLI usage)
     // 4. oauthModeClearVars (clear stale ANTHROPIC_* vars when in OAuth mode)
     // 5. profileEnv (Electron app OAuth token)
     // 6. apiProfileEnv (Active API profile config - highest priority for ANTHROPIC_* vars)
@@ -643,7 +643,7 @@ export class AgentQueueManager {
     // Debug: Show OAuth token source (token values intentionally omitted for security - AC4)
     const tokenSource = profileEnv['CLAUDE_CODE_OAUTH_TOKEN']
       ? 'Electron app profile'
-      : (combinedEnv['CLAUDE_CODE_OAUTH_TOKEN'] ? 'auto-claude/.env' : 'not found');
+      : (combinedEnv['CLAUDE_CODE_OAUTH_TOKEN'] ? '.ouro/.env' : 'not found');
     const hasToken = !!(finalEnv as Record<string, string | undefined>)['CLAUDE_CODE_OAUTH_TOKEN'];
     debugLog('[Agent Queue] OAuth token status:', {
       source: tokenSource,
@@ -762,12 +762,12 @@ export class AgentQueueManager {
         // Load and emit the complete roadmap
         if (storedProjectPath) {
           try {
-            const roadmapFilePath = path.join(
-              storedProjectPath,
-              '.auto-claude',
-              'roadmap',
-              'roadmap.json'
-            );
+            // Check both new .ouro and legacy .auto-claude directories for backwards compatibility
+            const ouroRoadmapPath = path.join(storedProjectPath, '.ouro', 'roadmap', 'roadmap.json');
+            const legacyRoadmapPath = path.join(storedProjectPath, '.auto-claude', 'roadmap', 'roadmap.json');
+            const roadmapFilePath = existsSync(ouroRoadmapPath) ? ouroRoadmapPath :
+                                    existsSync(legacyRoadmapPath) ? legacyRoadmapPath :
+                                    ouroRoadmapPath; // Default to new path if neither exists
             debugLog('[Agent Queue] Loading roadmap from:', roadmapFilePath);
             if (existsSync(roadmapFilePath)) {
               const loadRoadmap = async (): Promise<void> => {

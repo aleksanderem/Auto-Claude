@@ -44,7 +44,7 @@ export class TerminalNameGenerator extends EventEmitter {
   }
 
   /**
-   * Get the auto-claude source path (detects automatically if not configured)
+   * Get the ouro source path (detects automatically if not configured)
    */
   private getAutoBuildSourcePath(): string | null {
     if (this.autoBuildSourcePath && existsSync(this.autoBuildSourcePath)) {
@@ -132,7 +132,7 @@ export class TerminalNameGenerator extends EventEmitter {
     const autoBuildSource = this.getAutoBuildSourcePath();
 
     if (!autoBuildSource) {
-      debug('Auto-claude source path not found');
+      debug('Ouro source path not found');
       return null;
     }
 

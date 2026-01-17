@@ -173,12 +173,12 @@ export function AddProjectModal({ open, onOpenChange, onProjectAdded }: AddProje
             <FolderOpen className="h-6 w-6 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-foreground">{t('addProject.openExisting')}</h3>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <h3 className="font-medium text-foreground group-hover:text-accent-foreground transition-colors">{t('addProject.openExisting')}</h3>
+            <p className="text-sm text-muted-foreground group-hover:text-accent-foreground/80 mt-0.5 transition-colors">
               {t('addProject.openExistingDescription')}
             </p>
           </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
         </button>
 
         {/* Create New Option */}
@@ -195,12 +195,12 @@ export function AddProjectModal({ open, onOpenChange, onProjectAdded }: AddProje
             <FolderPlus className="h-6 w-6 text-success" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-foreground">{t('addProject.createNew')}</h3>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <h3 className="font-medium text-foreground group-hover:text-accent-foreground transition-colors">{t('addProject.createNew')}</h3>
+            <p className="text-sm text-muted-foreground group-hover:text-accent-foreground/80 mt-0.5 transition-colors">
               {t('addProject.createNewDescription')}
             </p>
           </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground transition-colors" />
         </button>
       </div>
 

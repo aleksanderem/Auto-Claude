@@ -195,20 +195,25 @@ export class TaskRecoveryService extends EventEmitter {
    */
   private async scanProject(project: { id: string; path: string; name: string }): Promise<StuckTask[]> {
     const stuckTasks: StuckTask[] = [];
-    const autoClaudeDir = join(project.path, '.auto-claude', 'specs');
+    // Check both new .ouro and legacy .auto-claude directories for backwards compatibility
+    const ouroSpecsDir = join(project.path, '.ouro', 'specs');
+    const legacySpecsDir = join(project.path, '.auto-claude', 'specs');
+    const specsDir = existsSync(ouroSpecsDir) ? ouroSpecsDir :
+                     existsSync(legacySpecsDir) ? legacySpecsDir :
+                     ouroSpecsDir; // Default to new path if neither exists
 
-    if (!existsSync(autoClaudeDir)) {
+    if (!existsSync(specsDir)) {
       return stuckTasks;
     }
 
     try {
       const { readdirSync } = await import('fs');
-      const specDirs = readdirSync(autoClaudeDir, { withFileTypes: true })
+      const specDirs = readdirSync(specsDir, { withFileTypes: true })
         .filter(dirent => dirent.isDirectory())
         .map(dirent => dirent.name);
 
       for (const specDir of specDirs) {
-        const planPath = join(autoClaudeDir, specDir, 'implementation_plan.json');
+        const planPath = join(specsDir, specDir, 'implementation_plan.json');
 
         if (!existsSync(planPath)) continue;
 
