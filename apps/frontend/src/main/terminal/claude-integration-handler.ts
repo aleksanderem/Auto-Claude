@@ -714,6 +714,87 @@ export async function resumeClaudeAsync(
 }
 
 /**
+ * Invoke Claude with a custom system prompt (for Project Manager sidebar)
+ *
+ * The system prompt is written to a temp file and passed via --append-system-prompt @file
+ * to avoid shell argument length limits.
+ */
+export async function invokeClaudeWithSystemPromptAsync(
+  terminal: TerminalProcess,
+  systemPrompt: string,
+  cwd: string | undefined,
+  profileId: string | undefined,
+  getWindow: WindowGetter,
+  onSessionCapture: (terminalId: string, projectPath: string, startTime: number) => void,
+  dangerouslySkipPermissions?: boolean
+): Promise<void> {
+  debugLog('[ClaudeIntegration:invokeClaudeWithSystemPromptAsync] ========== INVOKE CLAUDE WITH SYSTEM PROMPT START ==========');
+  debugLog('[ClaudeIntegration:invokeClaudeWithSystemPromptAsync] Terminal ID:', terminal.id);
+  debugLog('[ClaudeIntegration:invokeClaudeWithSystemPromptAsync] System prompt length:', systemPrompt.length);
+  debugLog('[ClaudeIntegration:invokeClaudeWithSystemPromptAsync] CWD:', cwd);
+
+  // Write system prompt to temp file
+  const nonce = crypto.randomBytes(8).toString('hex');
+  const promptFile = path.join(os.tmpdir(), `.claude-system-prompt-${Date.now()}-${nonce}`);
+  debugLog('[ClaudeIntegration:invokeClaudeWithSystemPromptAsync] Writing system prompt to:', promptFile);
+  await fsPromises.writeFile(promptFile, systemPrompt, { mode: 0o600 });
+
+  // Build extra flags: --append-system-prompt @file + optional YOLO mode
+  let extraFlags = ` --append-system-prompt @${escapeShellArg(promptFile)}`;
+  if (dangerouslySkipPermissions) {
+    extraFlags += YOLO_MODE_FLAG;
+  }
+
+  terminal.isClaudeMode = true;
+  terminal.dangerouslySkipPermissions = dangerouslySkipPermissions;
+  SessionHandler.releaseSessionId(terminal.id);
+  terminal.claudeSessionId = undefined;
+
+  const startTime = Date.now();
+  const projectPath = cwd || terminal.projectPath || terminal.cwd;
+
+  // Get profile info
+  const profileManager = await initializeClaudeProfileManager();
+  const activeProfile = profileId
+    ? profileManager.getProfile(profileId)
+    : profileManager.getActiveProfile();
+
+  terminal.claudeProfileId = activeProfile?.id;
+
+  // Async CLI invocation
+  const cwdCommand = buildCdCommand(cwd);
+  const { command: claudeCmd, env: claudeEnv } = await getClaudeCliInvocationAsync();
+  const escapedClaudeCmd = escapeShellArg(claudeCmd);
+  const pathPrefix = claudeEnv.PATH
+    ? `PATH=${escapeShellArg(normalizePathForBash(claudeEnv.PATH))} `
+    : '';
+
+  // Use default method (no OAuth token override) for simplicity
+  // The system prompt file will be cleaned up when Claude exits
+  const command = buildClaudeShellCommand(cwdCommand, pathPrefix, escapedClaudeCmd, { method: 'default' }, extraFlags);
+  debugLog('[ClaudeIntegration:invokeClaudeWithSystemPromptAsync] Executing command');
+  terminal.pty.write(command);
+
+  if (activeProfile) {
+    profileManager.markProfileUsed(activeProfile.id);
+  }
+
+  finalizeClaudeInvoke(terminal, activeProfile, projectPath, startTime, getWindow, onSessionCapture);
+
+  // Schedule cleanup of temp file (give Claude time to read it)
+  setTimeout(async () => {
+    try {
+      await fsPromises.unlink(promptFile);
+      debugLog('[ClaudeIntegration:invokeClaudeWithSystemPromptAsync] Cleaned up temp prompt file');
+    } catch {
+      // Ignore cleanup errors
+    }
+  }, 5000);
+
+  debugLog('[ClaudeIntegration:invokeClaudeWithSystemPromptAsync] ========== INVOKE CLAUDE WITH SYSTEM PROMPT COMPLETE ==========');
+}
+
+/**
  * Configuration for waiting for Claude to exit
  */
 interface WaitForExitConfig {

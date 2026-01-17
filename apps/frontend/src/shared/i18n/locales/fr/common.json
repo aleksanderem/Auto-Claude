@@ -382,5 +382,13 @@
     "conversionFailedDescription": "Impossible de convertir l'idée en tâche",
     "conversionError": "Erreur de conversion",
     "conversionErrorDescription": "Une erreur s'est produite lors de la conversion de l'idée"
+  },
+  "manager": {
+    "toggle": "Manager",
+    "title": "Chef de Projet",
+    "status": {
+      "idle": "Inactif",
+      "busy": "En cours"
+    }
   }
 }

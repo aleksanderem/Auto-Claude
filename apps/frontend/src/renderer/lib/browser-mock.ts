@@ -17,6 +17,7 @@ import {
   integrationMock,
   changelogMock,
   insightsMock,
+  managerMock,
   infrastructureMock,
   settingsMock
 } from './mocks';
@@ -106,6 +107,9 @@ const browserMockAPI: ElectronAPI = {
 
   // Insights Operations
   ...insightsMock,
+
+  // Manager Operations (Project Manager chat sidebar)
+  ...managerMock,
 
   // Infrastructure & Docker Operations
   ...infrastructureMock,

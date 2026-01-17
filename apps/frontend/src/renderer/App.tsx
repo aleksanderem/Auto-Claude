@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, RefreshCw, AlertCircle, LayoutGrid, Folder, ListChecks, CheckCircle2, FolderOpen, Activity, CheckCircle, XCircle, Minus } from 'lucide-react';
+import { Download, RefreshCw, AlertCircle, LayoutGrid, Folder, ListChecks, CheckCircle2, FolderOpen, Activity, CheckCircle, XCircle, Minus, Users } from 'lucide-react';
 import { debugLog } from '../shared/utils/debug-logger';
 import { cn } from './lib/utils';
 import { TooltipProvider } from './components/ui/tooltip';
@@ -19,6 +19,7 @@ import {
   DialogTitle
 } from './components/ui/dialog';
 import { Sidebar, type SidebarView } from './components/Sidebar';
+import { ManagerSidebar } from './components/manager-sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { TaskDetailModal } from './components/task-detail/TaskDetailModal';
 import { TaskCreationWizard } from './components/TaskCreationWizard';
@@ -1079,6 +1080,27 @@ export function App() {
                   </Badge>
                 </>
               )}
+
+              {/* Project Manager Toggle */}
+              {selectedProject && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    useSettingsStore.getState().updateSettings({
+                      managerSidebarOpen: !settings.managerSidebarOpen
+                    });
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 text-white h-7 px-2",
+                    settings.managerSidebarOpen && "bg-white/20"
+                  )}
+                  title={t('common:manager.toggle', 'Project Manager')}
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">{t('common:manager.toggle', 'Manager')}</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -1092,10 +1114,12 @@ export function App() {
             onViewChange={setActiveView}
           />
 
-          {/* Main content */}
-          <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Main content area */}
-          <main className="flex-1 overflow-hidden">
+          {/* Main content wrapper with Manager Sidebar */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Main content */}
+            <div className="flex flex-1 flex-col overflow-hidden">
+            {/* Main content area */}
+            <main className="flex-1 overflow-hidden">
             {selectedProject ? (
               <>
                 {activeView === 'kanban' && (
@@ -1189,8 +1213,24 @@ export function App() {
             )}
           </main>
 
-          {/* Task Log Status Bar - shows streaming logs from running tasks */}
-          <TaskLogStatusBar />
+            {/* Task Log Status Bar - shows streaming logs from running tasks */}
+            <TaskLogStatusBar />
+            </div>
+
+            {/* Manager Sidebar - Right side panel with Project Manager terminal */}
+            {settings.managerSidebarOpen && selectedProject && (
+              <ManagerSidebar
+                projectPath={selectedProject.path}
+                projectId={selectedProject.id}
+                onClose={() => {
+                  useSettingsStore.getState().updateSettings({ managerSidebarOpen: false });
+                }}
+                width={settings.managerSidebarWidth || 400}
+                onWidthChange={(width) => {
+                  useSettingsStore.getState().updateSettings({ managerSidebarWidth: width });
+                }}
+              />
+            )}
           </div>
         </div>
 

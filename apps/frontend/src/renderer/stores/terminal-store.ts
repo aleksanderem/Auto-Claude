@@ -22,6 +22,7 @@ export interface Terminal {
   worktreeConfig?: TerminalWorktreeConfig;  // Associated worktree for isolated development
   isClaudeBusy?: boolean;  // Whether Claude Code is actively processing (for visual indicator)
   pendingClaudeResume?: boolean;  // Whether this terminal has a pending Claude resume (deferred until tab activated)
+  isManagerTerminal?: boolean;  // Whether this is the Project Manager terminal (sidebar)
 }
 
 interface TerminalLayout {
@@ -64,6 +65,7 @@ interface TerminalState {
   canAddTerminal: (projectPath?: string) => boolean;
   getTerminalsForProject: (projectPath: string) => Terminal[];
   getWorktreeCount: () => number;
+  getManagerTerminal: (projectPath: string) => Terminal | undefined;
 }
 
 export const useTerminalStore = create<TerminalState>((set, get) => ({
@@ -319,6 +321,10 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
 
   getWorktreeCount: () => {
     return get().terminals.filter(t => t.worktreeConfig).length;
+  },
+
+  getManagerTerminal: (projectPath: string) => {
+    return get().terminals.find(t => t.isManagerTerminal && t.projectPath === projectPath);
   },
 }));
 

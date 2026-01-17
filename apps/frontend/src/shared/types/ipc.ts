@@ -195,6 +195,7 @@ export interface ElectronAPI {
   sendTerminalInput: (id: string, data: string) => void;
   resizeTerminal: (id: string, cols: number, rows: number) => void;
   invokeClaudeInTerminal: (id: string, cwd?: string) => void;
+  invokeClaudeWithSystemPrompt: (id: string, systemPrompt: string, cwd?: string) => void;
   generateTerminalName: (command: string, cwd?: string) => Promise<IPCResult<string>>;
   setTerminalTitle: (id: string, title: string) => void;
   setTerminalWorktreeConfig: (id: string, config: TerminalWorktreeConfig | undefined) => void;
@@ -691,6 +692,20 @@ export interface ElectronAPI {
   ) => () => void;
   onInsightsError: (
     callback: (projectId: string, error: string) => void
+  ) => () => void;
+
+  // Manager operations (Project Manager chat sidebar)
+  sendManagerMessage: (projectId: string, message: string, images?: ImageAttachment[]) => void;
+
+  // Manager event listeners
+  onManagerStreamChunk: (
+    callback: (chunk: {
+      type: 'text' | 'tool_start' | 'tool_end' | 'done' | 'error';
+      content?: string;
+      toolName?: string;
+      toolInput?: string;
+      error?: string;
+    }) => void
   ) => () => void;
 
   // Task logs operations

@@ -6,6 +6,7 @@ import { FileAPI, createFileAPI } from './file-api';
 import { AgentAPI, createAgentAPI } from './agent-api';
 import { IdeationAPI, createIdeationAPI } from './modules/ideation-api';
 import { InsightsAPI, createInsightsAPI } from './modules/insights-api';
+import { ManagerAPI, createManagerAPI } from './modules/manager-api';
 import { AppUpdateAPI, createAppUpdateAPI } from './app-update-api';
 import { GitHubAPI, createGitHubAPI } from './modules/github-api';
 import { GitLabAPI, createGitLabAPI } from './modules/gitlab-api';
@@ -23,6 +24,7 @@ export interface ElectronAPI extends
   AgentAPI,
   IdeationAPI,
   InsightsAPI,
+  ManagerAPI,
   AppUpdateAPI,
   GitLabAPI,
   DebugAPI,
@@ -41,6 +43,7 @@ export const createElectronAPI = (): ElectronAPI => ({
   ...createAgentAPI(),
   ...createIdeationAPI(),
   ...createInsightsAPI(),
+  ...createManagerAPI(),
   ...createAppUpdateAPI(),
   ...createGitLabAPI(),
   ...createDebugAPI(),
@@ -60,6 +63,7 @@ export {
   createAgentAPI,
   createIdeationAPI,
   createInsightsAPI,
+  createManagerAPI,
   createAppUpdateAPI,
   createProfileAPI,
   createGitHubAPI,
@@ -78,6 +82,7 @@ export type {
   AgentAPI,
   IdeationAPI,
   InsightsAPI,
+  ManagerAPI,
   AppUpdateAPI,
   ProfileAPI,
   GitHubAPI,

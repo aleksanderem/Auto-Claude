@@ -382,5 +382,13 @@
     "conversionFailedDescription": "Failed to convert idea to task",
     "conversionError": "Conversion error",
     "conversionErrorDescription": "An error occurred while converting the idea"
+  },
+  "manager": {
+    "toggle": "Manager",
+    "title": "Project Manager",
+    "status": {
+      "idle": "Idle",
+      "busy": "Processing"
+    }
   }
 }

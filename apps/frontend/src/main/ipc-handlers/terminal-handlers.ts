@@ -111,6 +111,29 @@ export function registerTerminalHandlers(
     }
   );
 
+  // Invoke Claude with a custom system prompt (used by Project Manager sidebar)
+  ipcMain.on(
+    IPC_CHANNELS.TERMINAL_INVOKE_CLAUDE_WITH_SYSTEM_PROMPT,
+    (_, id: string, systemPrompt: string, cwd?: string) => {
+      (async () => {
+        const settings = await readSettingsFileAsync();
+        const dangerouslySkipPermissions = settings?.dangerouslySkipPermissions === true;
+
+        debugLog('[terminal-handlers] Invoking Claude with system prompt, dangerouslySkipPermissions:', dangerouslySkipPermissions);
+
+        await terminalManager.invokeClaudeWithSystemPromptAsync(
+          id,
+          systemPrompt,
+          cwd,
+          undefined,
+          dangerouslySkipPermissions
+        );
+      })().catch((error) => {
+        debugError('[terminal-handlers] Failed to invoke Claude with system prompt:', error);
+      });
+    }
+  );
+
   ipcMain.handle(
     IPC_CHANNELS.TERMINAL_GENERATE_NAME,
     async (_, command: string, cwd?: string): Promise<IPCResult<string>> => {
