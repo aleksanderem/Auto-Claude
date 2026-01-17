@@ -9,6 +9,7 @@ const MAX_LOG_LENGTH = 200; // Truncate long log lines
 
 function cleanLogContent(content: string): string {
   return content
+    // eslint-disable-next-line no-control-regex
     .replace(/\u001b\[[0-9;]*m/g, '') // Remove ANSI codes
     .replace(/__TASK_LOG[^:]*:[^\n]*/g, '') // Remove task log markers
     .replace(/\n/g, ' ') // Replace newlines with spaces
