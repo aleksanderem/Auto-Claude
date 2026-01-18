@@ -379,14 +379,14 @@ export function registerTaskExecutionHandlers(
           }
 
           // Step 3: Clean untracked files that came from the merge
-          // IMPORTANT: Exclude .auto-claude directory to preserve specs and worktree data
-          const cleanResult = spawnSync('git', ['clean', '-fd', '-e', '.auto-claude'], {
+          // IMPORTANT: Exclude .ouro and .auto-claude directories to preserve specs and worktree data
+          const cleanResult = spawnSync('git', ['clean', '-fd', '-e', '.ouro', '-e', '.auto-claude'], {
             cwd: project.path,
             encoding: 'utf-8',
             stdio: 'pipe'
           });
           if (cleanResult.status === 0) {
-            console.log('[TASK_REVIEW] Cleaned untracked files in main (excluding .auto-claude)');
+            console.log('[TASK_REVIEW] Cleaned untracked files in main (excluding .ouro and .auto-claude)');
           }
 
           console.log('[TASK_REVIEW] Main branch restored to pre-merge state');

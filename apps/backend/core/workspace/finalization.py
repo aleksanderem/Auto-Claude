@@ -175,7 +175,7 @@ def handle_workspace_choice(
             else:
                 print(
                     highlight(
-                        f"  cd {project_dir}/.auto-claude/worktrees/tasks/{spec_name}"
+                        f"  cd {project_dir}/.ouro/worktrees/tasks/{spec_name}"
                     )
                 )
 
@@ -246,7 +246,7 @@ def handle_workspace_choice(
             else:
                 print(
                     highlight(
-                        f"  cd {project_dir}/.auto-claude/worktrees/tasks/{spec_name}"
+                        f"  cd {project_dir}/.ouro/worktrees/tasks/{spec_name}"
                     )
                 )
         print()

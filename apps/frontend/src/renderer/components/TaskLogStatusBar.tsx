@@ -9,7 +9,8 @@ const MAX_LOG_LENGTH = 200; // Truncate long log lines
 
 function cleanLogContent(content: string): string {
   return content
-    .replace(/\x1b\[[0-9;]*m/g, '') // Remove ANSI codes
+    // eslint-disable-next-line no-control-regex
+    .replace(/\u001b\[[0-9;]*m/g, '') // Remove ANSI codes
     .replace(/__TASK_LOG[^:]*:[^\n]*/g, '') // Remove task log markers
     .replace(/\n/g, ' ') // Replace newlines with spaces
     .trim()
@@ -24,8 +25,15 @@ export function TaskLogStatusBar() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [streamingLogs, setStreamingLogs] = useState<Map<string, string>>(new Map());
+  const [buildHash, setBuildHash] = useState<string | null>(null);
+  const [appStartTime] = useState<string>(() => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
   // Track last log message per task to prevent duplicate updates
   const lastLogRef = useRef<Map<string, string>>(new Map());
+
+  // Fetch build hash on mount
+  useEffect(() => {
+    window.electronAPI.getAppBuildHash().then(setBuildHash).catch(() => {});
+  }, []);
 
   // Memoize running tasks to prevent infinite re-renders
   const runningTasks = useMemo(
@@ -96,11 +104,19 @@ export function TaskLogStatusBar() {
   // No running tasks - show idle state
   if (runningTasks.length === 0) {
     return (
-      <div className="h-9 bg-muted/50 border-t border-border flex items-center px-3 gap-2">
-        <Terminal className="h-4 w-4 text-muted-foreground/50" />
-        <span className="text-xs text-muted-foreground/50 font-mono">
-          No active tasks
-        </span>
+      <div className="h-14 bg-muted/50 border-t border-border flex items-center justify-between px-3">
+        <div className="flex items-center gap-2">
+          <Terminal className="h-4 w-4 text-muted-foreground/50" />
+          <span className="text-xs text-muted-foreground/50 font-mono">
+            No active tasks
+          </span>
+        </div>
+        {buildHash && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/60 font-mono">
+            <span>{buildHash}</span>
+            <span className="text-muted-foreground/40">@ {appStartTime}</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -114,7 +130,7 @@ export function TaskLogStatusBar() {
   const logContent = streamingLog || (progressMessage ? cleanLogContent(progressMessage) : 'Processing...');
 
   return (
-    <div className="h-9 bg-muted/50 border-t border-border flex items-center px-3 gap-2 overflow-hidden">
+    <div className="h-14 bg-muted/50 border-t border-border flex items-center px-3 gap-2 overflow-hidden">
       {/* Activity indicator */}
       <div className="flex items-center gap-1.5 shrink-0">
         <Loader2 className="h-4 w-4 text-primary animate-spin" />
@@ -155,6 +171,14 @@ export function TaskLogStatusBar() {
           {currentTask.title}
         </span>
       </div>
+
+      {/* Build info */}
+      {buildHash && (
+        <div className="shrink-0 flex items-center gap-2 text-xs text-muted-foreground/60 font-mono ml-2">
+          <span>{buildHash}</span>
+          <span className="text-muted-foreground/40">@ {appStartTime}</span>
+        </div>
+      )}
     </div>
   );
 }

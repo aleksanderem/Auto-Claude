@@ -1,8 +1,8 @@
 """
-Auto Claude CLI - Main Entry Point
-===================================
+Ouro CLI - Main Entry Point
+============================
 
-Command-line interface for the Auto Claude autonomous coding framework.
+Command-line interface for the Ouro autonomous coding framework.
 """
 
 import argparse
@@ -49,29 +49,29 @@ from .workspace_commands import (
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Auto Claude Framework - Autonomous multi-session coding agent",
+        description="Ouro Framework - Autonomous multi-session coding agent",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # List all specs
-  python auto-claude/run.py --list
+  python ouro/run.py --list
 
   # Run a specific spec (by number or full name)
-  python auto-claude/run.py --spec 001
-  python auto-claude/run.py --spec 001-initial-app
+  python ouro/run.py --spec 001
+  python ouro/run.py --spec 001-initial-app
 
   # Workspace management (after build completes)
-  python auto-claude/run.py --spec 001 --merge     # Add build to your project
-  python auto-claude/run.py --spec 001 --review    # See what was built
-  python auto-claude/run.py --spec 001 --discard   # Delete build (with confirmation)
+  python ouro/run.py --spec 001 --merge     # Add build to your project
+  python ouro/run.py --spec 001 --review    # See what was built
+  python ouro/run.py --spec 001 --discard   # Delete build (with confirmation)
 
   # Advanced options
-  python auto-claude/run.py --spec 001 --direct       # Skip workspace isolation
-  python auto-claude/run.py --spec 001 --isolated     # Force workspace isolation
+  python ouro/run.py --spec 001 --direct       # Skip workspace isolation
+  python ouro/run.py --spec 001 --isolated     # Force workspace isolation
 
   # Status checks
-  python auto-claude/run.py --spec 001 --review-status  # Check human review status
-  python auto-claude/run.py --spec 001 --qa-status      # Check QA validation status
+  python ouro/run.py --spec 001 --review-status  # Check human review status
+  python ouro/run.py --spec 001 --qa-status      # Check QA validation status
 
 Prerequisites:
   1. Create a spec first: claude /spec
@@ -366,6 +366,7 @@ def _run_cli() -> None:
     # Handle --check-graphiti command
     if args.check_graphiti:
         from graphiti_config import print_graphiti_health_report
+
         print_banner()
         healthy = print_graphiti_health_report()
         sys.exit(0 if healthy else 1)
@@ -375,8 +376,8 @@ def _run_cli() -> None:
         print_banner()
         print("\nError: --spec is required")
         print("\nUsage:")
-        print("  python auto-claude/run.py --list           # See all specs")
-        print("  python auto-claude/run.py --spec 001       # Run a spec")
+        print("  python ouro/run.py --list           # See all specs")
+        print("  python ouro/run.py --spec 001       # Run a spec")
         print("\nCreate a new spec with:")
         print("  claude /spec")
         sys.exit(1)

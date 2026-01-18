@@ -5,6 +5,7 @@ import { Card } from './ui/card';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import type { Project } from '../../shared/types';
+import ouroLogo from '../assets/images/ouro-logo.png';
 
 interface WelcomeScreenProps {
   projects: Project[];
@@ -45,6 +46,11 @@ export function WelcomeScreen({
       <div className="w-full max-w-2xl">
         {/* Hero Section */}
         <div className="text-center mb-10">
+          <img
+            src={ouroLogo}
+            alt="Ouro"
+            className="h-24 mx-auto mb-6 drop-shadow-lg"
+          />
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
             {t('welcome:hero.title')}
           </h1>

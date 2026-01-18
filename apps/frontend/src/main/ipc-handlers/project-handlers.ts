@@ -348,7 +348,7 @@ export function registerProjectHandlers(
 
         if (result.success) {
           // Update project's autoBuildPath
-          projectStore.updateAutoBuildPath(projectId, '.auto-claude');
+          projectStore.updateAutoBuildPath(projectId, '.ouro');
         }
 
         return { success: result.success, data: result, error: result.error };

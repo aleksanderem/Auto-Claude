@@ -110,10 +110,20 @@ function sanitizeTriageResult(result: GitLabTriageResult): {
 }
 
 /**
- * Get the GitLab directory for a project
+ * Get the GitLab directory for a project.
+ * Uses .ouro as primary, falls back to .auto-claude for backwards compatibility.
  */
 function getGitLabDir(project: Project): string {
-  return path.join(project.path, '.auto-claude', 'gitlab');
+  const ouroDir = path.join(project.path, '.ouro', 'gitlab');
+  const legacyDir = path.join(project.path, '.auto-claude', 'gitlab');
+
+  // Use .ouro if it exists, fall back to .auto-claude if that exists
+  if (fs.existsSync(ouroDir)) {
+    return ouroDir;
+  } else if (fs.existsSync(legacyDir)) {
+    return legacyDir;
+  }
+  return ouroDir; // Default to .ouro for new projects
 }
 
 /**

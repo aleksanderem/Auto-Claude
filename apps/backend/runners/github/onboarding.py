@@ -285,7 +285,13 @@ class OnboardingManager:
             gh_provider: GitHub provider for API calls
         """
         self.repo = repo
-        self.state_dir = state_dir or Path(".auto-claude/github")
+        if state_dir is None:
+            # Prefer .ouro, fallback to .auto-claude for backwards compatibility
+            state_dir = Path(".ouro/github")
+            legacy_state_dir = Path(".auto-claude/github")
+            if not state_dir.exists() and legacy_state_dir.exists():
+                state_dir = legacy_state_dir
+        self.state_dir = state_dir
         self.gh_provider = gh_provider
         self._state: OnboardingState | None = None
 

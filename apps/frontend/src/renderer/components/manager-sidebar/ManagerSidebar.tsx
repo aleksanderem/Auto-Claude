@@ -2,7 +2,7 @@
  * Manager Sidebar Component
  *
  * Right-side panel containing a chat interface with Project Manager.
- * Powered by Claude Opus 4.5 with comprehensive Auto-Claude knowledge.
+ * Powered by Claude Opus 4.5 with comprehensive Ouro knowledge.
  */
 
 import { useCallback, useState, useEffect, useRef } from 'react';

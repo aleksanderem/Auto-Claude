@@ -408,7 +408,7 @@ def clear_claude_cli_cache() -> None:
 
 
 from agents.tools_pkg import (
-    create_auto_claude_mcp_server,
+    create_ouro_mcp_server,
     get_allowed_tools,
     get_required_mcp_servers,
     is_tools_available,
@@ -584,7 +584,7 @@ def _validate_custom_mcp_server(server: dict) -> bool:
 
 def load_project_mcp_config(project_dir: Path) -> dict:
     """
-    Load MCP configuration from project's .auto-claude/.env file.
+    Load MCP configuration from project's .ouro/.env file.
 
     Returns a dict of MCP-related env vars:
     - CONTEXT7_ENABLED (default: true)
@@ -601,7 +601,10 @@ def load_project_mcp_config(project_dir: Path) -> dict:
     Returns:
         Dict of MCP configuration values (string values, except CUSTOM_MCP_SERVERS which is parsed JSON)
     """
-    env_path = project_dir / ".auto-claude" / ".env"
+    # Check new location first, then legacy
+    env_path = project_dir / ".ouro" / ".env"
+    if not env_path.exists():
+        env_path = project_dir / ".auto-claude" / ".env"
     if not env_path.exists():
         return {}
 
@@ -730,10 +733,7 @@ def get_claude_cli_version() -> tuple[int, int, int] | None:
             return None
 
         result = subprocess.run(
-            [cli_path, "--version"],
-            capture_output=True,
-            text=True,
-            timeout=5
+            [cli_path, "--version"], capture_output=True, text=True, timeout=5
         )
 
         if result.returncode != 0:
@@ -768,7 +768,9 @@ def supports_max_thinking_tokens() -> bool:
         True if --max-thinking-tokens is supported, False otherwise
     """
     # Allow override via environment variable
-    force_thinking = os.environ.get("CLAUDE_FORCE_THINKING_TOKENS", "").lower() == "true"
+    force_thinking = (
+        os.environ.get("CLAUDE_FORCE_THINKING_TOKENS", "").lower() == "true"
+    )
     if force_thinking:
         logger.info("CLAUDE_FORCE_THINKING_TOKENS=true, enabling --max-thinking-tokens")
         return True
@@ -776,7 +778,9 @@ def supports_max_thinking_tokens() -> bool:
     # Check CLI version
     version = get_claude_cli_version()
     if version is None:
-        logger.debug("Could not determine Claude CLI version, disabling --max-thinking-tokens")
+        logger.debug(
+            "Could not determine Claude CLI version, disabling --max-thinking-tokens"
+        )
         return False
 
     major, minor, patch = version
@@ -858,15 +862,15 @@ def create_client(
     linear_enabled = is_linear_enabled()
     linear_api_key = os.environ.get("LINEAR_API_KEY", "")
 
-    # Check if custom auto-claude tools are available
-    auto_claude_tools_enabled = is_tools_available()
+    # Check if custom Ouro tools are available
+    ouro_tools_enabled = is_tools_available()
 
     # Load project capabilities for dynamic MCP tool selection
     # This enables context-aware tool injection based on project type
     # Uses caching to avoid reloading on every create_client() call
     project_index, project_capabilities = _get_cached_project_data(project_dir)
 
-    # Load per-project MCP configuration from .auto-claude/.env
+    # Load per-project MCP configuration from .ouro/.env
     mcp_config = load_project_mcp_config(project_dir)
 
     # Get allowed tools using phase-aware configuration
@@ -903,10 +907,11 @@ def create_client(
 
     # Detect if we're running in a worktree and get the original project directory
     # Worktrees are located in either:
-    # - .auto-claude/worktrees/tasks/{spec-name}/ (new location)
+    # - .ouro/worktrees/tasks/{spec-name}/ (new location)
+    # - .auto-claude/worktrees/tasks/{spec-name}/ (legacy)
     # - .worktrees/{spec-name}/ (legacy location)
     # When running in a worktree, we need to allow access to both the worktree
-    # and the original project's .auto-claude/ directory for spec files
+    # and the original project's .ouro/ directory for spec files
     original_project_permissions = []
     resolved_project_path = project_dir.resolve()
 
@@ -914,8 +919,10 @@ def create_client(
     # This handles spec worktrees, PR review worktrees, and legacy worktrees
     # Note: Windows paths are normalized to forward slashes before comparison
     worktree_markers = [
-        "/.auto-claude/worktrees/tasks/",  # Spec/task worktrees
-        "/.auto-claude/github/pr/worktrees/",  # PR review worktrees
+        "/.ouro/worktrees/tasks/",  # Spec/task worktrees
+        "/.ouro/github/pr/worktrees/",  # PR review worktrees
+        "/.auto-claude/worktrees/tasks/",  # Legacy spec/task worktrees
+        "/.auto-claude/github/pr/worktrees/",  # Legacy PR review worktrees
         "/.worktrees/",  # Legacy worktree location
     ]
     project_path_posix = str(resolved_project_path).replace("\\", "/")
@@ -930,7 +937,8 @@ def create_client(
             # Grant permissions for relevant directories in the original project
             permission_ops = ["Read", "Write", "Edit", "Glob", "Grep"]
             dirs_to_permit = [
-                original_project_dir / ".auto-claude",
+                original_project_dir / ".ouro",
+                original_project_dir / ".auto-claude",  # Legacy support
                 original_project_dir / ".worktrees",  # Legacy support
             ]
 
@@ -980,7 +988,7 @@ def create_client(
                 # Allow QA feedback screenshot directory
                 f"Read({spec_path_str}/qa-feedback-screenshots/**)",
                 f"Write({spec_path_str}/qa-feedback-screenshots/**)",
-                # Allow original project's .auto-claude/ and .worktrees/ directories
+                # Allow original project's .ouro/ and .worktrees/ directories
                 # when running in a worktree (fixes issue #385 - permission errors)
                 *original_project_permissions,
                 # Bash permission granted here, but actual commands are validated
@@ -996,7 +1004,7 @@ def create_client(
                     [
                         f"mcp__{server}__*(*)"
                         for server in required_servers
-                        if server != "auto-claude"  # auto-claude tools handled separately
+                        if server != "ouro"  # ouro tools handled separately
                     ]
                 ),
             ],
@@ -1044,8 +1052,8 @@ def create_client(
         mcp_servers_list.append("linear (project management)")
     if graphiti_mcp_enabled:
         mcp_servers_list.append("graphiti-memory (knowledge graph)")
-    if "auto-claude" in required_servers and auto_claude_tools_enabled:
-        mcp_servers_list.append(f"auto-claude ({agent_type} tools)")
+    if "ouro" in required_servers and ouro_tools_enabled:
+        mcp_servers_list.append(f"ouro ({agent_type} tools)")
     if mcp_servers_list:
         print(f"   - MCP servers: {', '.join(mcp_servers_list)}")
     else:
@@ -1100,11 +1108,11 @@ def create_client(
             "url": get_graphiti_mcp_url(),
         }
 
-    # Add custom auto-claude MCP server if required and available
-    if "auto-claude" in required_servers and auto_claude_tools_enabled:
-        auto_claude_mcp_server = create_auto_claude_mcp_server(spec_dir, project_dir)
-        if auto_claude_mcp_server:
-            mcp_servers["auto-claude"] = auto_claude_mcp_server
+    # Add custom Ouro MCP server if required and available
+    if "ouro" in required_servers and ouro_tools_enabled:
+        ouro_mcp_server = create_ouro_mcp_server(spec_dir, project_dir)
+        if ouro_mcp_server:
+            mcp_servers["ouro"] = ouro_mcp_server
 
     # Add Playwright SDK MCP server if required (built-in, not external process)
     if "playwright" in required_servers:
@@ -1112,7 +1120,9 @@ def create_client(
 
         playwright_server = get_playwright_mcp_server()
         mcp_servers["playwright"] = playwright_server
-        logger.info("Playwright SDK MCP server added (native Python, not external process)")
+        logger.info(
+            "Playwright SDK MCP server added (native Python, not external process)"
+        )
 
     # Add custom MCP servers from project config
     custom_servers = mcp_config.get("CUSTOM_MCP_SERVERS", [])

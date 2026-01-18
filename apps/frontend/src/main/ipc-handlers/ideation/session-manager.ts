@@ -4,7 +4,8 @@
 
 import path from 'path';
 import type { IpcMainInvokeEvent } from 'electron';
-import { AUTO_BUILD_PATHS } from '../../../shared/constants';
+import { existsSync } from 'fs';
+import { AUTO_BUILD_PATHS, LEGACY_BUILD_PATHS, getIdeationDir } from '../../../shared/constants';
 import type { IPCResult, IdeationSession } from '../../../shared/types';
 import { projectStore } from '../../project-store';
 import { transformIdeaFromSnakeCase } from './transformers';
@@ -13,6 +14,19 @@ import { readIdeationFile } from './file-utils';
 /**
  * Get ideation session for a project
  */
+/**
+ * Find ideation path with legacy fallback
+ */
+function findIdeationPath(projectPath: string, autoBuildPath: string | undefined): string | null {
+  const newPath = path.join(projectPath, getIdeationDir(autoBuildPath), AUTO_BUILD_PATHS.IDEATION_FILE);
+  if (existsSync(newPath)) return newPath;
+
+  const legacyPath = path.join(projectPath, LEGACY_BUILD_PATHS.IDEATION_DIR, AUTO_BUILD_PATHS.IDEATION_FILE);
+  if (existsSync(legacyPath)) return legacyPath;
+
+  return null;
+}
+
 export async function getIdeationSession(
   _event: IpcMainInvokeEvent,
   projectId: string
@@ -22,11 +36,10 @@ export async function getIdeationSession(
     return { success: false, error: 'Project not found' };
   }
 
-  const ideationPath = path.join(
-    project.path,
-    AUTO_BUILD_PATHS.IDEATION_DIR,
-    AUTO_BUILD_PATHS.IDEATION_FILE
-  );
+  const ideationPath = findIdeationPath(project.path, project.autoBuildPath);
+  if (!ideationPath) {
+    return { success: true, data: null };
+  }
 
   const rawIdeation = readIdeationFile(ideationPath);
   if (!rawIdeation) {

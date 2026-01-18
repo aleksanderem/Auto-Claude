@@ -35,6 +35,8 @@ import { registerMcpHandlers } from './mcp-handlers';
 import { registerProfileHandlers } from './profile-handlers';
 import { registerTerminalWorktreeIpcHandlers } from './terminal';
 import { registerTaskRecoveryHandlers } from './task-recovery-handlers';
+import { registerSupervisorHandlers } from './supervisor-handlers';
+import { registerMigrationHandlers } from './migration-handlers';
 import { notificationService } from '../notification-service';
 import { getTaskRecoveryService } from '../index';
 
@@ -130,6 +132,12 @@ export function setupIpcHandlers(
     registerTaskRecoveryHandlers(recoveryService);
   }
 
+  // Supervisor plugin handlers (Claude Code supervisor mode)
+  registerSupervisorHandlers();
+
+  // Legacy migration handlers (.auto-claude → .ouro)
+  registerMigrationHandlers();
+
   console.warn('[IPC] All handler modules registered successfully');
 }
 
@@ -157,5 +165,7 @@ export {
   registerDebugHandlers,
   registerClaudeCodeHandlers,
   registerMcpHandlers,
-  registerProfileHandlers
+  registerProfileHandlers,
+  registerSupervisorHandlers,
+  registerMigrationHandlers
 };

@@ -10,16 +10,16 @@ You're in a **fresh context window** with no memory of previous sessions. All kn
 
 ```bash
 # Read your implementation plan (source of truth)
-cat ./auto-claude/specs/*/implementation_plan.json
+cat ./ouro/specs/*/implementation_plan.json
 
 # Read the spec (requirements)
-cat ./auto-claude/specs/*/spec.md
+cat ./ouro/specs/*/spec.md
 
 # Read project context (patterns, services, ports)
-cat ./auto-claude/specs/*/context.json
+cat ./ouro/specs/*/context.json
 
 # Read previous progress
-cat ./auto-claude/specs/*/build-progress.txt 2>/dev/null
+cat ./ouro/specs/*/build-progress.txt 2>/dev/null
 ```
 
 ---
@@ -47,7 +47,7 @@ cat ./auto-claude/specs/*/build-progress.txt 2>/dev/null
 
 5. **Update and commit**
    - Set subtask status to `"completed"` in implementation_plan.json
-   - Commit: `git add . ':!.auto-claude' && git commit -m "auto-claude: [subtask-id]"`
+   - Commit: `git add . ':!.ouro' && git commit -m "ouro: [subtask-id]"`
    - Do NOT push to remote
 
 6. **Continue or finish**
@@ -64,7 +64,7 @@ cat ./auto-claude/specs/*/build-progress.txt 2>/dev/null
 
 **Dependencies:** Never work on a subtask if its phase's dependencies aren't complete.
 
-**Git:** Never modify git config. Never push to remote. Exclude `.auto-claude` from commits.
+**Git:** Never modify git config. Never push to remote. Exclude `.ouro` from commits.
 
 **The Golden Rule:** Fix bugs NOW. The next session has no memory of what you did.
 

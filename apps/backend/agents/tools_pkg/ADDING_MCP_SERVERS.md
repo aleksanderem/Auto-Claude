@@ -1,4 +1,4 @@
-# Adding New MCP Servers to Auto-Claude
+# Adding New MCP Servers to Ouro
 
 This guide shows how to add a new MCP server with automatic tool discovery.
 
@@ -42,9 +42,9 @@ In `agents/tools_pkg/models.py`, add to relevant agent configs:
 ```python
 "coder": {
     "tools": BASE_READ_TOOLS + BASE_WRITE_TOOLS + WEB_TOOLS,
-    "mcp_servers": ["context7", "graphiti", "auto-claude", "my-custom"],  # ← Add here
+    "mcp_servers": ["context7", "graphiti", "ouro", "my-custom"],  # ← Add here
     "mcp_servers_optional": ["linear", "browser"],
-    "auto_claude_tools": [...],
+    "ouro_tools": [...],
     "thinking_default": "none",
 },
 ```
@@ -80,7 +80,7 @@ SERVER_TOOL_REGISTRY = {
 
 # 3. In models.py agent config
 "planner": {
-    "mcp_servers": ["context7", "graphiti", "auto-claude", "notion"],
+    "mcp_servers": ["context7", "graphiti", "ouro", "notion"],
     # ...rest of config...
 },
 ```
@@ -93,7 +93,7 @@ For servers that should only be enabled for certain project types, use `mcp_serv
 
 ```python
 "coder": {
-    "mcp_servers": ["context7", "graphiti", "auto-claude"],
+    "mcp_servers": ["context7", "graphiti", "ouro"],
     "mcp_servers_optional": ["linear", "browser", "notion"],  # Only if needed
     # ...
 },

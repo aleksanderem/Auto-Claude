@@ -51,7 +51,12 @@ def load_project_context(project_dir: str) -> str:
     context_parts = []
 
     # Load project index
-    index_path = Path(project_dir) / ".auto-claude" / "project_index.json"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    index_path = Path(project_dir) / ".ouro" / "project_index.json"
+    if not index_path.exists():
+        legacy_path = Path(project_dir) / ".auto-claude" / "project_index.json"
+        if legacy_path.exists():
+            index_path = legacy_path
     if index_path.exists():
         try:
             with open(index_path) as f:
@@ -69,7 +74,12 @@ def load_project_context(project_dir: str) -> str:
             pass
 
     # Load existing tasks/specs with status
-    specs_path = Path(project_dir) / ".auto-claude" / "specs"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    specs_path = Path(project_dir) / ".ouro" / "specs"
+    if not specs_path.exists():
+        legacy_path = Path(project_dir) / ".auto-claude" / "specs"
+        if legacy_path.exists():
+            specs_path = legacy_path
     if specs_path.exists():
         try:
             task_summaries = []
@@ -79,11 +89,13 @@ def load_project_context(project_dir: str) -> str:
                     if plan_path.exists():
                         with open(plan_path) as f:
                             plan = json.load(f)
-                        task_summaries.append({
-                            "spec": spec_dir.name,
-                            "status": plan.get("status", "unknown"),
-                            "feature": plan.get("feature", spec_dir.name),
-                        })
+                        task_summaries.append(
+                            {
+                                "spec": spec_dir.name,
+                                "status": plan.get("status", "unknown"),
+                                "feature": plan.get("feature", spec_dir.name),
+                            }
+                        )
             if task_summaries:
                 context_parts.append(
                     f"## Current Tasks\n```json\n{json.dumps(task_summaries, indent=2)}\n```"
@@ -92,7 +104,12 @@ def load_project_context(project_dir: str) -> str:
             pass
 
     # Load roadmap if available
-    roadmap_path = Path(project_dir) / ".auto-claude" / "roadmap" / "roadmap.json"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    roadmap_path = Path(project_dir) / ".ouro" / "roadmap" / "roadmap.json"
+    if not roadmap_path.exists():
+        legacy_path = Path(project_dir) / ".auto-claude" / "roadmap" / "roadmap.json"
+        if legacy_path.exists():
+            roadmap_path = legacy_path
     if roadmap_path.exists():
         try:
             with open(roadmap_path) as f:
@@ -157,7 +174,7 @@ When you create a spec - you hand it off. The orchestrator and agents take over.
 
 You don't interfere with them. You start builds, monitor progress, decide what's next.
 
-## Commands (from `{auto_claude_source or 'apps/backend'}`)
+## Commands (from `{auto_claude_source or "apps/backend"}`)
 
 ```bash
 # Create spec (hands off to spec agents)
@@ -179,7 +196,7 @@ python run.py --spec 001 --merge    # Merge to main
 
 | What | Where |
 |------|-------|
-| All specs | `.auto-claude/specs/` |
+| All specs | `.ouro/specs/` |
 | Spec status | `implementation_plan.json` → status field |
 | QA results | `qa_report.md` |
 | Issues | `QA_FIX_REQUEST.md` |
@@ -299,14 +316,16 @@ Current message: {message}"""
     if images:
         for img in images:
             if img.get("data") and img.get("mimeType"):
-                message_content.append({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": img["mimeType"],
-                        "data": img["data"]
+                message_content.append(
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": img["mimeType"],
+                            "data": img["data"],
+                        },
                     }
-                })
+                )
         debug(
             "manager_runner",
             "Added images to message",
@@ -314,10 +333,7 @@ Current message: {message}"""
         )
 
     # Add text content
-    message_content.append({
-        "type": "text",
-        "text": full_prompt
-    })
+    message_content.append({"type": "text", "text": full_prompt})
 
     # If we have structured content (images), we need to pass it differently
     # The SDK query method may need the full content array
@@ -415,6 +431,7 @@ Current message: {message}"""
     except Exception as e:
         print(f"Error using Claude SDK: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
 
@@ -432,7 +449,7 @@ def main():
     )
     parser.add_argument(
         "--auto-claude-source",
-        help="Path to Auto-Claude source (DEV mode)",
+        help="Path to Ouro source (DEV mode, legacy flag name for backwards compatibility)",
     )
     args = parser.parse_args()
 
@@ -440,7 +457,7 @@ def main():
 
     project_dir = args.project_dir
     user_message = args.message
-    auto_claude_source = args.auto_claude_source
+    auto_claude_source = args.auto_claude_source  # Legacy name, refers to Ouro source
 
     debug(
         "manager_runner",
@@ -488,7 +505,11 @@ def main():
 
     # Run the async SDK function
     debug("manager_runner", "Running SDK query")
-    asyncio.run(run_manager_query(project_dir, user_message, history, auto_claude_source, images))
+    asyncio.run(
+        run_manager_query(
+            project_dir, user_message, history, auto_claude_source, images
+        )
+    )
     debug_success("manager_runner", "Query completed")
 
 

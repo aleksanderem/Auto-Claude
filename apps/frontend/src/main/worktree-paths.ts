@@ -8,15 +8,18 @@
 import path from 'path';
 import { existsSync } from 'fs';
 
-// Path constants for worktree directories
-export const TASK_WORKTREE_DIR = '.auto-claude/worktrees/tasks';
-export const TERMINAL_WORKTREE_DIR = '.auto-claude/worktrees/terminal';
+// Path constants for worktree directories (new .ouro paths)
+export const TASK_WORKTREE_DIR = '.ouro/worktrees/tasks';
+export const TERMINAL_WORKTREE_DIR = '.ouro/worktrees/terminal';
 
 // Metadata directories (separate from git worktrees to avoid uncommitted files)
-export const TERMINAL_WORKTREE_METADATA_DIR = '.auto-claude/terminal/metadata';
+export const TERMINAL_WORKTREE_METADATA_DIR = '.ouro/terminal/metadata';
 
-// Legacy path for backwards compatibility
+// Legacy paths for backwards compatibility
 export const LEGACY_WORKTREE_DIR = '.worktrees';
+export const LEGACY_AUTO_CLAUDE_TASK_WORKTREE_DIR = '.auto-claude/worktrees/tasks';
+export const LEGACY_AUTO_CLAUDE_TERMINAL_WORKTREE_DIR = '.auto-claude/worktrees/terminal';
+export const LEGACY_AUTO_CLAUDE_TERMINAL_METADATA_DIR = '.auto-claude/terminal/metadata';
 
 /**
  * Get the task worktrees directory path
@@ -62,7 +65,15 @@ export function findTaskWorktree(projectPath: string, specId: string): string | 
 
   if (existsSync(resolvedNewPath)) return resolvedNewPath;
 
-  // Legacy fallback
+  // Legacy fallback: .auto-claude/worktrees/tasks
+  const autoClaudeLegacyPath = path.join(projectPath, LEGACY_AUTO_CLAUDE_TASK_WORKTREE_DIR, specId);
+  const resolvedAutoClaudeLegacyPath = path.resolve(autoClaudeLegacyPath);
+
+  if (isPathWithinBase(resolvedAutoClaudeLegacyPath, normalizedProject) && existsSync(resolvedAutoClaudeLegacyPath)) {
+    return resolvedAutoClaudeLegacyPath;
+  }
+
+  // Very old legacy fallback: .worktrees
   const legacyPath = path.join(projectPath, LEGACY_WORKTREE_DIR, specId);
   const resolvedLegacyPath = path.resolve(legacyPath);
 
@@ -111,7 +122,15 @@ export function findTerminalWorktree(projectPath: string, name: string): string 
 
   if (existsSync(resolvedNewPath)) return resolvedNewPath;
 
-  // Legacy fallback (terminal worktrees used terminal-{name} prefix)
+  // Legacy fallback: .auto-claude/worktrees/terminal
+  const autoClaudeLegacyPath = path.join(projectPath, LEGACY_AUTO_CLAUDE_TERMINAL_WORKTREE_DIR, name);
+  const resolvedAutoClaudeLegacyPath = path.resolve(autoClaudeLegacyPath);
+
+  if (isPathWithinBase(resolvedAutoClaudeLegacyPath, normalizedProject) && existsSync(resolvedAutoClaudeLegacyPath)) {
+    return resolvedAutoClaudeLegacyPath;
+  }
+
+  // Very old legacy fallback (terminal worktrees used terminal-{name} prefix)
   const legacyPath = path.join(projectPath, LEGACY_WORKTREE_DIR, `terminal-${name}`);
   const resolvedLegacyPath = path.resolve(legacyPath);
 
@@ -139,4 +158,20 @@ export function getTerminalWorktreeMetadataDir(projectPath: string): string {
  */
 export function getTerminalWorktreeMetadataPath(projectPath: string, name: string): string {
   return path.join(projectPath, TERMINAL_WORKTREE_METADATA_DIR, `${name}.json`);
+}
+
+/**
+ * Find terminal worktree metadata file, checking new location first then legacy
+ * Returns the path if found, null otherwise
+ */
+export function findTerminalWorktreeMetadata(projectPath: string, name: string): string | null {
+  // Check new .ouro path first
+  const newPath = path.join(projectPath, TERMINAL_WORKTREE_METADATA_DIR, `${name}.json`);
+  if (existsSync(newPath)) return newPath;
+
+  // Legacy fallback: .auto-claude/terminal/metadata
+  const legacyPath = path.join(projectPath, LEGACY_AUTO_CLAUDE_TERMINAL_METADATA_DIR, `${name}.json`);
+  if (existsSync(legacyPath)) return legacyPath;
+
+  return null;
 }

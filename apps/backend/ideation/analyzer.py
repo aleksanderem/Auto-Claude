@@ -47,8 +47,12 @@ class ProjectAnalyzer:
             "planned_features": [],
         }
 
-        # Get project index (from .auto-claude - the installed instance)
-        project_index_path = self.project_dir / ".auto-claude" / "project_index.json"
+        # Get project index - check .ouro first, fallback to .auto-claude for backwards compatibility
+        project_index_path = self.project_dir / ".ouro" / "project_index.json"
+        if not project_index_path.exists():
+            legacy_path = self.project_dir / ".auto-claude" / "project_index.json"
+            if legacy_path.exists():
+                project_index_path = legacy_path
         if project_index_path.exists():
             try:
                 with open(project_index_path) as f:
@@ -65,9 +69,14 @@ class ProjectAnalyzer:
 
         # Get roadmap context if enabled
         if self.include_roadmap:
-            roadmap_path = (
-                self.project_dir / ".auto-claude" / "roadmap" / "roadmap.json"
-            )
+            # Check .ouro first, fallback to .auto-claude for backwards compatibility
+            roadmap_path = self.project_dir / ".ouro" / "roadmap" / "roadmap.json"
+            if not roadmap_path.exists():
+                legacy_path = (
+                    self.project_dir / ".auto-claude" / "roadmap" / "roadmap.json"
+                )
+                if legacy_path.exists():
+                    roadmap_path = legacy_path
             if roadmap_path.exists():
                 try:
                     with open(roadmap_path) as f:
@@ -81,10 +90,16 @@ class ProjectAnalyzer:
                 except (json.JSONDecodeError, KeyError):
                     pass
 
-            # Also check discovery for audience
+            # Also check discovery for audience - check .ouro first, fallback to .auto-claude
             discovery_path = (
-                self.project_dir / ".auto-claude" / "roadmap" / "roadmap_discovery.json"
+                self.project_dir / ".ouro" / "roadmap" / "roadmap_discovery.json"
             )
+            if not discovery_path.exists():
+                legacy_discovery = (
+                    self.project_dir / ".auto-claude" / "roadmap" / "roadmap_discovery.json"
+                )
+                if legacy_discovery.exists():
+                    discovery_path = legacy_discovery
             if discovery_path.exists() and not context["target_audience"]:
                 try:
                     with open(discovery_path) as f:
@@ -102,7 +117,12 @@ class ProjectAnalyzer:
 
         # Get kanban context if enabled
         if self.include_kanban:
-            specs_dir = self.project_dir / ".auto-claude" / "specs"
+            # Check .ouro first, fallback to .auto-claude for backwards compatibility
+            specs_dir = self.project_dir / ".ouro" / "specs"
+            if not specs_dir.exists():
+                legacy_specs = self.project_dir / ".auto-claude" / "specs"
+                if legacy_specs.exists():
+                    specs_dir = legacy_specs
             if specs_dir.exists():
                 for spec_dir in specs_dir.iterdir():
                     if spec_dir.is_dir():

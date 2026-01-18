@@ -371,9 +371,18 @@ export interface PRReviewProgress {
 
 /**
  * Get the GitHub directory for a project
+ * Checks .ouro first, falls back to .auto-claude for legacy projects
  */
 function getGitHubDir(project: Project): string {
-  return path.join(project.path, ".auto-claude", "github");
+  const ouroDir = path.join(project.path, ".ouro", "github");
+  const legacyDir = path.join(project.path, ".auto-claude", "github");
+
+  if (fs.existsSync(ouroDir)) {
+    return ouroDir;
+  } else if (fs.existsSync(legacyDir)) {
+    return legacyDir;
+  }
+  return ouroDir; // Default to .ouro for new projects
 }
 
 /**
@@ -1451,7 +1460,8 @@ export function registerPRHandlers(getMainWindow: () => BrowserWindow | null): v
           }
 
           // Use temp file to avoid shell escaping issues
-          const tmpFile = join(project.path, ".auto-claude", "tmp_comment_body.txt");
+          // Use getGitHubDir to respect .ouro/.auto-claude directory preference
+          const tmpFile = join(getGitHubDir(project), "tmp_comment_body.txt");
           try {
             writeFileSync(tmpFile, body, "utf-8");
             // Use execFileSync with arguments array to prevent command injection
@@ -1664,7 +1674,7 @@ export function registerPRHandlers(getMainWindow: () => BrowserWindow | null): v
 
       const result = await withProjectOrNull(projectId, async (project) => {
         // Check if review exists and has reviewed_commit_sha
-        const githubDir = path.join(project.path, ".auto-claude", "github");
+        const githubDir = getGitHubDir(project);
         const reviewPath = path.join(githubDir, "pr", `review_${prNumber}.json`);
 
         let review: PRReviewResult;

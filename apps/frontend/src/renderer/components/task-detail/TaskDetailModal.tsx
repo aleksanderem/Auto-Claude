@@ -224,7 +224,7 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
     // Open terminal and automatically run 'claude setup-token'
     if (onOpenInbuiltTerminal) {
       // Use project path or current directory (empty string uses default)
-      const cwd = task.project || '';
+      const cwd = task.projectId || '';
       onOpenInbuiltTerminal('auth-fix', cwd);
 
       // Wait for terminal to initialize, then send the command

@@ -4,7 +4,8 @@ Workspace Management Package
 =============================
 
 Handles workspace isolation through Git worktrees, where each spec
-gets its own isolated worktree in .auto-claude/worktrees/tasks/{spec-name}/.
+gets its own isolated worktree in .ouro/worktrees/tasks/{spec-name}/
+(or legacy .auto-claude/worktrees/tasks/{spec-name}/).
 
 This package provides:
 - Workspace setup and configuration
@@ -69,8 +70,10 @@ from .git_utils import (
     _get_binary_file_content_from_ref,
     _get_changed_files_from_branch,
     _get_file_content_from_ref,
+    _is_auto_claude_file,  # Legacy alias
     _is_binary_file,
     _is_lock_file,
+    _is_ouro_file,
     # Export private names for backward compatibility
     _is_process_running,
     _validate_merged_syntax,

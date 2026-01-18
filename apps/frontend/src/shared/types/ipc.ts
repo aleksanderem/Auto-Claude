@@ -2,7 +2,7 @@
  * IPC (Inter-Process Communication) types for Electron API
  */
 
-import type { IPCResult } from './common';
+import type { IPCResult, SystemHealthCheck } from './common';
 import type { SupportedIDE, SupportedTerminal } from './settings';
 import type {
   Project,
@@ -43,7 +43,9 @@ import type {
   TaskMetadata,
   TaskLogs,
   TaskLogStreamChunk,
-  ImageAttachment
+  ImageAttachment,
+  RecoveryConfig,
+  RecoveryStats
 } from './task';
 import type {
   TerminalCreateOptions,
@@ -130,6 +132,8 @@ import type {
   GitLabNewCommitsCheck
 } from './integrations';
 import type { APIProfile, ProfilesFile, TestConnectionResult, DiscoverModelsResult } from './profile';
+import type { SupervisorPluginStatus, SupervisorPluginResult, SupervisorPluginInstallOptions } from './supervisor';
+import type { LegacyCheckResult, MigrationResult } from './migration';
 
 // Electron API exposed via contextBridge
 // Tab state interface (persisted in main process)
@@ -815,6 +819,37 @@ export interface ElectronAPI {
   // MCP Server health check operations
   checkMcpHealth: (server: CustomMcpServer) => Promise<IPCResult<McpHealthCheckResult>>;
   testMcpConnection: (server: CustomMcpServer) => Promise<IPCResult<McpTestConnectionResult>>;
+
+  // Supervisor plugin operations (Claude Code supervisor mode)
+  getSupervisorStatus: (projectPath: string) => Promise<IPCResult<SupervisorPluginStatus>>;
+  installSupervisor: (projectPath: string, options?: SupervisorPluginInstallOptions) => Promise<IPCResult<SupervisorPluginResult>>;
+  uninstallSupervisor: (projectPath: string) => Promise<IPCResult<SupervisorPluginResult>>;
+  updateSupervisorClaudeMd: (projectPath: string, enable: boolean) => Promise<IPCResult<SupervisorPluginResult>>;
+
+  // Legacy migration operations (.auto-claude → .ouro)
+  checkLegacy: (projectPath: string) => Promise<IPCResult<LegacyCheckResult>>;
+  executeMigration: (projectPath: string) => Promise<IPCResult<MigrationResult>>;
+
+  // App metadata operations
+  getAppIsPackaged: () => Promise<boolean>;
+  getAppBuildHash: () => Promise<string | null>;
+
+  // System health check
+  getSystemHealthCheck: (projectId?: string) => Promise<IPCResult<SystemHealthCheck>>;
+
+  // Task recovery operations
+  getRecoveryConfig: () => Promise<IPCResult<RecoveryConfig>>;
+  getRecoveryStats: () => Promise<IPCResult<RecoveryStats>>;
+  updateRecoveryConfig: (config: Partial<RecoveryConfig>) => Promise<IPCResult<RecoveryConfig>>;
+
+  // Manager session operations
+  cancelManagerSession: (projectId: string) => void;
+
+  // Generic IPC invoke (for dynamic operations)
+  invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
+
+  // Notification operations
+  showNotification: (title: string, body: string) => void;
 }
 
 declare global {

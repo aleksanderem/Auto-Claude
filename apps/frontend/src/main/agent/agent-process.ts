@@ -373,7 +373,8 @@ export class AgentProcessManager {
   }
 
   /**
-   * Load environment variables from project's .auto-claude/.env file
+   * Load environment variables from project's auto-build directory .env file
+   * (e.g., .ouro/.env or legacy .auto-claude/.env based on project.autoBuildPath)
    * This contains frontend-configured settings like memory/Graphiti configuration
    */
   private loadProjectEnv(projectPath: string): Record<string, string> {
@@ -390,7 +391,7 @@ export class AgentProcessManager {
   }
 
   /**
-   * Load environment variables from auto-claude .env file
+   * Load environment variables from auto-build source .env file
    */
   loadAutoBuildEnv(): Record<string, string> {
     const autoBuildSource = this.getAutoBuildSourcePath();
@@ -709,7 +710,7 @@ export class AgentProcessManager {
    * Priority (later sources override earlier):
    * 1. App-wide memory settings from settings.json (NEW - enables memory from onboarding)
    * 2. Backend source .env (apps/backend/.env) - CLI defaults
-   * 3. Project's .auto-claude/.env - Frontend-configured settings (memory, integrations)
+   * 3. Project's auto-build .env (.ouro/.env or .auto-claude/.env) - Frontend-configured settings
    * 4. Project settings (graphitiMcpUrl, useClaudeMd) - Runtime overrides
    */
   getCombinedEnv(projectPath: string): Record<string, string> {

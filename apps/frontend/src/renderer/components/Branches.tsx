@@ -37,7 +37,7 @@ interface BranchesProps {
 
 interface BranchInfo {
   name: string;
-  fullName: string; // e.g., 'auto-claude/001-task-name'
+  fullName: string; // e.g., 'ouro/001-task-name'
   task?: Task;
   isRemote: boolean;
 }
@@ -69,7 +69,7 @@ export function Branches({ projectId }: BranchesProps) {
       const result = await window.electronAPI.getGitBranches(selectedProject.path);
 
       if (result.success && result.data) {
-        // Parse branches and filter for auto-claude branches
+        // Parse branches and filter for ouro branches
         // Use a map to track both local and remote status for each branch
         const branchMap: Record<string, { isLocal: boolean; isRemote: boolean }> = {};
 
@@ -79,8 +79,8 @@ export function Branches({ projectId }: BranchesProps) {
             ? rawBranchName.replace('remotes/origin/', '')
             : rawBranchName;
 
-          // Only include auto-claude branches
-          if (branchName.startsWith('auto-claude/')) {
+          // Only include ouro branches
+          if (branchName.startsWith('ouro/')) {
             if (!branchMap[branchName]) {
               branchMap[branchName] = { isLocal: false, isRemote: false };
             }
@@ -94,8 +94,8 @@ export function Branches({ projectId }: BranchesProps) {
         }
 
         // Convert map to array with correct isRemote flag
-        const autoclaudeBranches: BranchInfo[] = Object.keys(branchMap).map((branchName) => {
-          const specName = branchName.replace('auto-claude/', '');
+        const ouroBranches: BranchInfo[] = Object.keys(branchMap).map((branchName) => {
+          const specName = branchName.replace('ouro/', '');
           const task = tasks.find((t) => t.branch === branchName);
 
           return {
@@ -107,7 +107,7 @@ export function Branches({ projectId }: BranchesProps) {
           };
         });
 
-        setBranches(autoclaudeBranches);
+        setBranches(ouroBranches);
       } else {
         setError(result.error || 'Failed to load branches');
       }
@@ -135,7 +135,7 @@ export function Branches({ projectId }: BranchesProps) {
         command: 'git',
         args: ['branch', '-D', branchToDelete.fullName],
         cwd: selectedProject.path
-      });
+      }) as { success: boolean; error?: string };
 
       if (deleteLocal.success) {
         // Try to delete remote branch as well (if it exists)
@@ -143,7 +143,7 @@ export function Branches({ projectId }: BranchesProps) {
           command: 'git',
           args: ['push', 'origin', '--delete', branchToDelete.fullName],
           cwd: selectedProject.path
-        });
+        }) as { success: boolean; error?: string };
 
         // Only show error if remote deletion failed (ignore if branch was local-only)
         if (!deleteRemote.success && deleteRemote.error && !deleteRemote.error.includes('unable to delete')) {
@@ -187,10 +187,10 @@ export function Branches({ projectId }: BranchesProps) {
 
     // Show notification
     if (window.electronAPI?.showNotification) {
-      window.electronAPI.showNotification({
-        title: 'Merge Command Copied',
-        body: `Paste the command in your terminal to merge ${branchToMerge.name}`
-      });
+      window.electronAPI.showNotification(
+        'Merge Command Copied',
+        `Paste the command in your terminal to merge ${branchToMerge.name}`
+      );
     }
   };
 

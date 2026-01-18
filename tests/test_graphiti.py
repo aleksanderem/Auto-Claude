@@ -77,8 +77,8 @@ class TestGraphitiConfig:
         with patch.dict(os.environ, {}, clear=True):
             config = GraphitiConfig.from_env()
             assert config.enabled is False
-            assert config.database == "auto_claude_memory"
-            assert "auto-claude" in config.db_path.lower()  # Default path in ~/.auto-claude/
+            assert config.database == "ouro_memory"
+            assert "ouro" in config.db_path.lower()  # Default path in ~/.ouro/
 
     def test_from_env_custom_values(self):
         """Config reads custom environment values."""

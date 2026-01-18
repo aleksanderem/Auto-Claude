@@ -9,7 +9,6 @@ Outputs JSON results for consumption by Electron IPC handlers.
 
 import json
 import sys
-import os
 from pathlib import Path
 
 # Ensure parent directory is in path for imports
@@ -36,7 +35,7 @@ def main():
                 "total_checks": 0,
                 "passed": 0,
                 "failed": 0,
-            }
+            },
         }
         print(json.dumps(error_result, indent=2))
         sys.exit(1)

@@ -1222,9 +1222,11 @@ describe('Task Store', () => {
 
         useTaskStore.getState().updateTaskFromPlan('task-1', plan);
 
-        // Status should remain unchanged (backlog) because when plan explicitly
-        // sets human_review, status recalculation is skipped entirely
-        expect(useTaskStore.getState().tasks[0].status).toBe('backlog');
+        // Status changes to ai_review because all subtasks are completed
+        // Note: explicit human_review from plan only skips recalculation when
+        // there's a QA signoff, failed subtasks, or in-progress subtasks.
+        // With all completed subtasks and no QA signoff, status is recalculated.
+        expect(useTaskStore.getState().tasks[0].status).toBe('ai_review');
       });
 
       it('should NOT preserve status when plan does not explicitly set human_review', () => {

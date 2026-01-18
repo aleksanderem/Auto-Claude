@@ -7,7 +7,7 @@
   "sections": {
     "appearance": {
       "title": "Apparence",
-      "description": "Personnalisez l'apparence de Auto Claude"
+      "description": "Personnalisez l'apparence d'Ouro"
     },
     "display": {
       "title": "Affichage",
@@ -39,7 +39,7 @@
     },
     "updates": {
       "title": "Mises à jour",
-      "description": "Mises à jour Auto Claude"
+      "description": "Mises à jour Ouro"
     },
     "notifications": {
       "title": "Notifications",
@@ -190,7 +190,7 @@
     "otherAgentSettingsDescription": "Options de configuration supplémentaires de l'agent",
     "agentFramework": "Framework de l'agent",
     "agentFrameworkDescription": "Le framework de codage utilisé pour les tâches autonomes",
-    "agentFrameworkAutoClaude": "Auto Claude",
+    "agentFrameworkOuro": "Ouro",
     "aiTerminalNaming": "Nommage IA des terminaux",
     "aiTerminalNamingDescription": "Nommer automatiquement les terminaux en fonction des commandes (utilise Haiku)",
     "featureModelSettings": "Paramètres du modèle de fonctionnalité",
@@ -222,15 +222,15 @@
     "sourceBundled": "Intégré",
     "sourceFallback": "Valeur par défaut",
     "notDetected": "Non détecté",
-    "autoClaudePath": "Chemin Auto Claude",
-    "autoClaudePathDescription": "Chemin relatif vers le répertoire auto-claude dans les projets",
-    "autoClaudePathPlaceholder": "auto-claude (par défaut)",
+    "ouroPath": "Chemin Ouro",
+    "ouroPathDescription": "Chemin relatif vers le répertoire ouro dans les projets",
+    "ouroPathPlaceholder": "ouro (par défaut)",
     "autoNameTerminals": "Nommer automatiquement les terminaux",
     "autoNameTerminalsDescription": "Utiliser l'IA pour générer des noms descriptifs pour les onglets de terminal en fonction de leur activité"
   },
   "theme": {
     "title": "Apparence",
-    "description": "Personnalisez l'apparence de Auto Claude",
+    "description": "Personnalisez l'apparence d'Ouro",
     "mode": "Mode",
     "modeDescription": "Choisir entre les thèmes clair et sombre",
     "light": "Clair",
@@ -246,14 +246,14 @@
     "detectAgain": "Détecter à nouveau",
     "ide": {
       "label": "IDE préféré",
-      "description": "Auto Claude ouvrira les worktrees dans cet éditeur",
+      "description": "Ouro ouvrira les worktrees dans cet éditeur",
       "placeholder": "Sélectionner un IDE...",
       "customPath": "Chemin IDE personnalisé",
       "customPathPlaceholder": "/chemin/vers/votre/ide"
     },
     "terminal": {
       "label": "Terminal préféré",
-      "description": "Auto Claude ouvrira les sessions terminal ici",
+      "description": "Ouro ouvrira les sessions terminal ici",
       "placeholder": "Sélectionner un terminal...",
       "customPath": "Chemin terminal personnalisé",
       "customPathPlaceholder": "/chemin/vers/votre/terminal"
@@ -270,7 +270,7 @@
   },
   "updates": {
     "title": "Mises à jour",
-    "description": "Gérer les mises à jour de Auto Claude",
+    "description": "Gérer les mises à jour d'Ouro",
     "appUpdateReady": "Mise à jour de l'app prête",
     "newVersion": "Nouvelle version",
     "released": "Publiée le",
@@ -287,7 +287,7 @@
     "unableToCheck": "Impossible de vérifier les mises à jour",
     "checkForUpdates": "Vérifier les mises à jour",
     "autoUpdateProjects": "Mise à jour automatique des projets",
-    "autoUpdateProjectsDescription": "Mettre à jour automatiquement Auto Claude dans les projets quand une nouvelle version est disponible",
+    "autoUpdateProjectsDescription": "Mettre à jour automatiquement Ouro dans les projets quand une nouvelle version est disponible",
     "betaUpdates": "Mises à jour bêta",
     "betaUpdatesDescription": "Recevoir les versions bêta pré-release avec de nouvelles fonctionnalités (peut être moins stable)",
     "stableDowngradeAvailable": "Version stable disponible",
@@ -357,6 +357,13 @@
       "integrationTitle": "Documentation des Frameworks UI",
       "integrationDescription": "Récupération automatique de la documentation des bibliothèques de composants UI",
       "syncDescription": "Configurer la récupération automatique de documentation UI"
+    },
+    "supervisor": {
+      "title": "Superviseur",
+      "description": "Mode superviseur Claude Code",
+      "integrationTitle": "Mode Superviseur",
+      "integrationDescription": "Forcer Claude Code en rôle superviseur pour ce projet",
+      "syncDescription": "Configurer le mode superviseur Claude Code"
     }
   },
   "agentProfile": {
@@ -467,7 +474,7 @@
     "description": "Accédez aux logs et informations de débogage pour le dépannage",
     "errorReporting": {
       "label": "Rapports d'erreurs anonymes",
-      "description": "Envoyer des rapports de crash pour améliorer Auto Claude. Aucune donnée personnelle ni code n'est collecté."
+      "description": "Envoyer des rapports de crash pour améliorer Ouro. Aucune donnée personnelle ni code n'est collecté."
     },
     "openLogsFolder": "Ouvrir le dossier des logs",
     "copyDebugInfo": "Copier les infos de débogage",
@@ -486,6 +493,30 @@
       "description": "Sélectionnez un projet dans la barre latérale pour configurer ses paramètres."
     }
   },
+  "supervisor": {
+    "title": "Mode Superviseur",
+    "description": "Quand activé, Claude Code agit comme superviseur qui délègue les tâches à Ouro au lieu de les implémenter directement.",
+    "installed": "Installé",
+    "notInstalled": "Non installé",
+    "install": "Installer le plugin",
+    "installing": "Installation...",
+    "uninstall": "Désinstaller le plugin",
+    "uninstalling": "Désinstallation...",
+    "includeClaude": "Inclure la section CLAUDE.md",
+    "includeClaudeDescription": "Ajouter les instructions du rôle superviseur au fichier CLAUDE.md du projet",
+    "claudeMdToggle": "Section CLAUDE.md",
+    "claudeMdSection": "Section CLAUDE.md",
+    "hookifyRules": "Règles de protection Hookify",
+    "commands": "Commandes slash",
+    "whatItDoes": "Ce que fait le mode superviseur",
+    "feature1": "Bloque les commandes destructrices sur le répertoire .ouro/ (rm, rmdir, mv)",
+    "feature2": "Avertit lors de l'édition des fichiers d'implémentation dans .ouro/specs/",
+    "feature3": "Fournit des commandes slash pour gérer les builds Ouro (/ouro-status, /ouro-run, etc.)",
+    "errorLoadingStatus": "Échec du chargement du statut du plugin superviseur",
+    "errorInstalling": "Échec de l'installation du plugin superviseur",
+    "errorUninstalling": "Échec de la désinstallation du plugin superviseur",
+    "errorUpdatingClaudeMd": "Échec de la mise à jour de CLAUDE.md"
+  },
   "mcp": {
     "title": "Aperçu des serveurs MCP",
     "titleWithProject": "Aperçu des serveurs MCP pour {{projectName}}",
@@ -497,7 +528,7 @@
     "noProjectSelected": "Aucun projet sélectionné",
     "noProjectSelectedDescription": "Sélectionnez un projet dans le menu déroulant pour voir et configurer les serveurs MCP.",
     "projectNotInitialized": "Projet non initialisé",
-    "projectNotInitializedDescription": "Initialisez Auto Claude pour ce projet pour configurer les serveurs MCP.",
+    "projectNotInitializedDescription": "Initialisez Ouro pour ce projet pour configurer les serveurs MCP.",
     "browserAutomation": "Automatisation du navigateur (agents QA uniquement)",
     "alwaysEnabled": "toujours activé",
     "addServer": "Ajouter un serveur",
@@ -537,8 +568,8 @@
         "name": "Playwright",
         "description": "Tests E2E modernes et automatisation du navigateur"
       },
-      "autoClaude": {
-        "name": "Outils Auto-Claude",
+      "ouro": {
+        "name": "Outils Ouro",
         "description": "Suivi de la progression du build"
       }
     },

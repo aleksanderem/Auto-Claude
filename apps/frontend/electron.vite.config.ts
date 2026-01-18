@@ -4,12 +4,6 @@ import { resolve } from 'path';
 
 /**
  * Sentry configuration embedded at build time.
- *
- * In CI builds, these come from GitHub secrets.
- * In local development, these come from apps/frontend/.env (loaded by dotenv).
- *
- * The `define` option replaces these values at build time, so they're
- * embedded in the bundle and available at runtime in packaged apps.
  */
 const sentryDefines = {
   '__SENTRY_DSN__': JSON.stringify(process.env.SENTRY_DSN || ''),
@@ -28,14 +22,22 @@ export default defineConfig({
         'kuzu',
         'electron-updater',
         '@electron-toolkit/utils',
-        // Sentry and its transitive dependencies (opentelemetry -> debug -> ms)
+        // Sentry and its transitive dependencies
         '@sentry/electron',
         '@sentry/core',
         '@sentry/node',
         '@sentry/utils',
         '@opentelemetry/instrumentation',
         'debug',
-        'ms'
+        'ms',
+        // Additional packages used in main process that need bundling
+        'dotenv',
+        'electron-log',
+        'minimatch',
+        'proper-lockfile',
+        'semver',
+        'zod',
+        '@anthropic-ai/sdk'
       ]
     })],
     build: {
@@ -59,7 +61,6 @@ export default defineConfig({
     }
   },
   renderer: {
-    define: sentryDefines,
     root: resolve(__dirname, 'src/renderer'),
     build: {
       rollupOptions: {
@@ -87,11 +88,14 @@ export default defineConfig({
           '**/node_modules/**',
           '**/.git/**',
           '**/.worktrees/**',
+          // Support both old (.auto-claude) and new (.ouro) directory names
           '**/.auto-claude/**',
+          '**/.ouro/**',
           '**/out/**',
           // Ignore the parent autonomous-coding directory's worktrees
           resolve(__dirname, '../.worktrees/**'),
           resolve(__dirname, '../.auto-claude/**'),
+          resolve(__dirname, '../.ouro/**'),
         ]
       }
     }

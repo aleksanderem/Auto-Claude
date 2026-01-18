@@ -34,8 +34,13 @@ class ContextBuilder:
         self.pattern_discoverer = PatternDiscoverer(self.project_dir)
 
     def _load_project_index(self) -> dict:
-        """Load project index from file or create new one (.auto-claude is the installed instance)."""
-        index_file = self.project_dir / ".auto-claude" / "project_index.json"
+        """Load project index from file or create new one (.ouro is the data directory)."""
+        # Check .ouro first, then legacy .auto-claude
+        index_file = self.project_dir / ".ouro" / "project_index.json"
+        if not index_file.exists():
+            legacy_file = self.project_dir / ".auto-claude" / "project_index.json"
+            if legacy_file.exists():
+                index_file = legacy_file
         if index_file.exists():
             with open(index_file) as f:
                 return json.load(f)
@@ -248,12 +253,16 @@ class ContextBuilder:
         # Add UI framework info for frontend services
         if service_info.get("type") == "frontend":
             # Get styling framework (auto-detected or from ENV override)
-            styling = os.environ.get("UI_FRAMEWORK_STYLING") or service_info.get("styling")
+            styling = os.environ.get("UI_FRAMEWORK_STYLING") or service_info.get(
+                "styling"
+            )
             if styling:
                 context["styling"] = styling
 
             # Get UI component library (auto-detected or from ENV override)
-            ui_library = os.environ.get("UI_FRAMEWORK_LIBRARY") or service_info.get("ui_library")
+            ui_library = os.environ.get("UI_FRAMEWORK_LIBRARY") or service_info.get(
+                "ui_library"
+            )
             if ui_library:
                 context["ui_library"] = ui_library
 
@@ -281,13 +290,17 @@ class ContextBuilder:
                 context["ui_framework_instructions"] = ui_instructions
 
             # Get component path prefix (from ENV or default)
-            component_path = os.environ.get("UI_FRAMEWORK_COMPONENT_PATH", "@/components")
+            component_path = os.environ.get(
+                "UI_FRAMEWORK_COMPONENT_PATH", "@/components"
+            )
             context["component_path"] = component_path
 
         # Backend/CMS framework documentation
         if service_info.get("type") in ("backend", "cms"):
             # Get backend framework (auto-detected or from ENV override)
-            backend_framework = os.environ.get("BACKEND_FRAMEWORK") or service_info.get("framework")
+            backend_framework = os.environ.get("BACKEND_FRAMEWORK") or service_info.get(
+                "framework"
+            )
             if backend_framework:
                 context["framework"] = backend_framework
 

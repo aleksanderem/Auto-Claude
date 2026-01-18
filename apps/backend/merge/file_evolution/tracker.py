@@ -43,7 +43,7 @@ class FileEvolutionTracker:
 
     This class manages:
     - Baseline capture when worktrees are created
-    - File content snapshots in .auto-claude/baselines/
+    - File content snapshots in .ouro/baselines/ (legacy: .auto-claude/baselines/)
     - Task modification tracking with semantic analysis
     - Persistence of evolution data
 
@@ -74,13 +74,23 @@ class FileEvolutionTracker:
 
         Args:
             project_dir: Root directory of the project
-            storage_dir: Directory for evolution data (default: .auto-claude/)
+            storage_dir: Directory for evolution data (default: .ouro/, legacy: .auto-claude/)
             semantic_analyzer: Optional pre-configured analyzer
         """
         debug(MODULE, "Initializing FileEvolutionTracker", project_dir=str(project_dir))
 
         self.project_dir = Path(project_dir).resolve()
-        storage_dir = storage_dir or (self.project_dir / ".auto-claude")
+        # Use .ouro by default, but support legacy .auto-claude for existing projects
+        if storage_dir is None:
+            ouro_dir = self.project_dir / ".ouro"
+            legacy_dir = self.project_dir / ".auto-claude"
+            # Prefer existing .ouro, fallback to existing .auto-claude, default to .ouro
+            if ouro_dir.exists():
+                storage_dir = ouro_dir
+            elif legacy_dir.exists():
+                storage_dir = legacy_dir
+            else:
+                storage_dir = ouro_dir  # New projects use .ouro
 
         # Initialize modular components
         self.storage = EvolutionStorage(self.project_dir, storage_dir)

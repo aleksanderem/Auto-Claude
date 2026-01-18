@@ -77,11 +77,17 @@ def choose_workspace(
 
     # Check task_metadata.json for task-specific workspace mode (takes precedence)
     # useWorktree: true = ISOLATED, false = DIRECT
-    spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    spec_dir = project_dir / ".ouro" / "specs" / spec_name
+    if not spec_dir.exists():
+        legacy_spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
+        if legacy_spec_dir.exists():
+            spec_dir = legacy_spec_dir
     metadata_path = spec_dir / "task_metadata.json"
     if metadata_path.exists():
         try:
             import json
+
             with open(metadata_path, encoding="utf-8") as f:
                 metadata = json.load(f)
                 use_worktree = metadata.get("useWorktree")
@@ -96,10 +102,16 @@ def choose_workspace(
             pass
 
     # Check project .env for user's workspace mode preference
-    project_env_file = project_dir / ".auto-claude" / ".env"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    project_env_file = project_dir / ".ouro" / ".env"
+    if not project_env_file.exists():
+        legacy_env_file = project_dir / ".auto-claude" / ".env"
+        if legacy_env_file.exists():
+            project_env_file = legacy_env_file
     if project_env_file.exists():
         try:
             from dotenv import dotenv_values
+
             env_values = dotenv_values(project_env_file)
             workspace_mode = env_values.get("WORKSPACE_MODE", "").lower()
 
@@ -238,9 +250,8 @@ def copy_spec_to_worktree(
         Path to the spec directory inside the worktree
     """
     # Determine target location inside worktree
-    # Use .auto-claude/specs/{spec_name}/ as the standard location
-    # Note: auto-claude/ is source code, .auto-claude/ is the installed instance
-    target_spec_dir = worktree_path / ".auto-claude" / "specs" / spec_name
+    # Use .ouro/specs/{spec_name}/ as the standard location
+    target_spec_dir = worktree_path / ".ouro" / "specs" / spec_name
 
     # Create parent directories if needed
     target_spec_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -289,8 +300,14 @@ def setup_workspace(
         print_status(f"Setting up branch: {branch_name}", "progress")
 
         # Check current branch
-        current_branch_result = run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=project_dir)
-        current_branch = current_branch_result.stdout.strip() if current_branch_result.returncode == 0 else ""
+        current_branch_result = run_git(
+            ["rev-parse", "--abbrev-ref", "HEAD"], cwd=project_dir
+        )
+        current_branch = (
+            current_branch_result.stdout.strip()
+            if current_branch_result.returncode == 0
+            else ""
+        )
 
         if current_branch != branch_name:
             # Determine the base branch - default to current branch if not specified
@@ -301,33 +318,50 @@ def setup_workspace(
 
             # Determine start point (prefer remote over local)
             remote_ref = f"origin/{effective_base}"
-            check_remote = run_git(["rev-parse", "--verify", remote_ref], cwd=project_dir)
+            check_remote = run_git(
+                ["rev-parse", "--verify", remote_ref], cwd=project_dir
+            )
 
             # Only fetch if remote branch exists (prevents errors for local-only branches)
             if check_remote.returncode == 0:
                 # Fetch latest from remote to ensure we have up-to-date code
-                fetch_result = run_git(["fetch", "origin", effective_base], cwd=project_dir)
+                fetch_result = run_git(
+                    ["fetch", "origin", effective_base], cwd=project_dir
+                )
                 if fetch_result.returncode != 0:
-                    debug_warning(MODULE, f"Could not fetch {effective_base} from origin: {fetch_result.stderr}")
+                    debug_warning(
+                        MODULE,
+                        f"Could not fetch {effective_base} from origin: {fetch_result.stderr}",
+                    )
                     print(f"Warning: Could not fetch {effective_base} from origin")
 
             start_point = remote_ref if check_remote.returncode == 0 else effective_base
 
             # Check if branch already exists
-            branch_exists = run_git(["rev-parse", "--verify", branch_name], cwd=project_dir)
+            branch_exists = run_git(
+                ["rev-parse", "--verify", branch_name], cwd=project_dir
+            )
 
             if branch_exists.returncode == 0:
                 # Branch exists - just checkout
                 print_status(f"Switching to existing branch: {branch_name}", "info")
                 checkout_result = run_git(["checkout", branch_name], cwd=project_dir)
                 if checkout_result.returncode != 0:
-                    raise Exception(f"Failed to checkout branch {branch_name}: {checkout_result.stderr}")
+                    raise Exception(
+                        f"Failed to checkout branch {branch_name}: {checkout_result.stderr}"
+                    )
             else:
                 # Create new branch from start_point
-                print_status(f"Creating new branch: {branch_name} from {start_point}", "info")
-                checkout_result = run_git(["checkout", "-b", branch_name, start_point], cwd=project_dir)
+                print_status(
+                    f"Creating new branch: {branch_name} from {start_point}", "info"
+                )
+                checkout_result = run_git(
+                    ["checkout", "-b", branch_name, start_point], cwd=project_dir
+                )
                 if checkout_result.returncode != 0:
-                    raise Exception(f"Failed to create branch {branch_name}: {checkout_result.stderr}")
+                    raise Exception(
+                        f"Failed to create branch {branch_name}: {checkout_result.stderr}"
+                    )
 
             print_status(f"Working on branch: {branch_name}", "success")
         else:
@@ -400,12 +434,14 @@ def setup_workspace(
             except (OSError, json.JSONDecodeError) as e:
                 debug_warning(MODULE, f"Failed to mark profile as inherited: {e}")
 
-    # Ensure .auto-claude/ is in the worktree's .gitignore
+    # Ensure .ouro/ and .auto-claude/ are in the worktree's .gitignore
     # This is critical because the worktree inherits .gitignore from the base branch,
-    # which may not have .auto-claude/ if that change wasn't committed/pushed.
+    # which may not have these entries if that change wasn't committed/pushed.
     # Without this, spec files would be committed to the worktree's branch.
     from init import ensure_gitignore_entry
 
+    if ensure_gitignore_entry(worktree_info.path, ".ouro/"):
+        debug(MODULE, "Added .ouro/ to worktree's .gitignore")
     if ensure_gitignore_entry(worktree_info.path, ".auto-claude/"):
         debug(MODULE, "Added .auto-claude/ to worktree's .gitignore")
 

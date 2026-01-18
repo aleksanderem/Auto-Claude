@@ -3,7 +3,7 @@ GitLab Automation Data Models
 =============================
 
 Data structures for GitLab automation features.
-Stored in .auto-claude/gitlab/mr/
+Stored in .ouro/gitlab/mr/ (legacy: .auto-claude/gitlab/mr/)
 """
 
 from __future__ import annotations
@@ -179,7 +179,7 @@ class MRReviewResult:
         )
 
     def save(self, gitlab_dir: Path) -> None:
-        """Save review result to .auto-claude/gitlab/mr/"""
+        """Save review result to .ouro/gitlab/mr/ (legacy: .auto-claude/gitlab/mr/)"""
         mr_dir = gitlab_dir / "mr"
         mr_dir.mkdir(parents=True, exist_ok=True)
 

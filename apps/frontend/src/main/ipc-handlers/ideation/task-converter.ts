@@ -5,7 +5,7 @@
 import path from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import type { IpcMainInvokeEvent } from 'electron';
-import { AUTO_BUILD_PATHS, getSpecsDir } from '../../../shared/constants';
+import { AUTO_BUILD_PATHS, LEGACY_BUILD_PATHS, getSpecsDir, getIdeationDir } from '../../../shared/constants';
 import type {
   IPCResult,
   Task,
@@ -178,6 +178,19 @@ ${idea.rationale}
 /**
  * Convert an idea to a task
  */
+/**
+ * Find ideation path with legacy fallback
+ */
+function findIdeationPath(projectPath: string, autoBuildPath: string | undefined): string | null {
+  const newPath = path.join(projectPath, getIdeationDir(autoBuildPath), AUTO_BUILD_PATHS.IDEATION_FILE);
+  if (existsSync(newPath)) return newPath;
+
+  const legacyPath = path.join(projectPath, LEGACY_BUILD_PATHS.IDEATION_DIR, AUTO_BUILD_PATHS.IDEATION_FILE);
+  if (existsSync(legacyPath)) return legacyPath;
+
+  return null;
+}
+
 export async function convertIdeaToTask(
   _event: IpcMainInvokeEvent,
   projectId: string,
@@ -188,14 +201,8 @@ export async function convertIdeaToTask(
     return { success: false, error: 'Project not found' };
   }
 
-  const ideationPath = path.join(
-    project.path,
-    AUTO_BUILD_PATHS.IDEATION_DIR,
-    AUTO_BUILD_PATHS.IDEATION_FILE
-  );
-
-  // Quick check that ideation file exists (actual read happens inside lock)
-  if (!existsSync(ideationPath)) {
+  const ideationPath = findIdeationPath(project.path, project.autoBuildPath);
+  if (!ideationPath) {
     return { success: false, error: 'Ideation not found' };
   }
 

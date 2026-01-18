@@ -207,7 +207,13 @@ class MultiRepoConfig:
             base_dir: Base directory for all repo state
         """
         self.repos: dict[str, RepoConfig] = {}
-        self.base_dir = base_dir or Path(".auto-claude/github/repos")
+        if base_dir is None:
+            # Prefer .ouro, fallback to .auto-claude for backwards compatibility
+            base_dir = Path(".ouro/github/repos")
+            legacy_base_dir = Path(".auto-claude/github/repos")
+            if not base_dir.exists() and legacy_base_dir.exists():
+                base_dir = legacy_base_dir
+        self.base_dir = base_dir
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
         if repos:

@@ -85,19 +85,23 @@ export class ProjectStore {
     // Check if project already exists
     const existing = this.data.projects.find((p) => p.path === projectPath);
     if (existing) {
-      // Validate that .auto-claude folder still exists for existing project
+      // Validate that .ouro folder still exists for existing project
       // If manually deleted, reset autoBuildPath so UI prompts for reinitialization
       if (existing.autoBuildPath && !isInitialized(existing.path)) {
-        console.warn(`[ProjectStore] .auto-claude folder was deleted for project "${existing.name}" - resetting autoBuildPath`);
+        console.warn(`[ProjectStore] .ouro folder was deleted for project "${existing.name}" - resetting autoBuildPath`);
         existing.autoBuildPath = '';
         existing.updatedAt = new Date();
         this.save();
       }
-      // Also check if .auto-claude was created externally after project was added
+      // Also check if .ouro was created externally after project was added
       // If so, update autoBuildPath so UI doesn't prompt for initialization
+      // Backwards compatibility: also check for legacy .auto-claude folder
       else if (!existing.autoBuildPath && isInitialized(existing.path)) {
-        console.warn(`[ProjectStore] .auto-claude folder was created externally for project "${existing.name}" - setting autoBuildPath`);
-        existing.autoBuildPath = '.auto-claude';
+        // Detect which folder exists for backwards compatibility
+        const legacyPath = path.join(existing.path, '.auto-claude');
+        const detectedPath = existsSync(legacyPath) ? '.auto-claude' : '.ouro';
+        console.warn(`[ProjectStore] ${detectedPath} folder was created externally for project "${existing.name}" - setting autoBuildPath`);
+        existing.autoBuildPath = detectedPath;
         existing.updatedAt = new Date();
         this.save();
       }
@@ -107,7 +111,7 @@ export class ProjectStore {
     // Derive name from path if not provided
     const projectName = name || path.basename(projectPath);
 
-    // Determine auto-claude path (supports both 'auto-claude' and '.auto-claude')
+    // Determine ouro path (supports '.ouro' and legacy '.auto-claude' for backwards compatibility)
     const autoBuildPath = getAutoBuildPath(projectPath) || '';
 
     const project: Project = {
@@ -188,11 +192,12 @@ export class ProjectStore {
   }
 
   /**
-   * Validate all projects to ensure their .auto-claude folders still exist.
+   * Validate all projects to ensure their .ouro folders still exist.
    * If a project has autoBuildPath set but the folder was deleted,
    * reset autoBuildPath to empty string so the UI prompts for reinitialization.
+   * Backwards compatibility: also supports legacy .auto-claude folders.
    *
-   * @returns Array of project IDs that were reset due to missing .auto-claude folder
+   * @returns Array of project IDs that were reset due to missing .ouro folder
    */
   validateProjects(): string[] {
     const resetProjectIds: string[] = [];
@@ -205,18 +210,22 @@ export class ProjectStore {
         continue; // Don't reset - let user handle this case
       }
 
-      // Check if .auto-claude folder was deleted (had autoBuildPath but folder is gone)
+      // Check if .ouro folder was deleted (had autoBuildPath but folder is gone)
       if (project.autoBuildPath && !isInitialized(project.path)) {
-        console.warn(`[ProjectStore] .auto-claude folder missing for project "${project.name}" at ${project.path}`);
+        console.warn(`[ProjectStore] .ouro folder missing for project "${project.name}" at ${project.path}`);
         project.autoBuildPath = '';
         project.updatedAt = new Date();
         resetProjectIds.push(project.id);
         hasChanges = true;
       }
-      // Check if .auto-claude folder was created externally (no autoBuildPath but folder exists)
+      // Check if .ouro folder was created externally (no autoBuildPath but folder exists)
+      // Backwards compatibility: also check for legacy .auto-claude folder
       else if (!project.autoBuildPath && isInitialized(project.path)) {
-        console.warn(`[ProjectStore] .auto-claude folder found for project "${project.name}" at ${project.path} - auto-setting autoBuildPath`);
-        project.autoBuildPath = '.auto-claude';
+        // Detect which folder exists for backwards compatibility
+        const legacyPath = path.join(project.path, '.auto-claude');
+        const detectedPath = existsSync(legacyPath) ? '.auto-claude' : '.ouro';
+        console.warn(`[ProjectStore] ${detectedPath} folder found for project "${project.name}" at ${project.path} - auto-setting autoBuildPath`);
+        project.autoBuildPath = detectedPath;
         project.updatedAt = new Date();
         hasChanges = true;
       }
@@ -224,7 +233,7 @@ export class ProjectStore {
 
     if (hasChanges) {
       this.save();
-      console.warn(`[ProjectStore] Reset ${resetProjectIds.length} project(s) due to missing .auto-claude folder`);
+      console.warn(`[ProjectStore] Reset ${resetProjectIds.length} project(s) due to missing .ouro folder`);
     }
 
     return resetProjectIds;
@@ -367,9 +376,11 @@ export class ProjectStore {
 
   /**
    * Check if a git branch exists (both local and remote)
+   * Checks for both new 'ouro/' and legacy 'auto-claude/' branch prefixes
    */
   private getBranchForSpec(projectPath: string, specName: string): string | undefined {
-    const branchName = `auto-claude/${specName}`;
+    const branchName = `ouro/${specName}`;
+    const legacyBranchName = `auto-claude/${specName}`;
 
     try {
       // Check if branch exists (local or remote)
@@ -382,8 +393,15 @@ export class ProjectStore {
       // Parse branches: remove markers (* for current, + for checked out in worktree) and remotes/ prefix
       const branches = result.split('\n').map(b => b.trim().replace(/^[*+]\s+/, '').replace(/^remotes\/origin\//, ''));
 
-      // Check if our branch exists
-      return branches.some(b => b === branchName) ? branchName : undefined;
+      // Check if our branch exists (prefer new 'ouro/' prefix, fall back to legacy 'auto-claude/')
+      if (branches.some(b => b === branchName)) {
+        return branchName;
+      }
+      // Backwards compatibility: check for legacy branch name
+      if (branches.some(b => b === legacyBranchName)) {
+        return legacyBranchName;
+      }
+      return undefined;
     } catch (err) {
       console.error(`[ProjectStore] Failed to check branch for ${specName}:`, err);
       return undefined;
@@ -618,7 +636,7 @@ export class ProjectStore {
         const planMetadata = (plan as unknown as { metadata?: { read_only?: boolean } })?.metadata;
         const isReadOnly = planMetadata?.read_only || false;
 
-        // Detect branch for DIRECT mode tasks (check if auto-claude/SPEC-NAME branch exists)
+        // Detect branch for DIRECT mode tasks (check if ouro/SPEC-NAME or legacy auto-claude/SPEC-NAME branch exists)
         const project = this.getProject(projectId);
         const branch = project ? this.getBranchForSpec(project.path, dir.name) : undefined;
 
@@ -631,6 +649,15 @@ export class ProjectStore {
           status: finalStatus,
           subtasks,
           qaReport,
+          // Add qaSignoff for status transition validation
+          ...(qaSignoff && {
+            qaSignoff: {
+              status: qaSignoff.status as 'approved' | 'rejected' | undefined,
+              timestamp: qaSignoff.timestamp,
+              issues_found: qaSignoff.issues_found,
+              screenshots: qaSignoff.screenshots
+            }
+          }),
           logs: [],
           metadata,
           ...(finalReviewReason !== undefined && { reviewReason: finalReviewReason }),

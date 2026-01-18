@@ -29,7 +29,7 @@ import { projectStore } from '../project-store';
 const settingsPath = getSettingsPath();
 
 /**
- * Auto-detect the auto-claude source path relative to the app location.
+ * Auto-detect the Ouro source path relative to the app location.
  * Works across platforms (macOS, Windows, Linux) in both dev and production modes.
  */
 const detectAutoBuildSourcePath = (): string | null => {
@@ -75,7 +75,7 @@ const detectAutoBuildSourcePath = (): string | null => {
 
   for (const p of possiblePaths) {
     // Use runners/spec_runner.py as marker - this is the file actually needed for task execution
-    // This prevents matching legacy 'auto-claude/' directories that don't have the runners
+    // This prevents matching legacy directories that don't have the runners
     const markerPath = path.join(p, 'runners', 'spec_runner.py');
     const exists = existsSync(p) && existsSync(markerPath);
 
@@ -89,7 +89,7 @@ const detectAutoBuildSourcePath = (): string | null => {
     }
   }
 
-  console.warn('[detectAutoBuildSourcePath] Could not auto-detect Auto Claude source path. Please configure manually in settings.');
+  console.warn('[detectAutoBuildSourcePath] Could not auto-detect Ouro source path. Please configure manually in settings.');
   console.warn('[detectAutoBuildSourcePath] Set DEBUG=1 environment variable for detailed path checking.');
   return null;
 };
@@ -141,7 +141,6 @@ export function registerSettingsHandlers(
       // Migration: Clear CLI tool paths that are from a different platform
       // Fixes issue where Windows paths persisted on macOS (and vice versa)
       // when settings were synced/transferred between platforms
-      // See: https://github.com/AndyMik90/Auto-Claude/issues/XXX
       const pathFields = ['pythonPath', 'gitPath', 'githubCLIPath', 'claudePath', 'autoBuildPath'] as const;
       for (const field of pathFields) {
         const pathValue = settings[field];
@@ -436,14 +435,14 @@ export function registerSettingsHandlers(
     console.log('[settings-handlers] SYSTEM_HEALTH_CHECK invoked with projectId:', projectId);
     try {
       const settings = readSettingsFile();
-      const sourcePath = settings?.autoBuildPath || detectAutoBuildSourcePath();
+      const sourcePath = (settings?.autoBuildPath as string | undefined) || detectAutoBuildSourcePath();
       console.log('[settings-handlers] Source path:', sourcePath);
 
       if (!sourcePath || !existsSync(sourcePath)) {
         console.log('[settings-handlers] Source path not found');
         return {
           success: false,
-          error: 'Auto Claude source path not configured or not found',
+          error: 'Ouro source path not configured or not found',
         };
       }
 
@@ -453,7 +452,7 @@ export function registerSettingsHandlers(
       const venvPythonPath = process.platform === 'win32'
         ? path.join(sourcePath, '.venv', 'Scripts', 'python.exe')
         : path.join(sourcePath, '.venv', 'bin', 'python');
-      const pythonPath = existsSync(venvPythonPath) ? venvPythonPath : (settings?.pythonPath || 'python3');
+      const pythonPath = existsSync(venvPythonPath) ? venvPythonPath : ((settings?.pythonPath as string | undefined) || 'python3');
       const usingVenv = existsSync(venvPythonPath);
 
       const healthCheckScript = path.join(sourcePath, 'check_health.py');
@@ -481,9 +480,13 @@ export function registerSettingsHandlers(
           if (project) {
             console.log('[settings-handlers] Loading project env for:', project.name);
 
-            // Load from project's .auto-claude/.env file if it exists
+            // Load from project's .ouro/.env file if it exists (with fallback to .auto-claude)
             if (project.autoBuildPath) {
-              const projectEnvPath = path.join(project.path, project.autoBuildPath, '.env');
+              // Try new .ouro path first, fall back to .auto-claude for backwards compatibility
+              let projectEnvPath = path.join(project.path, '.ouro', '.env');
+              if (!existsSync(projectEnvPath)) {
+                projectEnvPath = path.join(project.path, project.autoBuildPath, '.env');
+              }
               if (existsSync(projectEnvPath)) {
                 const envFileContent = readFileSync(projectEnvPath, 'utf-8');
                 projectEnv = parseEnvFile(envFileContent);
@@ -869,8 +872,8 @@ export function registerSettingsHandlers(
 
         // Generate content
         const lines: string[] = [
-          '# Auto Claude Framework Environment Variables',
-          '# Managed by Auto Claude UI',
+          '# Ouro Framework Environment Variables',
+          '# Managed by Ouro UI',
           '',
           '# Claude Code OAuth Token (REQUIRED)',
           `CLAUDE_CODE_OAUTH_TOKEN=${existingVars['CLAUDE_CODE_OAUTH_TOKEN'] || ''}`,

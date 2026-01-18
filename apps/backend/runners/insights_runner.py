@@ -48,8 +48,13 @@ def load_project_context(project_dir: str) -> str:
     """Load project context for the AI."""
     context_parts = []
 
-    # Load project index if available (from .auto-claude - the installed instance)
-    index_path = Path(project_dir) / ".auto-claude" / "project_index.json"
+    # Load project index if available (from .ouro - the installed instance)
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    index_path = Path(project_dir) / ".ouro" / "project_index.json"
+    if not index_path.exists():
+        legacy_path = Path(project_dir) / ".auto-claude" / "project_index.json"
+        if legacy_path.exists():
+            index_path = legacy_path
     if index_path.exists():
         try:
             with open(index_path) as f:
@@ -68,7 +73,12 @@ def load_project_context(project_dir: str) -> str:
             pass
 
     # Load roadmap if available
-    roadmap_path = Path(project_dir) / ".auto-claude" / "roadmap" / "roadmap.json"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    roadmap_path = Path(project_dir) / ".ouro" / "roadmap" / "roadmap.json"
+    if not roadmap_path.exists():
+        legacy_path = Path(project_dir) / ".auto-claude" / "roadmap" / "roadmap.json"
+        if legacy_path.exists():
+            roadmap_path = legacy_path
     if roadmap_path.exists():
         try:
             with open(roadmap_path) as f:
@@ -86,7 +96,12 @@ def load_project_context(project_dir: str) -> str:
             pass
 
     # Load existing tasks
-    tasks_path = Path(project_dir) / ".auto-claude" / "specs"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    tasks_path = Path(project_dir) / ".ouro" / "specs"
+    if not tasks_path.exists():
+        legacy_path = Path(project_dir) / ".auto-claude" / "specs"
+        if legacy_path.exists():
+            tasks_path = legacy_path
     if tasks_path.exists():
         try:
             task_dirs = [d for d in tasks_path.iterdir() if d.is_dir()]

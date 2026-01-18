@@ -21,7 +21,7 @@ def main():
     """Main entry point for CLI."""
     if len(sys.argv) < 2:
         print("Usage: python prediction.py <spec-dir> [--demo]")
-        print("       python prediction.py auto-claude/specs/001-feature/")
+        print("       python prediction.py .ouro/specs/001-feature/")
         sys.exit(1)
 
     spec_dir = Path(sys.argv[1])

@@ -49,7 +49,7 @@ npx playwright pdf https://google.com /tmp/report.pdf  # BLOCKED
 ```
 
 **Why absolute paths with $SPEC_DIR are better:**
-- `$SPEC_DIR` environment variable points to the spec directory (e.g., `.auto-claude/specs/008-task-name/`)
+- `$SPEC_DIR` environment variable points to the spec directory (e.g., `.ouro/specs/008-task-name/`)
 - Files are saved in the correct location regardless of working directory
 - Prevents files from leaking to project root or being lost
 - More reliable than relative paths which depend on current directory
@@ -600,7 +600,7 @@ cat > qa_report.md << 'EOF'
 [QA Report content]
 EOF
 
-# Note: qa_report.md and implementation_plan.json are in .auto-claude/specs/ (gitignored)
+# Note: qa_report.md and implementation_plan.json are in .ouro/specs/ (gitignored)
 # Do NOT commit them - the framework tracks QA status automatically
 # Only commit actual code changes to the project
 ```
@@ -637,7 +637,7 @@ Once fixes are complete:
 
 EOF
 
-# Note: QA_FIX_REQUEST.md and implementation_plan.json are in .auto-claude/specs/ (gitignored)
+# Note: QA_FIX_REQUEST.md and implementation_plan.json are in .ouro/specs/ (gitignored)
 # Do NOT commit them - the framework tracks QA status automatically
 # Only commit actual code fixes to the project
 ```

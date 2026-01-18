@@ -22,7 +22,9 @@ import {
   GitCommit,
   HelpCircle,
   Wrench,
-  ChevronDown
+  ChevronDown,
+  FolderPlus,
+  FolderOpen
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -60,6 +62,7 @@ import { GitSetupModal } from './GitSetupModal';
 import { RateLimitIndicator } from './RateLimitIndicator';
 import { ClaudeCodeStatusBadge } from './ClaudeCodeStatusBadge';
 import type { Project, AutoBuildVersionInfo, GitStatus, ProjectEnvConfig } from '../../shared/types';
+import ouroLogo from '../assets/images/ouro-logo.png';
 
 export type SidebarView = 'kanban' | 'terminals' | 'roadmap' | 'context' | 'ideation' | 'github-issues' | 'gitlab-issues' | 'github-prs' | 'gitlab-merge-requests' | 'changelog' | 'insights' | 'worktrees' | 'branches' | 'agent-tools';
 
@@ -109,7 +112,7 @@ export function Sidebar({
   activeView = 'kanban',
   onViewChange
 }: SidebarProps) {
-  const { t } = useTranslation(['navigation', 'dialogs', 'common']);
+  const { t } = useTranslation(['navigation', 'dialogs', 'common', 'welcome']);
   const projects = useProjectStore((state) => state.projects);
   const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
   const selectProject = useProjectStore((state) => state.selectProject);
@@ -339,43 +342,83 @@ export function Sidebar({
   return (
     <TooltipProvider>
       <div className="flex h-full w-64 flex-col bg-sidebar border-r border-border">
-        {/* Project Selector Dropdown */}
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Projects</span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+        {/* Logo and Quick Actions */}
+        <div className="px-4 pt-4 pb-4 flex items-center justify-between">
+          <img
+            src={ouroLogo}
+            alt="Ouro"
+            className="h-14 opacity-90"
+          />
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="flex-1 justify-between gap-2 px-3 py-2 h-auto bg-card hover:bg-card/80 border border-border rounded-lg"
+                  size="icon"
+                  onClick={handleAddProject}
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
                 >
-                  <span className="text-sm font-medium truncate">
-                    {selectedProject ? selectedProject.name : 'Select Project'}
-                  </span>
-                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <FolderPlus className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                {projects.map((project) => (
-                  <DropdownMenuItem
-                    key={project.id}
-                    onClick={() => selectProject(project.id)}
-                    className={cn(
-                      'cursor-pointer',
-                      selectedProjectId === project.id && 'bg-primary/10 text-primary'
-                    )}
-                  >
-                    {project.name}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleAddProject} className="text-primary">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Project
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>{t('welcome:actions.newProject')}</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleAddProject}
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>{t('welcome:actions.openProject')}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
+        </div>
+
+        <Separator />
+
+        {/* Project Selector Dropdown */}
+        <div className="p-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between gap-2 px-3 py-2 h-auto bg-card hover:bg-card/80 hover:text-primary border border-border rounded-lg"
+              >
+                <span className="text-sm font-medium truncate">
+                  {selectedProject ? selectedProject.name : 'Select Project'}
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {projects.map((project) => (
+                <DropdownMenuItem
+                  key={project.id}
+                  onClick={() => selectProject(project.id)}
+                  className={cn(
+                    'cursor-pointer',
+                    selectedProjectId === project.id && 'bg-primary/10 text-primary'
+                  )}
+                >
+                  {project.name}
+                </DropdownMenuItem>
+              ))}
+              {projects.length > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuItem onClick={handleAddProject} className="text-primary">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Project
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <Separator />
@@ -448,32 +491,20 @@ export function Sidebar({
 
           {/* Version Info */}
           {appVersion && (
-            <div className="flex flex-col items-center gap-1.5 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-foreground/80">
-                  v{appVersion}
-                </span>
-                <span
-                  className={cn(
-                    'px-1.5 py-0.5 rounded font-semibold text-[10px]',
-                    isPackaged
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-orange-500/20 text-orange-400'
-                  )}
-                >
-                  {isPackaged ? t('common:labels.prodMode') : t('common:labels.devMode')}
-                </span>
-              </div>
-              {buildHash && (
-                <div className="flex items-center gap-2 px-2 py-1 rounded bg-muted/50">
-                  <span className="text-[11px] font-mono text-foreground/70">
-                    {buildHash}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    @ {appStartTime}
-                  </span>
-                </div>
-              )}
+            <div className="flex items-center justify-center gap-2 text-xs">
+              <span className="font-medium text-foreground/80">
+                v{appVersion}
+              </span>
+              <span
+                className={cn(
+                  'px-1.5 py-0.5 rounded font-semibold text-[10px]',
+                  isPackaged
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-orange-500/20 text-orange-400'
+                )}
+              >
+                {isPackaged ? t('common:labels.prodMode') : t('common:labels.devMode')}
+              </span>
             </div>
           )}
 

@@ -150,7 +150,10 @@ function getDefaultBranch(projectPath: string): string {
     return project.settings.mainBranch;
   }
 
-  const envPath = path.join(projectPath, '.auto-claude', '.env');
+  // Check .ouro first, fall back to legacy .auto-claude for backwards compatibility
+  const envPathOuro = path.join(projectPath, '.ouro', '.env');
+  const envPathLegacy = path.join(projectPath, '.auto-claude', '.env');
+  const envPath = existsSync(envPathOuro) ? envPathOuro : envPathLegacy;
   if (existsSync(envPath)) {
     try {
       const content = readFileSync(envPath, 'utf-8');

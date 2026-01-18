@@ -126,7 +126,7 @@ export function initializeGit(projectPath: string): InitializationResult {
     } catch {
       // No user.name configured, set a default
       debug('Setting default git user.name');
-      execFileSync(git, ['config', 'user.name', 'Auto Claude'], {
+      execFileSync(git, ['config', 'user.name', 'Ouro'], {
         cwd: projectPath,
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -144,7 +144,7 @@ export function initializeGit(projectPath: string): InitializationResult {
     } catch {
       // No user.email configured, set a default
       debug('Setting default git user.email');
-      execFileSync(git, ['config', 'user.email', 'auto-claude@local'], {
+      execFileSync(git, ['config', 'user.email', 'ouro@local'], {
         cwd: projectPath,
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -204,7 +204,7 @@ export function initializeGit(projectPath: string): InitializationResult {
 /**
  * Entries to add to .gitignore when initializing a project
  */
-const GITIGNORE_ENTRIES = ['.auto-claude/'];
+const GITIGNORE_ENTRIES = ['.ouro/'];
 
 /**
  * Ensure entries exist in the project's .gitignore file.
@@ -215,10 +215,18 @@ function ensureGitignoreEntries(projectPath: string, entries: string[]): void {
 
   let content = '';
   let existingLines: string[] = [];
+  let fileExists = false;
 
-  if (existsSync(gitignorePath)) {
+  // Try to read existing content - use try-catch to avoid TOCTOU race condition
+  try {
     content = readFileSync(gitignorePath, 'utf-8');
     existingLines = content.split('\n').map(line => line.trim());
+    fileExists = true;
+  } catch (error) {
+    // File doesn't exist yet, that's fine
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
   }
 
   // Find entries that need to be added
@@ -240,30 +248,29 @@ function ensureGitignoreEntries(projectPath: string, entries: string[]): void {
     return;
   }
 
-  // Build the content to append
-  let appendContent = '';
-
-  // Ensure file ends with newline before adding our entries
-  if (content && !content.endsWith('\n')) {
-    appendContent += '\n';
-  }
-
-  appendContent += '\n# Auto Claude data directory\n';
-  for (const entry of entriesToAdd) {
-    appendContent += entry + '\n';
-  }
-
-  if (existsSync(gitignorePath)) {
+  // Build the content to write
+  if (fileExists) {
+    // Append to existing file
+    let appendContent = '';
+    // Ensure file ends with newline before adding our entries
+    if (content && !content.endsWith('\n')) {
+      appendContent += '\n';
+    }
+    appendContent += '\n# Ouro data directory\n';
+    for (const entry of entriesToAdd) {
+      appendContent += entry + '\n';
+    }
     appendFileSync(gitignorePath, appendContent);
   } else {
-    writeFileSync(gitignorePath, '# Auto Claude data directory\n' + entriesToAdd.join('\n') + '\n');
+    // Create new file
+    writeFileSync(gitignorePath, '# Ouro data directory\n' + entriesToAdd.join('\n') + '\n');
   }
 
   debug('Added entries to .gitignore', { entries: entriesToAdd });
 }
 
 /**
- * Data directories created in .auto-claude for each project
+ * Data directories created in .ouro for each project
  */
 const DATA_DIRECTORIES = [
   'specs',
@@ -303,17 +310,18 @@ export function getLocalSourcePath(projectPath: string): string | null {
 }
 
 /**
- * Check if project is initialized (has .auto-claude directory)
+ * Check if project is initialized (has .ouro or legacy .auto-claude directory)
  */
 export function isInitialized(projectPath: string): boolean {
-  const dotAutoBuildPath = path.join(projectPath, '.auto-claude');
-  return existsSync(dotAutoBuildPath);
+  const ouroPath = path.join(projectPath, '.ouro');
+  const legacyPath = path.join(projectPath, '.auto-claude');
+  return existsSync(ouroPath) || existsSync(legacyPath);
 }
 
 /**
- * Initialize auto-claude data directory in a project.
+ * Initialize Ouro data directory in a project.
  *
- * Creates .auto-claude/ with data directories (specs, ideation, insights, roadmap).
+ * Creates .ouro/ with data directories (specs, ideation, insights, roadmap).
  * The framework code runs from the source repo - only data is stored here.
  *
  * Requires:
@@ -332,42 +340,51 @@ export function initializeProject(projectPath: string): InitializationResult {
     };
   }
 
-  // Check git status - Auto Claude requires git for worktree-based builds
+  // Check git status - Ouro requires git for worktree-based builds
   const gitStatus = checkGitStatus(projectPath);
   if (!gitStatus.isGitRepo || !gitStatus.hasCommits) {
     debug('Git check failed', { gitStatus });
     return {
       success: false,
-      error: gitStatus.error || 'Git repository required. Auto Claude uses git worktrees for isolated builds.'
+      error: gitStatus.error || 'Git repository required. Ouro uses git worktrees for isolated builds.'
     };
   }
 
-  // Check if already initialized
-  const dotAutoBuildPath = path.join(projectPath, '.auto-claude');
+  // Check if already initialized (new .ouro or legacy .auto-claude)
+  const ouroPath = path.join(projectPath, '.ouro');
+  const legacyPath = path.join(projectPath, '.auto-claude');
 
-  if (existsSync(dotAutoBuildPath)) {
-    debug('Already initialized - .auto-claude exists');
+  if (existsSync(ouroPath)) {
+    debug('Already initialized - .ouro exists');
     return {
       success: false,
-      error: 'Project already has auto-claude initialized (.auto-claude exists)'
+      error: 'Project already has Ouro initialized (.ouro exists)'
+    };
+  }
+
+  if (existsSync(legacyPath)) {
+    debug('Legacy .auto-claude exists - migration required');
+    return {
+      success: false,
+      error: 'Project has legacy .auto-claude directory. Please run migration first.'
     };
   }
 
   try {
-    debug('Creating .auto-claude data directory', { dotAutoBuildPath });
+    debug('Creating .ouro data directory', { ouroPath });
 
-    // Create the .auto-claude directory
-    mkdirSync(dotAutoBuildPath, { recursive: true });
+    // Create the .ouro directory
+    mkdirSync(ouroPath, { recursive: true });
 
     // Create data directories
     for (const dataDir of DATA_DIRECTORIES) {
-      const dirPath = path.join(dotAutoBuildPath, dataDir);
+      const dirPath = path.join(ouroPath, dataDir);
       debug('Creating data directory', { dataDir, dirPath });
       mkdirSync(dirPath, { recursive: true });
       writeFileSync(path.join(dirPath, '.gitkeep'), '');
     }
 
-    // Update .gitignore to exclude .auto-claude/
+    // Update .gitignore to exclude .ouro/
     ensureGitignoreEntries(projectPath, GITIGNORE_ENTRIES);
 
     debug('Initialization complete');
@@ -383,11 +400,14 @@ export function initializeProject(projectPath: string): InitializationResult {
 }
 
 /**
- * Ensure all data directories exist in .auto-claude.
+ * Ensure all data directories exist in .ouro (or legacy .auto-claude).
  * Useful if new directories are added in future versions.
  */
 export function ensureDataDirectories(projectPath: string): InitializationResult {
-  const dotAutoBuildPath = path.join(projectPath, '.auto-claude');
+  // Check new .ouro path first, fall back to legacy .auto-claude
+  const ouroPath = path.join(projectPath, '.ouro');
+  const legacyPath = path.join(projectPath, '.auto-claude');
+  const dotAutoBuildPath = existsSync(ouroPath) ? ouroPath : legacyPath;
 
   if (!existsSync(dotAutoBuildPath)) {
     return {
@@ -415,22 +435,29 @@ export function ensureDataDirectories(projectPath: string): InitializationResult
 }
 
 /**
- * Get the auto-claude folder path for a project.
+ * Get the Ouro folder path for a project.
  *
- * IMPORTANT: Only .auto-claude/ is considered a valid "installed" auto-claude.
- * The auto-claude/ folder (if it exists) is the SOURCE CODE being developed,
- * not an installation. This allows Auto Claude to be used to develop itself.
+ * Checks for new .ouro/ first, falls back to legacy .auto-claude/ for backwards compatibility.
+ * Returns the relative path (e.g., '.ouro' or '.auto-claude').
  */
 export function getAutoBuildPath(projectPath: string): string | null {
-  const dotAutoBuildPath = path.join(projectPath, '.auto-claude');
+  const ouroPath = path.join(projectPath, '.ouro');
+  const legacyPath = path.join(projectPath, '.auto-claude');
 
-  debug('getAutoBuildPath called', { projectPath, dotAutoBuildPath });
+  debug('getAutoBuildPath called', { projectPath, ouroPath, legacyPath });
 
-  if (existsSync(dotAutoBuildPath)) {
-    debug('Returning .auto-claude (installed version)');
+  // Prefer new .ouro path
+  if (existsSync(ouroPath)) {
+    debug('Returning .ouro (new installation)');
+    return '.ouro';
+  }
+
+  // Fall back to legacy .auto-claude for backwards compatibility
+  if (existsSync(legacyPath)) {
+    debug('Returning .auto-claude (legacy installation)');
     return '.auto-claude';
   }
 
-  debug('No .auto-claude folder found - project not initialized');
+  debug('No .ouro or .auto-claude folder found - project not initialized');
   return null;
 }

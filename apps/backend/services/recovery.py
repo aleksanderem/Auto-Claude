@@ -28,7 +28,9 @@ class FailureType(Enum):
     VERIFICATION_FAILED = "verification_failed"  # Subtask verification failed
     CIRCULAR_FIX = "circular_fix"  # Same fix attempted multiple times
     CONTEXT_EXHAUSTED = "context_exhausted"  # Ran out of context mid-subtask
-    AUTHENTICATION_ERROR = "authentication_error"  # OAuth/API key errors - unrecoverable
+    AUTHENTICATION_ERROR = (
+        "authentication_error"  # OAuth/API key errors - unrecoverable
+    )
     RATE_LIMIT = "rate_limit"  # API rate limiting - can retry after delay
     UNKNOWN = "unknown"
 
@@ -634,8 +636,7 @@ class RecoveryManager:
 
         cutoff = datetime.now() - timedelta(minutes=window_minutes)
         recent_errors = [
-            e for e in errors
-            if datetime.fromisoformat(e["timestamp"]) > cutoff
+            e for e in errors if datetime.fromisoformat(e["timestamp"]) > cutoff
         ]
         return len(recent_errors)
 
@@ -656,14 +657,18 @@ class RecoveryManager:
 
         # Authentication errors always stop immediately
         if failure_type == FailureType.AUTHENTICATION_ERROR:
-            return True, "Authentication error - OAuth token expired or invalid. Run 'claude setup-token' to refresh."
+            return (
+                True,
+                "Authentication error - OAuth token expired or invalid. Run 'claude setup-token' to refresh.",
+            )
 
         # Rate limiting - stop after 5 attempts
         if failure_type == FailureType.RATE_LIMIT:
             history = self._load_attempt_history()
             errors = history.get("session_errors", [])
             rate_limit_count = sum(
-                1 for e in errors[-10:]
+                1
+                for e in errors[-10:]
                 if e.get("failure_type") == FailureType.RATE_LIMIT.value
             )
             if rate_limit_count >= 5:
@@ -672,7 +677,10 @@ class RecoveryManager:
         # Check for repeated errors of the same type
         error_count = self.get_session_error_count(window_minutes=30)
         if error_count >= 5:
-            return True, f"Too many session errors ({error_count} in last 30 minutes). Something is fundamentally broken."
+            return (
+                True,
+                f"Too many session errors ({error_count} in last 30 minutes). Something is fundamentally broken.",
+            )
 
         return False, ""
 

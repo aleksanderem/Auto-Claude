@@ -1,7 +1,7 @@
 /**
  * Profile Manager - File I/O for API profiles
  *
- * Handles loading and saving profiles.json from the auto-claude directory.
+ * Handles loading and saving profiles.json from the ouro directory.
  * Provides graceful handling for missing or corrupted files.
  */
 
@@ -11,11 +11,21 @@ import { app } from 'electron';
 import type { ProfilesFile } from '../../shared/types/profile';
 
 /**
- * Get the path to profiles.json in the auto-claude directory
+ * Get the path to profiles.json in the ouro directory
+ * Uses .ouro directory, with fallback to legacy .auto-claude for backwards compatibility
  */
 export function getProfilesFilePath(): string {
   const userDataPath = app.getPath('userData');
-  return path.join(userDataPath, 'auto-claude', 'profiles.json');
+  const ouroPath = path.join(userDataPath, 'ouro', 'profiles.json');
+  const legacyPath = path.join(userDataPath, 'auto-claude', 'profiles.json');
+
+  // Check if legacy path exists and new path doesn't (backwards compatibility)
+  const fs = require('fs');
+  if (fs.existsSync(legacyPath) && !fs.existsSync(ouroPath)) {
+    return legacyPath;
+  }
+
+  return ouroPath;
 }
 
 /**
@@ -41,7 +51,7 @@ export async function loadProfilesFile(): Promise<ProfilesFile> {
 
 /**
  * Save profiles.json to disk
- * Creates the auto-claude directory if it doesn't exist
+ * Creates the ouro directory if it doesn't exist
  */
 export async function saveProfilesFile(data: ProfilesFile): Promise<void> {
   const filePath = getProfilesFilePath();

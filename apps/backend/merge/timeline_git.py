@@ -189,7 +189,18 @@ class TimelineGitHelper:
             task_id.replace("task-", "") if task_id.startswith("task-") else task_id
         )
 
+        # Check .ouro path first
         worktree_path = (
+            self.project_path / ".ouro" / "worktrees" / "tasks" / spec_name / file_path
+        )
+        if worktree_path.exists():
+            try:
+                return worktree_path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                return worktree_path.read_text(encoding="utf-8", errors="replace")
+
+        # Legacy fallback for .auto-claude
+        legacy_worktree_path = (
             self.project_path
             / ".auto-claude"
             / "worktrees"
@@ -197,11 +208,13 @@ class TimelineGitHelper:
             / spec_name
             / file_path
         )
-        if worktree_path.exists():
+        if legacy_worktree_path.exists():
             try:
-                return worktree_path.read_text(encoding="utf-8")
+                return legacy_worktree_path.read_text(encoding="utf-8")
             except UnicodeDecodeError:
-                return worktree_path.read_text(encoding="utf-8", errors="replace")
+                return legacy_worktree_path.read_text(
+                    encoding="utf-8", errors="replace"
+                )
         return ""
 
     def get_changed_files_in_worktree(

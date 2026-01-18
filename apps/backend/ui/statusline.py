@@ -24,7 +24,7 @@ ccstatusline Configuration:
         "widgets": [
             {
                 "type": "custom_command",
-                "command": "python /path/to/auto-claude/statusline.py",
+                "command": "python /path/to/ouro/statusline.py",
                 "refresh": 5000
             }
         ]
@@ -36,7 +36,7 @@ import json
 import sys
 from pathlib import Path
 
-# Add auto-claude to path
+# Add ouro to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from ui import (
@@ -50,20 +50,20 @@ from ui import (
 
 
 def find_project_root() -> Path:
-    """Find the project root by looking for .auto-claude or .auto-claude-status."""
+    """Find the project root by looking for .ouro or .ouro-status (or legacy .auto-claude)."""
     cwd = Path.cwd()
 
-    # Check current directory - prioritize .auto-claude (installed instance)
-    if (cwd / ".auto-claude").exists():
+    # Check current directory - prioritize .ouro (new) then .auto-claude (legacy)
+    if (cwd / ".ouro").exists() or (cwd / ".auto-claude").exists():
         return cwd
-    if (cwd / ".auto-claude-status").exists():
+    if (cwd / ".ouro-status").exists() or (cwd / ".auto-claude-status").exists():
         return cwd
 
     # Walk up to find project root
     for parent in cwd.parents:
-        if (parent / ".auto-claude").exists():
+        if (parent / ".ouro").exists() or (parent / ".auto-claude").exists():
             return parent
-        if (parent / ".auto-claude-status").exists():
+        if (parent / ".ouro-status").exists() or (parent / ".auto-claude-status").exists():
             return parent
 
     return cwd

@@ -20,7 +20,7 @@ export const DEFAULT_APP_SETTINGS = {
   theme: 'dark' as const,
   colorTheme: 'default' as const,
   defaultModel: 'opus',
-  agentFramework: 'auto-claude',
+  agentFramework: 'ouro',
   pythonPath: undefined as string | undefined,
   gitPath: undefined as string | undefined,
   githubCLIPath: undefined as string | undefined,
@@ -79,11 +79,12 @@ export const DEFAULT_PROJECT_SETTINGS = {
 // ============================================
 
 // File paths relative to project
-// IMPORTANT: All paths use .auto-claude/ (the installed instance), NOT auto-claude/ (source code)
+// NOTE: Default paths use .ouro/ (rebranded from .auto-claude/)
+// Legacy .auto-claude/ paths are supported via fallback functions
 export const AUTO_BUILD_PATHS = {
-  SPECS_DIR: '.auto-claude/specs',
-  ROADMAP_DIR: '.auto-claude/roadmap',
-  IDEATION_DIR: '.auto-claude/ideation',
+  SPECS_DIR: '.ouro/specs',
+  ROADMAP_DIR: '.ouro/roadmap',
+  IDEATION_DIR: '.ouro/ideation',
   IMPLEMENTATION_PLAN: 'implementation_plan.json',
   SPEC_FILE: 'spec.md',
   QA_REPORT: 'qa_report.md',
@@ -95,15 +96,49 @@ export const AUTO_BUILD_PATHS = {
   COMPETITOR_ANALYSIS: 'competitor_analysis.json',
   IDEATION_FILE: 'ideation.json',
   IDEATION_CONTEXT: 'ideation_context.json',
-  PROJECT_INDEX: '.auto-claude/project_index.json',
+  PROJECT_INDEX: '.ouro/project_index.json',
   GRAPHITI_STATE: '.graphiti_state.json'
+} as const;
+
+// Legacy paths for backward compatibility
+export const LEGACY_BUILD_PATHS = {
+  SPECS_DIR: '.auto-claude/specs',
+  ROADMAP_DIR: '.auto-claude/roadmap',
+  IDEATION_DIR: '.auto-claude/ideation',
+  PROJECT_INDEX: '.auto-claude/project_index.json',
 } as const;
 
 /**
  * Get the specs directory path.
- * All specs go to .auto-claude/specs/ (the project's data directory).
+ * Uses project's autoBuildPath setting, defaulting to .ouro.
  */
 export function getSpecsDir(autoBuildPath: string | undefined): string {
-  const basePath = autoBuildPath || '.auto-claude';
+  const basePath = autoBuildPath || '.ouro';
   return `${basePath}/specs`;
+}
+
+/**
+ * Get roadmap directory path with legacy fallback.
+ * Checks new .ouro path first, then falls back to legacy .auto-claude.
+ */
+export function getRoadmapDir(autoBuildPath: string | undefined): string {
+  const basePath = autoBuildPath || '.ouro';
+  return `${basePath}/roadmap`;
+}
+
+/**
+ * Get ideation directory path with legacy fallback.
+ * Checks new .ouro path first, then falls back to legacy .auto-claude.
+ */
+export function getIdeationDir(autoBuildPath: string | undefined): string {
+  const basePath = autoBuildPath || '.ouro';
+  return `${basePath}/ideation`;
+}
+
+/**
+ * Get project index path with legacy fallback.
+ */
+export function getProjectIndexPath(autoBuildPath: string | undefined): string {
+  const basePath = autoBuildPath || '.ouro';
+  return `${basePath}/project_index.json`;
 }

@@ -1,0 +1,19 @@
+{
+  "session_id": "S0001",
+  "started_at": "2026-01-16T10:00:00Z",
+  "last_updated": "2026-01-17T15:30:00Z",
+  "status": "active",
+  "focus": "Rebranding implementation Auto-Claude -> Ouro",
+  "tasks_snapshot": {
+    "total": 7,
+    "not_started": 6,
+    "in_progress": 0,
+    "passing": 1,
+    "failing": 0,
+    "blocked": 0
+  },
+  "active_task_ids": [2],
+  "blockers": [],
+  "notes": "Branch refactor/rebrand-to-ouro created. Ready to start Phase 1 implementation.",
+  "branch": "refactor/rebrand-to-ouro"
+}

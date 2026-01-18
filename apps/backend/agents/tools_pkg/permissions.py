@@ -25,9 +25,7 @@ from .models import (
     get_agent_config,
     get_required_mcp_servers,
 )
-
 from .registry import is_tools_available
-
 
 # =============================================================================
 # MCP Server Tool Registry
@@ -36,7 +34,7 @@ from .registry import is_tools_available
 # When adding a new MCP server, just add it here instead of modifying
 # _get_mcp_tools_for_servers() with if/elif chains.
 #
-# Note: auto-claude tools are handled separately via config["auto_claude_tools"]
+# Note: Ouro tools are handled separately via config["ouro_tools"]
 # and only added when the MCP server is actually available (see get_allowed_tools).
 SERVER_TOOL_REGISTRY = {
     "context7": CONTEXT7_TOOLS,
@@ -68,7 +66,7 @@ def get_allowed_tools(
         project_capabilities: Optional dict from detect_project_capabilities()
                             containing flags like is_electron, is_web_frontend, etc.
         linear_enabled: Whether Linear integration is enabled for this project
-        mcp_config: Per-project MCP server toggles from .auto-claude/.env
+        mcp_config: Per-project MCP server toggles from .ouro/.env
 
     Returns:
         List of allowed tool names
@@ -90,10 +88,10 @@ def get_allowed_tools(
         mcp_config,
     )
 
-    # Add auto-claude tools ONLY if the MCP server is available
+    # Add Ouro tools ONLY if the MCP server is available
     # This prevents allowing tools that won't work because the server isn't running
-    if "auto-claude" in required_servers and is_tools_available():
-        tools.extend(config.get("auto_claude_tools", []))
+    if "ouro" in required_servers and is_tools_available():
+        tools.extend(config.get("ouro_tools", []))
 
     # Add MCP tool names based on required servers
     tools.extend(_get_mcp_tools_for_servers(required_servers))
@@ -120,7 +118,7 @@ def _get_mcp_tools_for_servers(servers: list[str]) -> list[str]:
         # Lookup server in registry for automatic tool discovery
         if server in SERVER_TOOL_REGISTRY:
             tools.extend(SERVER_TOOL_REGISTRY[server])
-        # Note: auto-claude tools are added separately via config["auto_claude_tools"]
+        # Note: Ouro tools are added separately via config["ouro_tools"]
         # in get_allowed_tools() when the MCP server is actually available
 
     return tools

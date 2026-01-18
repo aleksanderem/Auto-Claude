@@ -73,27 +73,27 @@ async def bash_security_hook(
 
         # Extract file paths from command (look for paths after common flags)
         # Patterns: after screenshot/pdf commands, or standalone paths
-        path_pattern = r'(?:screenshot|pdf)\s+\S+\s+([^\s]+)|(?:^|\s)(/[^\s]+\.(?:png|pdf|jpg|jpeg))'
+        path_pattern = r"(?:screenshot|pdf)\s+\S+\s+([^\s]+)|(?:^|\s)(/[^\s]+\.(?:png|pdf|jpg|jpeg))"
         matches = re.findall(path_pattern, command)
         file_paths = [m[0] or m[1] for m in matches if m[0] or m[1]]
 
         # Get spec directory from environment (set by coder/qa agents)
         spec_dir = os.environ.get("SPEC_DIR")
-        project_root = os.environ.get(PROJECT_DIR_ENV_VAR) or cwd
+        project_root = os.environ.get("PROJECT_DIR") or os.getcwd()
 
         for file_path in file_paths:
             # Skip relative paths - they're fine (will resolve to cwd)
-            if not file_path.startswith('/'):
+            if not file_path.startswith("/"):
                 continue
 
             # Block /tmp explicitly
-            if file_path.startswith('/tmp/'):
+            if file_path.startswith("/tmp/"):
                 return {
                     "decision": "block",
                     "reason": (
                         "Paths to /tmp are blocked (files will be deleted after task completion).\n"
-                        f"Use absolute path to spec directory: $SPEC_DIR/qa-screenshots/file.png\n"
-                        f"Or use relative path: ./qa-screenshots/file.png"
+                        "Use absolute path to spec directory: $SPEC_DIR/qa-screenshots/file.png\n"
+                        "Or use relative path: ./qa-screenshots/file.png"
                     ),
                 }
 

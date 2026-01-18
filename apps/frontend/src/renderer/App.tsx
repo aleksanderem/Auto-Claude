@@ -58,6 +58,7 @@ import { useIpcListeners } from './hooks/useIpc';
 import { COLOR_THEMES, UI_SCALE_MIN, UI_SCALE_MAX, UI_SCALE_DEFAULT } from '../shared/constants';
 import type { Task, Project, ColorTheme } from '../shared/types';
 import { AddProjectModal } from './components/AddProjectModal';
+import { LegacyMigrationDialog } from './components/LegacyMigrationDialog';
 import { ViewStateProvider } from './contexts/ViewStateContext';
 import { debugModeFeatures, debugCpuLog } from './utils/debug-mode';
 
@@ -110,6 +111,12 @@ export function App() {
   const [showRemoveProjectDialog, setShowRemoveProjectDialog] = useState(false);
   const [removeProjectError, setRemoveProjectError] = useState<string | null>(null);
   const [projectToRemove, setProjectToRemove] = useState<Project | null>(null);
+
+  // Legacy migration state (.auto-claude → .ouro)
+  const [showMigrationDialog, setShowMigrationDialog] = useState(false);
+  const [migrationProject, setMigrationProject] = useState<Project | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationError, setMigrationError] = useState<string | null>(null);
 
   // Get selected project
   const selectedProject = projects.find((p) => p.id === (activeProjectId || selectedProjectId));
@@ -305,7 +312,7 @@ export function App() {
     setInitError(null);
   }, [selectedProjectId]);
 
-  // Check if selected project needs initialization (e.g., .auto-claude folder was deleted)
+  // Check if selected project needs initialization (e.g., .ouro folder was deleted)
   useEffect(() => {
     // Don't show dialog while initialization is in progress
     if (isInitializing) return;
@@ -322,6 +329,32 @@ export function App() {
       setShowInitDialog(true);
     }
   }, [selectedProject, skippedInitProjectId, isInitializing, initSuccess]);
+
+  // Check for legacy .auto-claude directory and offer migration to .ouro
+  useEffect(() => {
+    const checkForLegacyDirectory = async () => {
+      if (!selectedProject?.path) return;
+
+      // Don't check while migration is in progress
+      if (isMigrating) return;
+
+      try {
+        const result = await window.electronAPI.checkLegacy(selectedProject.path);
+        if (result.success && result.data) {
+          // Show migration dialog if legacy exists and new doesn't
+          if (result.data.hasLegacy && !result.data.hasNew) {
+            setMigrationProject(selectedProject);
+            setMigrationError(null);
+            setShowMigrationDialog(true);
+          }
+        }
+      } catch (error) {
+        console.error('[Migration] Failed to check for legacy directory:', error);
+      }
+    };
+
+    checkForLegacyDirectory();
+  }, [selectedProject?.id, selectedProject?.path, isMigrating]);
 
   // Global keyboard shortcut: Cmd/Ctrl+T to add project (when not on terminals view)
   useEffect(() => {
@@ -704,6 +737,39 @@ export function App() {
     setGitHubSetupProject(null);
   };
 
+  // Migration handlers for .auto-claude → .ouro
+  const handleMigration = async () => {
+    if (!migrationProject) return;
+
+    setIsMigrating(true);
+    setMigrationError(null);
+
+    try {
+      const result = await window.electronAPI.executeMigration(migrationProject.path);
+      if (result.success) {
+        console.log('[Migration] Successfully migrated to .ouro');
+        // Refresh projects to get updated autoBuildPath
+        await loadProjects();
+        setShowMigrationDialog(false);
+        setMigrationProject(null);
+      } else {
+        console.error('[Migration] Failed:', result.error);
+        setMigrationError(result.error || 'Migration failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('[Migration] Unexpected error:', error);
+      setMigrationError(error instanceof Error ? error.message : 'An unexpected error occurred');
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  const handleSkipMigration = () => {
+    setShowMigrationDialog(false);
+    setMigrationProject(null);
+    setMigrationError(null);
+  };
+
   const handleSkipInit = () => {
     console.log('[InitDialog] User skipped initialization');
     if (pendingProject) {
@@ -979,7 +1045,7 @@ export function App() {
               {/* Current Jobs Badge with Popover */}
               {(() => {
                 const runningTasks = tasks.filter(t =>
-                  t.status === 'in_progress' || t.status === 'running'
+                  t.status === 'in_progress' || t.status === 'ai_review'
                 );
 
                 if (runningTasks.length === 0) return null;
@@ -1398,6 +1464,17 @@ export function App() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Legacy Migration Dialog - shows when .auto-claude directory is detected */}
+        <LegacyMigrationDialog
+          open={showMigrationDialog}
+          project={migrationProject}
+          isMigrating={isMigrating}
+          error={migrationError}
+          onOpenChange={setShowMigrationDialog}
+          onMigrate={handleMigration}
+          onSkip={handleSkipMigration}
+        />
 
         {/* Rate Limit Modal - shows when Claude Code hits usage limits (terminal) */}
         <RateLimitModal />

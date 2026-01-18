@@ -517,10 +517,10 @@ export function MemoryBackendSection({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">Database Name</Label>
             <p className="text-xs text-muted-foreground">
-              Name for the memory database (stored in ~/.auto-claude/memories/)
+              Name for the memory database (stored in ~/.ouro/memories/)
             </p>
             <Input
-              placeholder="auto_claude_memory"
+              placeholder="ouro_memory"
               value={envConfig.graphitiDatabase || ''}
               onChange={(e) => onUpdateConfig({ graphitiDatabase: e.target.value })}
             />
@@ -529,10 +529,10 @@ export function MemoryBackendSection({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">Database Path (Optional)</Label>
             <p className="text-xs text-muted-foreground">
-              Custom storage location. Default: ~/.auto-claude/memories/
+              Custom storage location. Default: ~/.ouro/memories/
             </p>
             <Input
-              placeholder="~/.auto-claude/memories"
+              placeholder="~/.ouro/memories"
               value={envConfig.graphitiDbPath || ''}
               onChange={(e) => onUpdateConfig({ graphitiDbPath: e.target.value || undefined })}
             />

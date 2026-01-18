@@ -1,12 +1,51 @@
+// EARLY DEBUG: Write to file to track startup since console.log may not work in packaged app
+import { appendFileSync as debugAppendFileSync, writeFileSync as debugWriteFileSync, mkdirSync as debugMkdirSync, existsSync as debugExistsSync } from 'fs';
+import { homedir as debugHomedir } from 'os';
+import { join as debugJoin } from 'path';
+
+// Use secure log location in user's home directory (avoid /tmp for security)
+// ~/.ouro/logs/ is user-owned and not world-writable
+const DEBUG_LOG_DIR = debugJoin(debugHomedir(), '.ouro', 'logs');
+const DEBUG_LOG_PATH = debugJoin(DEBUG_LOG_DIR, 'startup-debug.log');
+
+// Ensure log directory exists and start fresh log
+try {
+  if (!debugExistsSync(DEBUG_LOG_DIR)) {
+    debugMkdirSync(DEBUG_LOG_DIR, { recursive: true, mode: 0o700 }); // User-only permissions
+  }
+  debugWriteFileSync(DEBUG_LOG_PATH, `=== Ouro Startup Debug Log ===\nStarted: ${new Date().toISOString()}\nPath: ${DEBUG_LOG_PATH}\n\n`, { mode: 0o600 });
+} catch {
+  // If we can't write logs, continue silently - startup logging is optional
+}
+
+function startupLog(msg: string): void {
+  const timestamp = new Date().toISOString();
+  const line = `[${timestamp}] ${msg}\n`;
+  try {
+    debugAppendFileSync(DEBUG_LOG_PATH, line);
+  } catch {
+    // Ignore write errors
+  }
+  // Use console.warn which seems to work in packaged apps
+  console.warn(`[STARTUP] ${msg}`);
+}
+
+startupLog('Main process starting...');
+startupLog(`import.meta.url: ${import.meta.url}`);
+
 // Load .env file FIRST before any other imports that might use process.env
 import { config } from 'dotenv';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
 
+startupLog('Core imports done');
+
 // ESM-compatible __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+startupLog(`__dirname resolved: ${__dirname}`);
 
 // Load .env from apps/frontend directory
 // In development: __dirname is out/main (compiled), so go up 2 levels
@@ -20,10 +59,11 @@ const possibleEnvPaths = [
 for (const envPath of possibleEnvPaths) {
   if (existsSync(envPath)) {
     config({ path: envPath });
-    console.log(`[dotenv] Loaded environment from: ${envPath}`);
+    startupLog(`dotenv loaded from: ${envPath}`);
     break;
   }
 }
+startupLog('dotenv loading complete');
 
 import { app, BrowserWindow, shell, nativeImage, session, screen } from 'electron';
 import { join } from 'path';
@@ -47,6 +87,8 @@ import { projectStore } from './project-store';
 import type { AppSettings } from '../shared/types';
 import { debugModeFeatures, isDevToolsDisabled, debugCpuLog } from '../shared/utils/debug-mode';
 
+startupLog('All imports completed successfully');
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Window sizing constants
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,10 +107,14 @@ const DEFAULT_SCREEN_WIDTH: number = 1920;
 const DEFAULT_SCREEN_HEIGHT: number = 1080;
 
 // Setup error logging early (captures uncaught exceptions)
+startupLog('About to call setupErrorLogging...');
 setupErrorLogging();
+startupLog('setupErrorLogging complete');
 
 // Initialize Sentry for error tracking (respects user's sentryEnabled setting)
+startupLog('About to call initSentryMain...');
 initSentryMain();
+startupLog('initSentryMain complete');
 
 /**
  * Load app settings synchronously (for use during startup).
@@ -89,7 +135,7 @@ function loadSettingsSync(): AppSettings {
 function cleanupStaleUpdateMetadata(): void {
   const userData = app.getPath('userData');
   const stalePaths = [
-    join(userData, 'auto-claude-source'),
+    join(userData, 'ouro-source'),
     join(userData, 'backend-source'),
   ];
 
@@ -142,10 +188,13 @@ export function getTaskRecoveryService(): TaskRecoveryService | null {
 }
 
 function createWindow(): void {
+  startupLog('createWindow() called');
+
   // Get the primary display's work area (accounts for taskbar, dock, etc.)
   // Wrapped in try/catch to handle potential failures with fallback to safe defaults
   let workAreaSize: { width: number; height: number };
   try {
+    startupLog('Getting primary display...');
     const display = screen.getPrimaryDisplay();
     // Validate the returned object has expected structure with valid dimensions
     if (
@@ -182,6 +231,10 @@ function createWindow(): void {
   const minHeight: number = Math.min(WINDOW_MIN_HEIGHT, height);
 
   // Create the browser window
+  startupLog('Creating BrowserWindow...');
+  const preloadPath = join(__dirname, '../preload/index.mjs');
+  startupLog(`Preload path: ${preloadPath}`);
+
   mainWindow = new BrowserWindow({
     width,
     height,
@@ -193,17 +246,20 @@ function createWindow(): void {
     trafficLightPosition: { x: 15, y: 10 },
     icon: getIconPath(),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.mjs'),
+      preload: preloadPath,
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
       backgroundThrottling: false // Prevent terminal lag when window loses focus
     }
   });
+  startupLog('BrowserWindow created');
 
   // Show window when ready to avoid visual flash
   mainWindow.on('ready-to-show', () => {
+    startupLog('Window ready-to-show event fired!');
     mainWindow?.show();
+    startupLog('Window.show() called');
   });
 
   // Handle external links
@@ -213,11 +269,40 @@ function createWindow(): void {
   });
 
   // Load the renderer
+  startupLog(`Loading renderer, is.dev=${is.dev}`);
+
+  // Add error handlers to catch renderer load failures
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    startupLog(`RENDERER FAILED TO LOAD: code=${errorCode}, desc=${errorDescription}, url=${validatedURL}`);
+    console.error(`[main] Renderer failed to load: ${errorCode} - ${errorDescription} at ${validatedURL}`);
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    startupLog('Renderer finished loading successfully');
+  });
+
+  mainWindow.webContents.on('dom-ready', () => {
+    startupLog('DOM ready');
+  });
+
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    startupLog(`RENDER PROCESS GONE: reason=${details.reason}, exitCode=${details.exitCode}`);
+    console.error(`[main] Render process gone:`, details);
+  });
+
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    startupLog(`Loading dev URL: ${process.env['ELECTRON_RENDERER_URL']}`);
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+    const rendererPath = join(__dirname, '../renderer/index.html');
+    startupLog(`Loading production renderer from: ${rendererPath}`);
+    startupLog(`Checking if renderer exists: ${existsSync(rendererPath)}`);
+    mainWindow.loadFile(rendererPath).catch((err) => {
+      startupLog(`LOAD FILE ERROR: ${err}`);
+      console.error('[main] Failed to load renderer file:', err);
+    });
   }
+  startupLog('Renderer load initiated');
 
   // Open DevTools in development (can be disabled via DISABLE_DEVTOOLS=true for debugging)
   if (is.dev && !isDevToolsDisabled()) {
@@ -231,10 +316,10 @@ function createWindow(): void {
 }
 
 // Set app name before ready (for dock tooltip on macOS in dev mode)
-app.setName('Auto Claude');
+app.setName('Ouro');
 if (process.platform === 'darwin') {
   // Force the name to appear in dock on macOS
-  app.name = 'Auto Claude';
+  app.name = 'Ouro';
 }
 
 // Fix Windows GPU cache permission errors (0x5 Access Denied)
@@ -244,8 +329,12 @@ if (process.platform === 'win32') {
   console.log('[main] Applied Windows GPU cache fixes');
 }
 
+startupLog('Module-level code complete, waiting for app.whenReady()...');
+
 // Initialize the application
 app.whenReady().then(() => {
+  startupLog('app.whenReady() fired!');
+
   // Set app user model id for Windows
   electronApp.setAppUserModelId('com.autoclaude.ui');
 
@@ -379,7 +468,9 @@ app.whenReady().then(() => {
   setupIpcHandlers(agentManager, terminalManager, () => mainWindow, pythonEnvManager);
 
   // Create window
+  startupLog('About to call createWindow()...');
   createWindow();
+  startupLog('createWindow() returned');
 
   // Pre-warm CLI tool cache in background (non-blocking)
   // This ensures CLI detection is done before user needs it

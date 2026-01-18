@@ -80,10 +80,10 @@ def __getattr__(name):
         "RECEIVE_TIMEOUT_SECONDS",
     ):
         from .session import (
-            post_session_processing,
-            run_agent_session,
-            receive_with_timeout,
             RECEIVE_TIMEOUT_SECONDS,
+            post_session_processing,
+            receive_with_timeout,
+            run_agent_session,
         )
 
         return locals()[name]

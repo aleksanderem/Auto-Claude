@@ -258,7 +258,7 @@
 
   /* Primary - Warm orange accent */
   --primary: #FF9F5A;
-  --primary-foreground: #000000;
+  --primary-foreground: #FFFFFF;
 
   --secondary: #282828;
   --secondary-foreground: #FFFFFF;
@@ -267,7 +267,7 @@
   --muted-foreground: #B3B3B3;
 
   --accent: #FF9F5A;
-  --accent-foreground: #000000;
+  --accent-foreground: #FFFFFF;
 
   --destructive: #E22134;
   --destructive-foreground: #FFFFFF;

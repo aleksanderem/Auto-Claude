@@ -7,7 +7,7 @@
   "sections": {
     "appearance": {
       "title": "Appearance",
-      "description": "Customize how Auto Claude looks"
+      "description": "Customize how Ouro looks"
     },
     "display": {
       "title": "Display",
@@ -39,7 +39,7 @@
     },
     "updates": {
       "title": "Updates",
-      "description": "Auto Claude updates"
+      "description": "Ouro updates"
     },
     "notifications": {
       "title": "Notifications",
@@ -190,7 +190,7 @@
     "otherAgentSettingsDescription": "Additional agent configuration options",
     "agentFramework": "Agent Framework",
     "agentFrameworkDescription": "The coding framework used for autonomous tasks",
-    "agentFrameworkAutoClaude": "Auto Claude",
+    "agentFrameworkOuro": "Ouro",
     "aiTerminalNaming": "AI Terminal Naming",
     "aiTerminalNamingDescription": "Automatically name terminals based on commands (uses Haiku)",
     "featureModelSettings": "Feature Model Settings",
@@ -222,15 +222,15 @@
     "sourceBundled": "Bundled",
     "sourceFallback": "Fallback",
     "notDetected": "Not detected",
-    "autoClaudePath": "Auto Claude Path",
-    "autoClaudePathDescription": "Relative path to auto-claude directory in projects",
-    "autoClaudePathPlaceholder": "auto-claude (default)",
+    "ouroPath": "Ouro Path",
+    "ouroPathDescription": "Relative path to ouro directory in projects",
+    "ouroPathPlaceholder": "ouro (default)",
     "autoNameTerminals": "Automatically name terminals",
     "autoNameTerminalsDescription": "Use AI to generate descriptive names for terminal tabs based on their activity"
   },
   "theme": {
     "title": "Appearance",
-    "description": "Customize how Auto Claude looks",
+    "description": "Customize how Ouro looks",
     "mode": "Mode",
     "modeDescription": "Choose between light and dark themes",
     "light": "Light",
@@ -246,14 +246,14 @@
     "detectAgain": "Detect Again",
     "ide": {
       "label": "Preferred IDE",
-      "description": "Auto Claude will open worktrees in this editor",
+      "description": "Ouro will open worktrees in this editor",
       "placeholder": "Select IDE...",
       "customPath": "Custom IDE Path",
       "customPathPlaceholder": "/path/to/your/ide"
     },
     "terminal": {
       "label": "Preferred Terminal",
-      "description": "Auto Claude will open terminal sessions here",
+      "description": "Ouro will open terminal sessions here",
       "placeholder": "Select terminal...",
       "customPath": "Custom Terminal Path",
       "customPathPlaceholder": "/path/to/your/terminal"
@@ -270,7 +270,7 @@
   },
   "updates": {
     "title": "Updates",
-    "description": "Manage Auto Claude updates",
+    "description": "Manage Ouro updates",
     "appUpdateReady": "App Update Ready",
     "newVersion": "New Version",
     "released": "Released",
@@ -287,7 +287,7 @@
     "unableToCheck": "Unable to check for updates",
     "checkForUpdates": "Check for Updates",
     "autoUpdateProjects": "Auto-Update Projects",
-    "autoUpdateProjectsDescription": "Automatically update Auto Claude in projects when a new version is available",
+    "autoUpdateProjectsDescription": "Automatically update Ouro in projects when a new version is available",
     "betaUpdates": "Beta Updates",
     "betaUpdatesDescription": "Receive pre-release beta versions with new features (may be less stable)",
     "stableDowngradeAvailable": "Stable Version Available",
@@ -357,6 +357,13 @@
       "integrationTitle": "UI Framework Documentation",
       "integrationDescription": "Automatic documentation fetching for UI component libraries",
       "syncDescription": "Configure automatic UI framework documentation fetching"
+    },
+    "supervisor": {
+      "title": "Supervisor",
+      "description": "Claude Code supervisor mode",
+      "integrationTitle": "Supervisor Mode",
+      "integrationDescription": "Force Claude Code into supervisor role for this project",
+      "syncDescription": "Configure Claude Code supervisor mode"
     }
   },
   "agentProfile": {
@@ -467,7 +474,7 @@
     "description": "Access logs and debug information for troubleshooting",
     "errorReporting": {
       "label": "Anonymous Error Reporting",
-      "description": "Send crash reports to help improve Auto Claude. No personal data or code is collected."
+      "description": "Send crash reports to help improve Ouro. No personal data or code is collected."
     },
     "openLogsFolder": "Open Logs Folder",
     "copyDebugInfo": "Copy Debug Info",
@@ -486,6 +493,30 @@
       "description": "Select a project from the sidebar to configure its settings."
     }
   },
+  "supervisor": {
+    "title": "Supervisor Mode",
+    "description": "When enabled, Claude Code acts as a supervisor that delegates tasks to Ouro instead of implementing them directly.",
+    "installed": "Installed",
+    "notInstalled": "Not Installed",
+    "install": "Install Plugin",
+    "installing": "Installing...",
+    "uninstall": "Uninstall Plugin",
+    "uninstalling": "Uninstalling...",
+    "includeClaude": "Include CLAUDE.md Section",
+    "includeClaudeDescription": "Add supervisor role instructions to project's CLAUDE.md file",
+    "claudeMdToggle": "CLAUDE.md Section",
+    "claudeMdSection": "CLAUDE.md Section",
+    "hookifyRules": "Hookify Protection Rules",
+    "commands": "Slash Commands",
+    "whatItDoes": "What Supervisor Mode Does",
+    "feature1": "Blocks destructive commands on .ouro/ directory (rm, rmdir, mv)",
+    "feature2": "Warns when editing implementation files in .ouro/specs/",
+    "feature3": "Provides slash commands for managing Ouro builds (/ouro-status, /ouro-run, etc.)",
+    "errorLoadingStatus": "Failed to load supervisor plugin status",
+    "errorInstalling": "Failed to install supervisor plugin",
+    "errorUninstalling": "Failed to uninstall supervisor plugin",
+    "errorUpdatingClaudeMd": "Failed to update CLAUDE.md"
+  },
   "mcp": {
     "title": "MCP Server Overview",
     "titleWithProject": "MCP Server Overview for {{projectName}}",
@@ -497,7 +528,7 @@
     "noProjectSelected": "No Project Selected",
     "noProjectSelectedDescription": "Select a project from the dropdown to view and configure MCP servers.",
     "projectNotInitialized": "Project Not Initialized",
-    "projectNotInitializedDescription": "Initialize Auto Claude for this project to configure MCP servers.",
+    "projectNotInitializedDescription": "Initialize Ouro for this project to configure MCP servers.",
     "browserAutomation": "Browser Automation (QA agents only)",
     "alwaysEnabled": "always enabled",
     "addServer": "Add Server",
@@ -537,8 +568,8 @@
         "name": "Playwright",
         "description": "Modern E2E testing and browser automation"
       },
-      "autoClaude": {
-        "name": "Auto-Claude Tools",
+      "ouro": {
+        "name": "Ouro Tools",
         "description": "Build progress tracking"
       }
     },

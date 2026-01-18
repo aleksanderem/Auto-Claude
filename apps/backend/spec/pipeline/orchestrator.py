@@ -196,7 +196,12 @@ class SpecOrchestrator:
         This ensures QA agents receive accurate project capability information
         for dynamic MCP tool injection.
         """
-        index_file = self.project_dir / ".auto-claude" / "project_index.json"
+        # Check .ouro first, fall back to .auto-claude for backwards compatibility
+        index_file = self.project_dir / ".ouro" / "project_index.json"
+        if not index_file.exists():
+            legacy_index_file = self.project_dir / ".auto-claude" / "project_index.json"
+            if legacy_index_file.exists():
+                index_file = legacy_index_file
 
         if should_refresh_project_index(self.project_dir):
             if index_file.exists():

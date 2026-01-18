@@ -87,7 +87,7 @@ async def run_autonomous_agent(
 
     Args:
         project_dir: Root directory for the project
-        spec_dir: Directory containing the spec (auto-claude/specs/001-name/)
+        spec_dir: Directory containing the spec (.ouro/specs/001-name/ or legacy .auto-claude/specs/001-name/)
         model: Claude model to use
         max_iterations: Maximum number of iterations (None for unlimited)
         verbose: Whether to show detailed output
@@ -237,7 +237,7 @@ async def run_autonomous_agent(
             print("\nTo resume, delete the PAUSE file:")
             print(f"  rm {pause_file}")
             print("\nThen run again:")
-            print(f"  python auto-claude/run.py --spec {spec_dir.name}")
+            print(f"  python ouro/run.py --spec {spec_dir.name}")
             return
 
         # Check max iterations
@@ -375,7 +375,8 @@ async def run_autonomous_agent(
                         print_status("Code discovery completed successfully", "success")
                     else:
                         print_status(
-                            "Code discovery incomplete, continuing without it", "warning"
+                            "Code discovery incomplete, continuing without it",
+                            "warning",
                         )
                 except Exception as e:
                     logger.warning(f"Code discovery failed: {e}, continuing without it")
@@ -406,7 +407,9 @@ async def run_autonomous_agent(
                 prompt += "\n```\n\n"
                 prompt += "**CRITICAL**: Pay special attention to:\n"
                 if discovery_context.get("gotchas_and_risks"):
-                    for category, items in discovery_context["gotchas_and_risks"].items():
+                    for category, items in discovery_context[
+                        "gotchas_and_risks"
+                    ].items():
                         prompt += f"\n**{category.replace('_', ' ').title()}**:\n"
                         for item in items[:3]:  # Top 3 per category
                             prompt += f"- {item}\n"
@@ -582,7 +585,9 @@ async def run_autonomous_agent(
             error_msg = response if response else "Unknown error"
             recovery_manager.record_session_error(error_msg, iteration)
 
-            should_stop, stop_reason = recovery_manager.should_stop_for_session_errors(error_msg)
+            should_stop, stop_reason = recovery_manager.should_stop_for_session_errors(
+                error_msg
+            )
             if should_stop:
                 print()
                 print_status(f"STOPPING: {stop_reason}", "error")
@@ -590,10 +595,14 @@ async def run_autonomous_agent(
                 print(muted("Fix the issue and run again."))
                 status_manager.update(state=BuildState.ERROR)
                 if task_logger:
-                    task_logger.log_error(f"Build stopped: {stop_reason}", current_log_phase)
+                    task_logger.log_error(
+                        f"Build stopped: {stop_reason}", current_log_phase
+                    )
 
                 # Save circuit breaker error to implementation_plan for UI display
-                from qa.criteria import load_implementation_plan as load_plan, save_implementation_plan
+                from qa.criteria import load_implementation_plan as load_plan
+                from qa.criteria import save_implementation_plan
+
                 plan = load_plan(spec_dir)
                 if plan:
                     plan["status"] = "error"
@@ -640,14 +649,14 @@ async def run_autonomous_agent(
             bold(f"{icon(Icons.PLAY)} NEXT STEPS"),
             "",
             f"{total - completed} subtasks remaining.",
-            f"Run again: {highlight(f'python auto-claude/run.py --spec {spec_dir.name}')}",
+            f"Run again: {highlight(f'python ouro/run.py --spec {spec_dir.name}')}",
         ]
     else:
         content = [
             bold(f"{icon(Icons.SUCCESS)} NEXT STEPS"),
             "",
             "All subtasks completed!",
-            "  1. Review the auto-claude/* branch",
+            "  1. Review the ouro/* branch",
             "  2. Run manual tests",
             "  3. Merge to main",
         ]

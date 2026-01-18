@@ -21,7 +21,7 @@ Usage:
     export OPENAI_API_KEY=sk-...
 
     # Run the test:
-    cd auto-claude
+    cd apps/backend
     python integrations/graphiti/test_graphiti_memory.py
 
     # Or run specific tests:
@@ -39,15 +39,15 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Add auto-claude to path
-auto_claude_dir = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(auto_claude_dir))
+# Add backend to path
+backend_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(backend_dir))
 
 # Load .env file
 try:
     from dotenv import load_dotenv
 
-    env_file = auto_claude_dir / ".env"
+    env_file = backend_dir / ".env"
     if env_file.exists():
         load_dotenv(env_file)
         print(f"Loaded .env from {env_file}")
@@ -379,9 +379,7 @@ async def test_ollama_embeddings() -> bool:
         print()
         print("  Generating test embedding...")
 
-        test_text = (
-            "This is a test embedding for Auto Claude memory system using LadybugDB."
-        )
+        test_text = "This is a test embedding for Ouro memory system using LadybugDB."
 
         resp = requests.post(
             f"{ollama_base_url}/api/embeddings",
@@ -623,8 +621,8 @@ async def main():
     )
     parser.add_argument(
         "--db-path",
-        default=os.path.expanduser("~/.auto-claude/memories"),
-        help="Database path",
+        default=os.path.expanduser("~/.ouro/memories"),
+        help="Database path (legacy: ~/.auto-claude/memories)",
     )
     parser.add_argument(
         "--database",
@@ -711,7 +709,7 @@ async def main():
     print()
     print("    # Test with production database:")
     print(
-        "    python integrations/graphiti/test_graphiti_memory.py --database auto_claude_memory"
+        "    python integrations/graphiti/test_graphiti_memory.py --database ouro_memory"
     )
     print()
 

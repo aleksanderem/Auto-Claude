@@ -28,7 +28,7 @@
     "help": "Aide & Feedback"
   },
   "messages": {
-    "initializeToCreateTasks": "Initialisez Auto Claude pour créer des tâches"
+    "initializeToCreateTasks": "Initialisez Ouro pour créer des tâches"
   },
   "claudeCode": {
     "checking": "Vérification de Claude Code...",

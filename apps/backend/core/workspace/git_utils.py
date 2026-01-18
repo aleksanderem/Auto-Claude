@@ -38,6 +38,7 @@ __all__ = [
     "is_lock_file",
     "validate_merged_syntax",
     "create_conflict_file_with_git",
+    "_is_ouro_file",
     # Backward compat aliases
     "_is_process_running",
     "_is_binary_file",
@@ -47,6 +48,7 @@ __all__ = [
     "_get_binary_file_content_from_ref",
     "_get_changed_files_from_branch",
     "_create_conflict_file_with_git",
+    "_is_auto_claude_file",  # Legacy alias for _is_ouro_file
 ]
 
 # Constants for merge limits
@@ -278,14 +280,19 @@ def get_existing_build_worktree(project_dir: Path, spec_name: str) -> Path | Non
         Path to the worktree if it exists for this spec, None otherwise
     """
     # New path first
-    new_path = project_dir / ".auto-claude" / "worktrees" / "tasks" / spec_name
+    new_path = project_dir / ".ouro" / "worktrees" / "tasks" / spec_name
     if new_path.exists():
         return new_path
 
-    # Legacy fallback
-    legacy_path = project_dir / ".worktrees" / spec_name
+    # Legacy fallback paths
+    legacy_path = project_dir / ".auto-claude" / "worktrees" / "tasks" / spec_name
     if legacy_path.exists():
         return legacy_path
+
+    # Very old legacy path
+    very_old_legacy = project_dir / ".worktrees" / spec_name
+    if very_old_legacy.exists():
+        return very_old_legacy
 
     return None
 
@@ -327,7 +334,7 @@ def get_changed_files_from_branch(
     project_dir: Path,
     base_branch: str,
     spec_branch: str,
-    exclude_auto_claude: bool = True,
+    exclude_ouro: bool = True,
 ) -> list[tuple[str, str]]:
     """
     Get list of changed files between branches.
@@ -336,7 +343,7 @@ def get_changed_files_from_branch(
         project_dir: Project directory
         base_branch: Base branch name
         spec_branch: Spec branch name
-        exclude_auto_claude: If True, exclude .auto-claude directory files (default True)
+        exclude_ouro: If True, exclude .ouro/.auto-claude directory files (default True)
 
     Returns:
         List of (file_path, status) tuples
@@ -353,8 +360,8 @@ def get_changed_files_from_branch(
                 parts = line.split("\t", 1)
                 if len(parts) == 2:
                     file_path = parts[1]
-                    # Exclude .auto-claude directory files from merge
-                    if exclude_auto_claude and _is_auto_claude_file(file_path):
+                    # Exclude .ouro/.auto-claude directory files from merge
+                    if exclude_ouro and _is_ouro_file(file_path):
                         continue
                     files.append((file_path, parts[0]))  # (file_path, status)
     return files
@@ -365,13 +372,16 @@ def _normalize_path(path: str) -> str:
     return path.replace("\\", "/")
 
 
-def _is_auto_claude_file(file_path: str) -> bool:
-    """Check if a file is in the .auto-claude or auto-claude/specs directory.
+def _is_ouro_file(file_path: str) -> bool:
+    """Check if a file is in the .ouro or ouro/specs directory (or legacy .auto-claude).
 
     Handles both forward slashes (Unix/Git output) and backslashes (Windows).
     """
     normalized = _normalize_path(file_path)
     excluded_patterns = [
+        ".ouro/",
+        "ouro/specs/",
+        # Legacy paths for backwards compatibility
         ".auto-claude/",
         "auto-claude/specs/",
     ]
@@ -379,6 +389,10 @@ def _is_auto_claude_file(file_path: str) -> bool:
         if normalized.startswith(pattern):
             return True
     return False
+
+
+# Backwards compatibility alias
+_is_auto_claude_file = _is_ouro_file
 
 
 def is_process_running(pid: int) -> bool:

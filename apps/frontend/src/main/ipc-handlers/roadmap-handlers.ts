@@ -3,7 +3,9 @@ import type { BrowserWindow } from "electron";
 import {
   IPC_CHANNELS,
   AUTO_BUILD_PATHS,
+  LEGACY_BUILD_PATHS,
   getSpecsDir,
+  getRoadmapDir,
   DEFAULT_APP_SETTINGS,
   DEFAULT_FEATURE_MODELS,
   DEFAULT_FEATURE_THINKING,
@@ -77,14 +79,18 @@ export function registerRoadmapHandlers(
         return { success: false, error: "Project not found" };
       }
 
-      const roadmapPath = path.join(
-        project.path,
-        AUTO_BUILD_PATHS.ROADMAP_DIR,
-        AUTO_BUILD_PATHS.ROADMAP_FILE
-      );
+      // Try new path first, then legacy fallback
+      const roadmapDir = getRoadmapDir(project.autoBuildPath);
+      let roadmapPath = path.join(project.path, roadmapDir, AUTO_BUILD_PATHS.ROADMAP_FILE);
 
+      // Check if roadmap exists, try legacy path if not
       if (!existsSync(roadmapPath)) {
-        return { success: true, data: null };
+        const legacyPath = path.join(project.path, LEGACY_BUILD_PATHS.ROADMAP_DIR, AUTO_BUILD_PATHS.ROADMAP_FILE);
+        if (existsSync(legacyPath)) {
+          roadmapPath = legacyPath;
+        } else {
+          return { success: true, data: null };
+        }
       }
 
       try {
@@ -92,11 +98,9 @@ export function registerRoadmapHandlers(
         const rawRoadmap = JSON.parse(content);
 
         // Load competitor analysis if available (competitor_analysis.json)
-        const competitorAnalysisPath = path.join(
-          project.path,
-          AUTO_BUILD_PATHS.ROADMAP_DIR,
-          AUTO_BUILD_PATHS.COMPETITOR_ANALYSIS
-        );
+        // Use the same directory where roadmap was found
+        const roadmapBaseDir = path.dirname(roadmapPath);
+        const competitorAnalysisPath = path.join(roadmapBaseDir, AUTO_BUILD_PATHS.COMPETITOR_ANALYSIS);
         let competitorAnalysis: CompetitorAnalysis | undefined;
         if (existsSync(competitorAnalysisPath)) {
           try {
@@ -363,6 +367,17 @@ export function registerRoadmapHandlers(
   // Roadmap Save (full state persistence for drag-and-drop)
   // ============================================
 
+  // Helper to find roadmap path with legacy fallback
+  const findRoadmapPath = (projectPath: string, autoBuildPath: string | undefined): string | null => {
+    const newPath = path.join(projectPath, getRoadmapDir(autoBuildPath), AUTO_BUILD_PATHS.ROADMAP_FILE);
+    if (existsSync(newPath)) return newPath;
+
+    const legacyPath = path.join(projectPath, LEGACY_BUILD_PATHS.ROADMAP_DIR, AUTO_BUILD_PATHS.ROADMAP_FILE);
+    if (existsSync(legacyPath)) return legacyPath;
+
+    return null;
+  };
+
   ipcMain.handle(
     IPC_CHANNELS.ROADMAP_SAVE,
     async (_, projectId: string, roadmapData: Roadmap): Promise<IPCResult> => {
@@ -371,13 +386,8 @@ export function registerRoadmapHandlers(
         return { success: false, error: "Project not found" };
       }
 
-      const roadmapPath = path.join(
-        project.path,
-        AUTO_BUILD_PATHS.ROADMAP_DIR,
-        AUTO_BUILD_PATHS.ROADMAP_FILE
-      );
-
-      if (!existsSync(roadmapPath)) {
+      const roadmapPath = findRoadmapPath(project.path, project.autoBuildPath);
+      if (!roadmapPath) {
         return { success: false, error: "Roadmap not found" };
       }
 
@@ -432,13 +442,8 @@ export function registerRoadmapHandlers(
         return { success: false, error: "Project not found" };
       }
 
-      const roadmapPath = path.join(
-        project.path,
-        AUTO_BUILD_PATHS.ROADMAP_DIR,
-        AUTO_BUILD_PATHS.ROADMAP_FILE
-      );
-
-      if (!existsSync(roadmapPath)) {
+      const roadmapPath = findRoadmapPath(project.path, project.autoBuildPath);
+      if (!roadmapPath) {
         return { success: false, error: "Roadmap not found" };
       }
 
@@ -476,13 +481,8 @@ export function registerRoadmapHandlers(
         return { success: false, error: "Project not found" };
       }
 
-      const roadmapPath = path.join(
-        project.path,
-        AUTO_BUILD_PATHS.ROADMAP_DIR,
-        AUTO_BUILD_PATHS.ROADMAP_FILE
-      );
-
-      if (!existsSync(roadmapPath)) {
+      const roadmapPath = findRoadmapPath(project.path, project.autoBuildPath);
+      if (!roadmapPath) {
         return { success: false, error: "Roadmap not found" };
       }
 

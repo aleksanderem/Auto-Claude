@@ -344,7 +344,12 @@ export class ReleaseService extends EventEmitter {
     tasks: Task[]
   ): Promise<UnmergedWorktreeInfo[]> {
     const unmerged: UnmergedWorktreeInfo[] = [];
-    const worktreesDir = path.join(projectPath, '.auto-claude', 'worktrees', 'tasks');
+    // Check both new .ouro and legacy .auto-claude directories for backwards compatibility
+    const ouroWorktreesDir = path.join(projectPath, '.ouro', 'worktrees', 'tasks');
+    const legacyWorktreesDir = path.join(projectPath, '.auto-claude', 'worktrees', 'tasks');
+    const worktreesDir = existsSync(ouroWorktreesDir) ? ouroWorktreesDir :
+                         existsSync(legacyWorktreesDir) ? legacyWorktreesDir :
+                         ouroWorktreesDir; // Default to new path if neither exists
 
     if (!existsSync(worktreesDir)) {
       return [];
@@ -501,7 +506,7 @@ export class ReleaseService extends EventEmitter {
           message: 'Stashing current changes...'
         });
 
-        execFileSync(getToolPath('git'), ['stash', 'push', '-m', 'auto-claude-release-temp'], {
+        execFileSync(getToolPath('git'), ['stash', 'push', '-m', 'ouro-release-temp'], {
           cwd: projectPath,
           encoding: 'utf-8'
         });

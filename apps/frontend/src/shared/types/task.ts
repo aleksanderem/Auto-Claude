@@ -24,6 +24,8 @@ export interface ExecutionProgress {
   phaseProgress: number;  // 0-100 within current phase
   overallProgress: number;  // 0-100 overall
   currentSubtask?: string;  // Current subtask being processed
+  currentStep?: string;  // Current step/action being executed
+  progress?: number;  // Alternative progress field (0-100)
   message?: string;  // Current status message
   startedAt?: Date;
   sequenceNumber?: number;  // Monotonically increasing counter to detect stale updates
@@ -265,6 +267,12 @@ export interface Task {
   reviewReason?: ReviewReason;  // Why task needs human review (only set when status is 'human_review')
   subtasks: Subtask[];
   qaReport?: QAReport;
+  qaSignoff?: {
+    status?: 'approved' | 'rejected';
+    timestamp?: string;
+    issues_found?: unknown;
+    screenshots?: string[];
+  };  // QA sign-off information
   logs: string[];
   metadata?: TaskMetadata;  // Rich metadata from ideation or manual entry
   errorInfo?: TaskErrorInfo;  // Structured error information for i18n (set when status is 'error')
@@ -276,6 +284,7 @@ export interface Task {
   specsPath?: string;  // Full path to specs directory for this task
   isReadOnly?: boolean;  // If true, task doesn't modify project files (from implementation_plan.metadata)
   branch?: string;  // Git branch name for DIRECT mode tasks (e.g., 'auto-claude/001-task-name')
+  archived?: boolean;  // True if task has been archived
   createdAt: Date;
   updatedAt: Date;
 }
@@ -290,12 +299,19 @@ export interface ImplementationPlan {
   final_acceptance: string[];
   created_at: string;
   updated_at: string;
+  last_updated?: string;  // Alternative timestamp field (alias for updated_at)
   spec_file: string;
   // Added for UI status persistence
   status?: TaskStatus;
   planStatus?: string;
   recoveryNote?: string;
   description?: string;
+  qa_signoff?: {
+    status?: 'approved' | 'rejected';
+    timestamp?: string;
+    issues_found?: unknown;
+    screenshots?: string[];
+  };  // QA sign-off information
 }
 
 export interface Phase {
@@ -504,4 +520,37 @@ export interface TaskStartOptions {
   workers?: number;
   model?: string;
   baseBranch?: string; // Override base branch for worktree creation
+}
+
+/**
+ * Configuration for task recovery behavior
+ */
+export interface RecoveryConfig {
+  enabled: boolean;
+  cooldownPeriodMs: number;
+  maxRecoveryAttempts: number;
+  scanIntervalMs: number;
+}
+
+/**
+ * Recovery statistics
+ */
+export interface RecoveryStats {
+  totalAttempts: number;
+  successfulRecoveries: number;
+  failedRecoveries: number;
+  tasksCurrentlyStuck: number;
+}
+
+/**
+ * Health check status
+ */
+export interface RecoveryHealthStatus {
+  isRunning: boolean;
+  isEnabled: boolean;
+  lastScanTime: number | null;
+  nextScanTime: number | null;
+  currentStats: RecoveryStats;
+  config: RecoveryConfig;
+  errors: string[];
 }

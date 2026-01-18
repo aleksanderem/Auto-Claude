@@ -13,10 +13,8 @@ Priority order:
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 import requests
-
 
 # Backend Framework documentation URLs
 BACKEND_FRAMEWORK_DOCS = {
@@ -59,7 +57,7 @@ BACKEND_FRAMEWORK_DOCS = {
 }
 
 
-def get_cached_docs_path(framework_name: str, project_dir: Path) -> Optional[Path]:
+def get_cached_docs_path(framework_name: str, project_dir: Path) -> Path | None:
     """
     Get path to cached backend framework documentation.
 
@@ -74,7 +72,7 @@ def get_cached_docs_path(framework_name: str, project_dir: Path) -> Optional[Pat
         return None
 
     framework_slug = BACKEND_FRAMEWORK_DOCS[framework_name]["name"]
-    docs_dir = project_dir / ".auto-claude" / "backend-framework-docs" / framework_slug
+    docs_dir = project_dir / ".ouro" / "backend-framework-docs" / framework_slug
     docs_file = docs_dir / "docs.md"
 
     if docs_file.exists():
@@ -173,7 +171,9 @@ def fetch_from_firecrawl(
         total_chars = 0
 
         for url in urls_to_fetch:
-            print(f"Fetching {framework_name} documentation from {url} via Firecrawl...")
+            print(
+                f"Fetching {framework_name} documentation from {url} via Firecrawl..."
+            )
 
             # Use Firecrawl scrape endpoint for single page
             response = requests.post(
@@ -232,7 +232,10 @@ def fetch_from_firecrawl(
         print(
             f"✓ Successfully fetched {framework_name} documentation via Firecrawl ({total_chars} chars from {len(all_content)} sections)"
         )
-        return True, f"Documentation cached at {docs_file} (source: Firecrawl, {len(all_content)} sections)"
+        return (
+            True,
+            f"Documentation cached at {docs_file} (source: Firecrawl, {len(all_content)} sections)",
+        )
 
     except requests.exceptions.RequestException as e:
         return False, f"Network error with Firecrawl: {e}"
@@ -241,7 +244,7 @@ def fetch_from_firecrawl(
 
 
 def fetch_backend_framework_docs(
-    framework_name: str, project_dir: Path, firecrawl_api_key: Optional[str] = None
+    framework_name: str, project_dir: Path, firecrawl_api_key: str | None = None
 ) -> tuple[bool, str]:
     """
     Fetch backend framework documentation and cache it locally.
@@ -271,7 +274,7 @@ def fetch_backend_framework_docs(
         return True, f"Documentation already cached at {cached_path}"
 
     # Create docs directory
-    docs_dir = project_dir / ".auto-claude" / "backend-framework-docs" / framework_slug
+    docs_dir = project_dir / ".ouro" / "backend-framework-docs" / framework_slug
     docs_dir.mkdir(parents=True, exist_ok=True)
 
     errors = []
@@ -307,7 +310,7 @@ def fetch_backend_framework_docs(
 
 def ensure_backend_docs_available(
     framework_name: str, project_dir: Path
-) -> tuple[bool, Optional[Path], str]:
+) -> tuple[bool, Path | None, str]:
     """
     Ensure backend framework documentation is available, fetching if necessary.
 

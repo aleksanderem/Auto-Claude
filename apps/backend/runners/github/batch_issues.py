@@ -386,7 +386,7 @@ class IssueBatcher:
 
     Usage:
         batcher = IssueBatcher(
-            github_dir=Path(".auto-claude/github"),
+            github_dir=Path(".ouro/github"),  # or legacy .auto-claude/github
             repo="owner/repo",
         )
 

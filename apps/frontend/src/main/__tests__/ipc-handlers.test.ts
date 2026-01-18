@@ -115,6 +115,14 @@ vi.mock("electron", () => {
       getAppPath: vi.fn(() => TEST_DIR),
       getVersion: vi.fn(() => "0.1.0"),
       isPackaged: false,
+      setName: vi.fn(),
+      name: "Ouro",
+      commandLine: {
+        appendSwitch: vi.fn(),
+      },
+      whenReady: vi.fn(() => Promise.resolve()),
+      on: vi.fn(),
+      quit: vi.fn(),
     },
     ipcMain: mockIpcMain,
     dialog: {
@@ -131,7 +139,7 @@ vi.mock("electron", () => {
 // Setup test project structure
 function setupTestProject(): void {
   mkdirSync(TEST_PROJECT_PATH, { recursive: true });
-  mkdirSync(path.join(TEST_PROJECT_PATH, "auto-claude", "specs"), { recursive: true });
+  mkdirSync(path.join(TEST_PROJECT_PATH, "ouro", "specs"), { recursive: true });
 }
 
 // Cleanup test directories
@@ -443,15 +451,15 @@ describe("IPC Handlers", { timeout: 15000 }, () => {
         mockPythonEnvManager as never
       );
 
-      // Create .auto-claude directory first (before adding project so it gets detected)
-      mkdirSync(path.join(TEST_PROJECT_PATH, ".auto-claude", "specs"), { recursive: true });
+      // Create .ouro directory first (before adding project so it gets detected)
+      mkdirSync(path.join(TEST_PROJECT_PATH, ".ouro", "specs"), { recursive: true });
 
-      // Add a project - it will detect .auto-claude
+      // Add a project - it will detect .ouro
       const addResult = await ipcMain.invokeHandler("project:add", {}, TEST_PROJECT_PATH);
       const projectId = (addResult as { data: { id: string } }).data.id;
 
-      // Create a spec directory with implementation plan in .auto-claude/specs
-      const specDir = path.join(TEST_PROJECT_PATH, ".auto-claude", "specs", "001-test-feature");
+      // Create a spec directory with implementation plan in .ouro/specs
+      const specDir = path.join(TEST_PROJECT_PATH, ".ouro", "specs", "001-test-feature");
       mkdirSync(specDir, { recursive: true });
       writeFileSync(
         path.join(specDir, "implementation_plan.json"),
@@ -515,8 +523,8 @@ describe("IPC Handlers", { timeout: 15000 }, () => {
         mockPythonEnvManager as never
       );
 
-      // Create .auto-claude directory first (before adding project so it gets detected)
-      mkdirSync(path.join(TEST_PROJECT_PATH, ".auto-claude", "specs"), { recursive: true });
+      // Create .ouro directory first (before adding project so it gets detected)
+      mkdirSync(path.join(TEST_PROJECT_PATH, ".ouro", "specs"), { recursive: true });
 
       // Add a project first
       const addResult = await ipcMain.invokeHandler("project:add", {}, TEST_PROJECT_PATH);
@@ -551,7 +559,7 @@ describe("IPC Handlers", { timeout: 15000 }, () => {
 
       expect(result).toHaveProperty("success", true);
       const data = (result as { data: { theme: string } }).data;
-      expect(data).toHaveProperty("theme", "system");
+      expect(data).toHaveProperty("theme", "dark");  // Default theme from config.ts
     });
   });
 
@@ -663,11 +671,26 @@ describe("IPC Handlers", { timeout: 15000 }, () => {
       await ipcMain.invokeHandler("project:add", {}, TEST_PROJECT_PATH);
 
       // Create a spec/task directory with implementation_plan.json
-      const specDir = path.join(TEST_PROJECT_PATH, ".auto-claude", "specs", "task-1");
+      // Include subtasks and qa_signoff to satisfy validateStatusTransition
+      const specDir = path.join(TEST_PROJECT_PATH, ".ouro", "specs", "task-1");
       mkdirSync(specDir, { recursive: true });
       writeFileSync(
         path.join(specDir, "implementation_plan.json"),
-        JSON.stringify({ feature: "Test Task", status: "in_progress" })
+        JSON.stringify({
+          feature: "Test Task",
+          status: "in_progress",
+          phases: [
+            {
+              phase: 1,
+              name: "Implementation",
+              type: "implementation",
+              subtasks: [
+                { id: "st-1", description: "Subtask 1", status: "completed" }
+              ]
+            }
+          ],
+          qa_signoff: { status: "approved" }
+        })
       );
 
       mockAgentManager.emit("exit", "task-1", 1, "task-execution");

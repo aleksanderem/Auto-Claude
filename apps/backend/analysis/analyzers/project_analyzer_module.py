@@ -125,7 +125,18 @@ class ProjectAnalyzer:
 
             # Also check for common frontend/backend subdirectories in single projects
             # These often contain separate package.json with UI libraries
-            common_subdirs = ["browser", "web", "frontend", "client", "www", "ui", "app", "backend", "server", "api"]
+            common_subdirs = [
+                "browser",
+                "web",
+                "frontend",
+                "client",
+                "www",
+                "ui",
+                "app",
+                "backend",
+                "server",
+                "api",
+            ]
             for subdir_name in common_subdirs:
                 subdir = self.project_dir / subdir_name
                 if subdir.is_dir() and (subdir / "package.json").exists():
@@ -312,16 +323,22 @@ class ProjectAnalyzer:
                 # Only fetch docs for backend/CMS frameworks
                 if framework and service_type in ("backend", "cms"):
                     frameworks_to_fetch.add(framework)
-                    print(f"[DocumentationFetcher] Found {framework} in service '{service_name}'")
+                    print(
+                        f"[DocumentationFetcher] Found {framework} in service '{service_name}'"
+                    )
 
             # Fetch documentation for each framework
             for framework in frameworks_to_fetch:
-                print(f"[DocumentationFetcher] Fetching documentation for {framework}...")
+                print(
+                    f"[DocumentationFetcher] Fetching documentation for {framework}..."
+                )
                 success, docs_path, message = ensure_backend_docs_available(
                     framework, self.project_dir
                 )
                 if success and docs_path:
-                    print(f"[DocumentationFetcher] ✓ {framework} documentation ready at {docs_path}")
+                    print(
+                        f"[DocumentationFetcher] ✓ {framework} documentation ready at {docs_path}"
+                    )
                 else:
                     print(f"[DocumentationFetcher] ✗ {framework}: {message}")
 

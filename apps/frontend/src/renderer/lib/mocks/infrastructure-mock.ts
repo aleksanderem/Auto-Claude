@@ -10,9 +10,9 @@ export const infrastructureMock = {
     data: {
       memory: {
         kuzuInstalled: true,
-        databasePath: '~/.auto-claude/graphs',
+        databasePath: '~/.ouro/graphs',
         databaseExists: true,
-        databases: ['auto_claude_memory']
+        databases: ['ouro_memory']
       },
       ready: true
     }
@@ -20,7 +20,7 @@ export const infrastructureMock = {
 
   listMemoryDatabases: async () => ({
     success: true,
-    data: ['auto_claude_memory', 'project_memory']
+    data: ['ouro_memory', 'project_memory']
   }),
 
   testMemoryConnection: async () => ({

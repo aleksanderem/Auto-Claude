@@ -337,7 +337,107 @@ const browserMockAPI: ElectronAPI = {
   openLogsFolder: async () => ({ success: false, error: 'Not available in browser mode' }),
   copyDebugInfo: async () => ({ success: false, error: 'Not available in browser mode' }),
   getRecentErrors: async () => [],
-  listLogFiles: async () => []
+  listLogFiles: async () => [],
+
+  // Supervisor Plugin Operations
+  getSupervisorStatus: async () => ({
+    success: true,
+    data: {
+      installed: false,
+      hookifyRulesPresent: false,
+      commandsPresent: false,
+      claudeMdSectionPresent: false
+    }
+  }),
+  installSupervisor: async () => ({
+    success: false,
+    data: { success: false, message: 'Not available in browser mode' }
+  }),
+  uninstallSupervisor: async () => ({
+    success: false,
+    data: { success: false, message: 'Not available in browser mode' }
+  }),
+  updateSupervisorClaudeMd: async () => ({
+    success: false,
+    data: { success: false, message: 'Not available in browser mode' }
+  }),
+
+  // Legacy Migration Operations (.auto-claude → .ouro)
+  checkLegacy: async () => ({
+    success: true,
+    data: {
+      hasLegacy: false,
+      hasNew: false,
+      legacyPath: null
+    }
+  }),
+  executeMigration: async () => ({
+    success: false,
+    error: 'Migration not available in browser mode'
+  }),
+
+  // App info methods
+  getAppIsPackaged: async () => false,
+  getAppBuildHash: async () => null,
+
+  // System health check
+  getSystemHealthCheck: async () => ({
+    success: true,
+    data: {
+      healthy: true,
+      timestamp: new Date().toISOString(),
+      checks: {
+        python: { healthy: true, checks: {}, details: {}, message: 'OK' },
+        git: { healthy: true, checks: {}, details: {}, message: 'OK' },
+        claude_auth: { healthy: true, checks: {}, details: {}, message: 'OK' },
+        integrations: { healthy: true, checks: {}, details: {}, message: 'OK' },
+        environment: { healthy: true, checks: {}, details: {}, message: 'OK' }
+      },
+      summary: {
+        total_checks: 5,
+        passed: 5,
+        failed: 0
+      }
+    }
+  }),
+
+  // Recovery service methods
+  getRecoveryConfig: async () => ({
+    success: true,
+    data: {
+      enabled: false,
+      cooldownPeriodMs: 60000,
+      maxRecoveryAttempts: 3,
+      scanIntervalMs: 30000
+    }
+  }),
+  getRecoveryStats: async () => ({
+    success: true,
+    data: {
+      totalAttempts: 0,
+      successfulRecoveries: 0,
+      failedRecoveries: 0,
+      tasksCurrentlyStuck: 0
+    }
+  }),
+  updateRecoveryConfig: async () => ({
+    success: true,
+    data: {
+      enabled: false,
+      cooldownPeriodMs: 60000,
+      maxRecoveryAttempts: 3,
+      scanIntervalMs: 30000
+    }
+  }),
+
+  // Manager session
+  cancelManagerSession: () => {},
+
+  // Generic invoke
+  invoke: async () => ({ success: false, error: 'Not available in browser' }),
+
+  // Notifications
+  showNotification: () => {}
 };
 
 /**

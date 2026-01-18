@@ -161,7 +161,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     description: 'Creates implementation plan with subtasks',
     category: 'build',
     tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'Bash', 'WebFetch', 'WebSearch'],
-    mcp_servers: ['context7', 'graphiti-memory', 'auto-claude'],
+    mcp_servers: ['context7', 'graphiti-memory', 'ouro'],
     mcp_optional: ['linear'],
     settingsSource: { type: 'phase', phase: 'planning' },
   },
@@ -170,7 +170,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     description: 'Implements individual subtasks',
     category: 'build',
     tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'Bash', 'WebFetch', 'WebSearch'],
-    mcp_servers: ['context7', 'graphiti-memory', 'auto-claude'],
+    mcp_servers: ['context7', 'graphiti-memory', 'ouro'],
     mcp_optional: ['linear'],
     settingsSource: { type: 'phase', phase: 'coding' },
   },
@@ -181,7 +181,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     description: 'Validates acceptance criteria. Uses Electron or Puppeteer based on project type.',
     category: 'qa',
     tools: ['Read', 'Glob', 'Grep', 'Bash', 'WebFetch', 'WebSearch'],
-    mcp_servers: ['context7', 'graphiti-memory', 'auto-claude'],
+    mcp_servers: ['context7', 'graphiti-memory', 'ouro'],
     mcp_optional: ['linear', 'electron', 'puppeteer'],
     settingsSource: { type: 'phase', phase: 'qa' },
   },
@@ -190,7 +190,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     description: 'Fixes QA-reported issues. Uses Electron or Puppeteer based on project type.',
     category: 'qa',
     tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'Bash', 'WebFetch', 'WebSearch'],
-    mcp_servers: ['context7', 'graphiti-memory', 'auto-claude'],
+    mcp_servers: ['context7', 'graphiti-memory', 'ouro'],
     mcp_optional: ['linear', 'electron', 'puppeteer'],
     settingsSource: { type: 'phase', phase: 'qa' },
   },
@@ -286,17 +286,17 @@ const MCP_SERVERS: Record<string, { name: string; description: string; icon: Rea
       'mcp__graphiti-memory__get_entity_edge',
     ],
   },
-  'auto-claude': {
-    name: 'Auto-Claude Tools',
+  'ouro': {
+    name: 'Ouro Tools',
     description: 'Build progress tracking, session context, discoveries & gotchas recording',
     icon: ListChecks,
     tools: [
-      'mcp__auto-claude__update_subtask_status',
-      'mcp__auto-claude__get_build_progress',
-      'mcp__auto-claude__record_discovery',
-      'mcp__auto-claude__record_gotcha',
-      'mcp__auto-claude__get_session_context',
-      'mcp__auto-claude__update_qa_status',
+      'mcp__ouro__update_subtask_status',
+      'mcp__ouro__get_build_progress',
+      'mcp__ouro__record_discovery',
+      'mcp__ouro__record_gotcha',
+      'mcp__ouro__get_session_context',
+      'mcp__ouro__update_qa_status',
     ],
   },
   linear: {
@@ -362,7 +362,7 @@ const ALL_MCP_SERVERS = [
   'electron',
   'puppeteer',
   'playwright',
-  'auto-claude'
+  'ouro'
 ] as const;
 
 // Category metadata - neutral styling per design.json
@@ -446,7 +446,7 @@ function AgentCard({ id, config, modelLabel, thinkingLabel, overrides, mcpServer
   const customServerIds = customServers.map(s => s.id);
   const allAvailableMcpIds = [...ALL_MCP_SERVERS, ...customServerIds];
   const availableMcps = allAvailableMcpIds.filter(
-    mcp => !effectiveMcps.includes(mcp) && !removedMcps.includes(mcp) && mcp !== 'auto-claude'
+    mcp => !effectiveMcps.includes(mcp) && !removedMcps.includes(mcp) && mcp !== 'ouro'
   );
 
   return (
@@ -511,7 +511,7 @@ function AgentCard({ id, config, modelLabel, thinkingLabel, overrides, mcpServer
                   const serverInfo = allMcpServers[server];
                   const ServerIcon = serverInfo?.icon || Server;
                   const isAdded = isCustomAdd(server);
-                  const canRemove = server !== 'auto-claude';
+                  const canRemove = server !== 'ouro';
 
                   return (
                     <div key={server} className="flex items-center justify-between group">
@@ -1040,7 +1040,7 @@ export function AgentTools() {
     mcpServers.linearMcpEnabled !== false && envConfig?.linearEnabled,
     mcpServers.electronEnabled,
     mcpServers.puppeteerEnabled,
-    true, // auto-claude always enabled
+    true, // ouro always enabled
   ].filter(Boolean).length;
 
   // Resolve model and thinking for an agent based on its settings source
@@ -1307,13 +1307,13 @@ export function AgentTools() {
                   </div>
                 </div>
 
-                {/* Auto-Claude (always enabled) */}
+                {/* Ouro (always enabled) */}
                 <div className="flex items-center justify-between py-2 border-t border-border opacity-60">
                   <div className="flex items-center gap-3">
                     <ListChecks className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <span className="text-sm font-medium">{t('settings:mcp.servers.autoClaude.name')}</span>
-                      <p className="text-xs text-muted-foreground">{t('settings:mcp.servers.autoClaude.description')} ({t('settings:mcp.alwaysEnabled')})</p>
+                      <span className="text-sm font-medium">{t('settings:mcp.servers.ouro.name')}</span>
+                      <p className="text-xs text-muted-foreground">{t('settings:mcp.servers.ouro.description')} ({t('settings:mcp.alwaysEnabled')})</p>
                     </div>
                   </div>
                   <Switch checked={true} disabled />

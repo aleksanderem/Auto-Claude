@@ -75,7 +75,9 @@ logger = logging.getLogger(__name__)
 DEBUG_MODE = os.environ.get("DEBUG", "").lower() in ("true", "1", "yes")
 
 # Directory for PR review worktrees (shared with initial reviewer)
-PR_WORKTREE_DIR = ".auto-claude/github/pr/worktrees"
+# Prefer .ouro but support legacy .auto-claude path for backwards compatibility
+PR_WORKTREE_DIR = ".ouro/github/pr/worktrees"
+LEGACY_PR_WORKTREE_DIR = ".auto-claude/github/pr/worktrees"  # Legacy path
 
 # Severity mapping for AI responses
 _SEVERITY_MAPPING = {
@@ -121,7 +123,12 @@ class ParallelFollowupReviewer:
         self.github_dir = Path(github_dir)
         self.config = config
         self.progress_callback = progress_callback
-        self.worktree_manager = PRWorktreeManager(project_dir, PR_WORKTREE_DIR)
+        # Use .ouro path by default, but check for legacy .auto-claude path for backwards compatibility
+        worktree_dir = PR_WORKTREE_DIR
+        legacy_path = self.project_dir / LEGACY_PR_WORKTREE_DIR
+        if not (self.project_dir / PR_WORKTREE_DIR).exists() and legacy_path.exists():
+            worktree_dir = LEGACY_PR_WORKTREE_DIR  # Fallback to legacy
+        self.worktree_manager = PRWorktreeManager(project_dir, worktree_dir)
 
     def _report_progress(self, phase: str, progress: int, message: str, **kwargs):
         """Report progress if callback is set."""
