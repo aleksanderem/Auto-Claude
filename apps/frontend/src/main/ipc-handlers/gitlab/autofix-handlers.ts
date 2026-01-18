@@ -66,10 +66,23 @@ function validatePathWithinProject(projectPath: string, resolvedPath: string): v
 }
 
 /**
- * Get the GitLab directory for a project
+ * Get the GitLab directory for a project.
+ * Uses .ouro as primary, falls back to .auto-claude for backwards compatibility.
  */
 function getGitLabDir(project: Project): string {
-  const gitlabDir = path.join(project.path, '.auto-claude', 'gitlab');
+  const ouroDir = path.join(project.path, '.ouro', 'gitlab');
+  const legacyDir = path.join(project.path, '.auto-claude', 'gitlab');
+
+  // Use .ouro if it exists, fall back to .auto-claude if that exists
+  let gitlabDir: string;
+  if (fs.existsSync(ouroDir)) {
+    gitlabDir = ouroDir;
+  } else if (fs.existsSync(legacyDir)) {
+    gitlabDir = legacyDir;
+  } else {
+    gitlabDir = ouroDir; // Default to .ouro for new projects
+  }
+
   validatePathWithinProject(project.path, gitlabDir);
   return gitlabDir;
 }
