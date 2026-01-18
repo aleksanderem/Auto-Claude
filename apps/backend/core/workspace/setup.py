@@ -77,7 +77,12 @@ def choose_workspace(
 
     # Check task_metadata.json for task-specific workspace mode (takes precedence)
     # useWorktree: true = ISOLATED, false = DIRECT
-    spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    spec_dir = project_dir / ".ouro" / "specs" / spec_name
+    if not spec_dir.exists():
+        legacy_spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
+        if legacy_spec_dir.exists():
+            spec_dir = legacy_spec_dir
     metadata_path = spec_dir / "task_metadata.json"
     if metadata_path.exists():
         try:
@@ -97,7 +102,12 @@ def choose_workspace(
             pass
 
     # Check project .env for user's workspace mode preference
-    project_env_file = project_dir / ".auto-claude" / ".env"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    project_env_file = project_dir / ".ouro" / ".env"
+    if not project_env_file.exists():
+        legacy_env_file = project_dir / ".auto-claude" / ".env"
+        if legacy_env_file.exists():
+            project_env_file = legacy_env_file
     if project_env_file.exists():
         try:
             from dotenv import dotenv_values
@@ -240,9 +250,8 @@ def copy_spec_to_worktree(
         Path to the spec directory inside the worktree
     """
     # Determine target location inside worktree
-    # Use .auto-claude/specs/{spec_name}/ as the standard location
-    # Note: auto-claude/ is source code, .auto-claude/ is the installed instance
-    target_spec_dir = worktree_path / ".auto-claude" / "specs" / spec_name
+    # Use .ouro/specs/{spec_name}/ as the standard location
+    target_spec_dir = worktree_path / ".ouro" / "specs" / spec_name
 
     # Create parent directories if needed
     target_spec_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -425,12 +434,14 @@ def setup_workspace(
             except (OSError, json.JSONDecodeError) as e:
                 debug_warning(MODULE, f"Failed to mark profile as inherited: {e}")
 
-    # Ensure .auto-claude/ is in the worktree's .gitignore
+    # Ensure .ouro/ and .auto-claude/ are in the worktree's .gitignore
     # This is critical because the worktree inherits .gitignore from the base branch,
-    # which may not have .auto-claude/ if that change wasn't committed/pushed.
+    # which may not have these entries if that change wasn't committed/pushed.
     # Without this, spec files would be committed to the worktree's branch.
     from init import ensure_gitignore_entry
 
+    if ensure_gitignore_entry(worktree_info.path, ".ouro/"):
+        debug(MODULE, "Added .ouro/ to worktree's .gitignore")
     if ensure_gitignore_entry(worktree_info.path, ".auto-claude/"):
         debug(MODULE, "Added .auto-claude/ to worktree's .gitignore")
 

@@ -181,7 +181,12 @@ def should_refresh_project_index(project_dir: Path) -> bool:
     Returns:
         True if index should be regenerated, False if cache is still valid
     """
-    index_file = project_dir / ".auto-claude" / "project_index.json"
+    # Check .ouro first, fall back to .auto-claude for backwards compatibility
+    index_file = project_dir / ".ouro" / "project_index.json"
+    if not index_file.exists():
+        legacy_index_file = project_dir / ".auto-claude" / "project_index.json"
+        if legacy_index_file.exists():
+            index_file = legacy_index_file
 
     if not index_file.exists():
         return True  # No index, must generate

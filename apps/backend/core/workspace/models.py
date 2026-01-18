@@ -60,14 +60,14 @@ class MergeLock:
     """
     Context manager for merge locking to prevent concurrent merges.
 
-    Uses a lock file in .auto-claude/ to ensure only one merge operation
+    Uses a lock file in .ouro/ to ensure only one merge operation
     runs at a time for a given project.
     """
 
     def __init__(self, project_dir: Path, spec_name: str):
         self.project_dir = project_dir
         self.spec_name = spec_name
-        self.lock_dir = project_dir / ".auto-claude" / ".locks"
+        self.lock_dir = project_dir / ".ouro" / ".locks"
         self.lock_file = self.lock_dir / f"merge-{spec_name}.lock"
         self.acquired = False
 

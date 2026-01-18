@@ -166,7 +166,7 @@ def _detect_worktree_base_branch(
     Detect which branch a worktree was created from.
 
     Tries multiple strategies:
-    1. Check worktree config file (.auto-claude/worktree-config.json)
+    1. Check worktree config file (.ouro/worktree-config.json or legacy .auto-claude/worktree-config.json)
     2. Find merge-base with known branches (develop, main, master)
     3. Return None if unable to detect
 
@@ -179,7 +179,12 @@ def _detect_worktree_base_branch(
         The detected base branch name, or None if unable to detect
     """
     # Strategy 1: Check for worktree config file
-    config_path = worktree_path / ".auto-claude" / "worktree-config.json"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    config_path = worktree_path / ".ouro" / "worktree-config.json"
+    if not config_path.exists():
+        legacy_config_path = worktree_path / ".auto-claude" / "worktree-config.json"
+        if legacy_config_path.exists():
+            config_path = legacy_config_path
     if config_path.exists():
         try:
             config = json.loads(config_path.read_text())
@@ -444,9 +449,12 @@ def _generate_and_save_commit_message(project_dir: Path, spec_name: str) -> None
 
         if commit_message:
             # Save to spec directory for UI to read
-            spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
+            # Check .ouro first, fallback to .auto-claude for backwards compatibility
+            spec_dir = project_dir / ".ouro" / "specs" / spec_name
             if not spec_dir.exists():
-                spec_dir = project_dir / "auto-claude" / "specs" / spec_name
+                legacy_spec_dir = project_dir / ".auto-claude" / "specs" / spec_name
+                if legacy_spec_dir.exists():
+                    spec_dir = legacy_spec_dir
 
             if spec_dir.exists():
                 commit_msg_file = spec_dir / "suggested_commit_message.txt"
@@ -653,7 +661,7 @@ def _check_git_merge_conflicts(
                     )
                     if match:
                         file_path = match.group(1).strip()
-                        # Skip .auto-claude files - they should never be merged
+                        # Skip .ouro and .auto-claude files - they should never be merged
                         if (
                             file_path
                             and file_path not in result["conflicting_files"]
@@ -690,7 +698,7 @@ def _check_git_merge_conflicts(
                 )
 
                 # Files modified in both = potential conflicts
-                # Filter out .auto-claude files - they should never be merged
+                # Filter out .ouro and .auto-claude files - they should never be merged
                 conflicting = main_files & spec_files
                 result["conflicting_files"] = [
                     f for f in conflicting if not _is_auto_claude_file(f)

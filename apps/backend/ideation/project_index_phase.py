@@ -37,7 +37,12 @@ class ProjectIndexPhase:
             IdeationPhaseResult with project index data
         """
         project_index = self.output_dir / "project_index.json"
-        auto_build_index = self.project_dir / ".auto-claude" / "project_index.json"
+        # Check .ouro first, fallback to .auto-claude for backwards compatibility
+        auto_build_index = self.project_dir / ".ouro" / "project_index.json"
+        if not auto_build_index.exists():
+            legacy_index = self.project_dir / ".auto-claude" / "project_index.json"
+            if legacy_index.exists():
+                auto_build_index = legacy_index
 
         # Check if we can copy existing index
         if auto_build_index.exists():

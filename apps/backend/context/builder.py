@@ -35,10 +35,12 @@ class ContextBuilder:
 
     def _load_project_index(self) -> dict:
         """Load project index from file or create new one (.ouro is the data directory)."""
-        # Check new location first, then legacy
+        # Check .ouro first, then legacy .auto-claude
         index_file = self.project_dir / ".ouro" / "project_index.json"
         if not index_file.exists():
-            index_file = self.project_dir / ".auto-claude" / "project_index.json"
+            legacy_file = self.project_dir / ".auto-claude" / "project_index.json"
+            if legacy_file.exists():
+                index_file = legacy_file
         if index_file.exists():
             with open(index_file) as f:
                 return json.load(f)

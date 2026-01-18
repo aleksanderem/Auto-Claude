@@ -50,7 +50,7 @@ class IdeationOrchestrator:
 
         Args:
             project_dir: Project directory to analyze
-            output_dir: Output directory for ideation files (defaults to .auto-claude/ideation)
+            output_dir: Output directory for ideation files (defaults to .ouro/ideation)
             enabled_types: List of ideation types to generate (defaults to all)
             include_roadmap_context: Include roadmap files in analysis
             include_kanban_context: Include kanban board in analysis

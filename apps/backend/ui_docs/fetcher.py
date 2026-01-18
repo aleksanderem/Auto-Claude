@@ -62,7 +62,7 @@ def get_cached_docs_path(framework_name: str, project_dir: Path) -> Path | None:
         return None
 
     framework_slug = FRAMEWORK_DOCS[framework_name]["name"]
-    docs_dir = project_dir / ".auto-claude" / "ui-framework-docs" / framework_slug
+    docs_dir = project_dir / ".ouro" / "ui-framework-docs" / framework_slug
     docs_file = docs_dir / "components.md"
 
     if docs_file.exists():
@@ -242,7 +242,7 @@ def fetch_ui_framework_docs(
         return True, f"Documentation already cached at {cached_path}"
 
     # Create docs directory
-    docs_dir = project_dir / ".auto-claude" / "ui-framework-docs" / framework_slug
+    docs_dir = project_dir / ".ouro" / "ui-framework-docs" / framework_slug
     docs_dir.mkdir(parents=True, exist_ok=True)
 
     errors = []

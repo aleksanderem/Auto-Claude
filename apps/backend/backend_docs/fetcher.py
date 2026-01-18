@@ -72,7 +72,7 @@ def get_cached_docs_path(framework_name: str, project_dir: Path) -> Path | None:
         return None
 
     framework_slug = BACKEND_FRAMEWORK_DOCS[framework_name]["name"]
-    docs_dir = project_dir / ".auto-claude" / "backend-framework-docs" / framework_slug
+    docs_dir = project_dir / ".ouro" / "backend-framework-docs" / framework_slug
     docs_file = docs_dir / "docs.md"
 
     if docs_file.exists():
@@ -274,7 +274,7 @@ def fetch_backend_framework_docs(
         return True, f"Documentation already cached at {cached_path}"
 
     # Create docs directory
-    docs_dir = project_dir / ".auto-claude" / "backend-framework-docs" / framework_slug
+    docs_dir = project_dir / ".ouro" / "backend-framework-docs" / framework_slug
     docs_dir.mkdir(parents=True, exist_ok=True)
 
     errors = []

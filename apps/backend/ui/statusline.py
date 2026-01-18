@@ -54,24 +54,16 @@ def find_project_root() -> Path:
     cwd = Path.cwd()
 
     # Check current directory - prioritize .ouro (new) then .auto-claude (legacy)
-    if (cwd / ".ouro").exists():
+    if (cwd / ".ouro").exists() or (cwd / ".auto-claude").exists():
         return cwd
-    if (cwd / ".ouro-status").exists():
-        return cwd
-    if (cwd / ".auto-claude").exists():
-        return cwd
-    if (cwd / ".auto-claude-status").exists():
+    if (cwd / ".ouro-status").exists() or (cwd / ".auto-claude-status").exists():
         return cwd
 
     # Walk up to find project root
     for parent in cwd.parents:
-        if (parent / ".ouro").exists():
+        if (parent / ".ouro").exists() or (parent / ".auto-claude").exists():
             return parent
-        if (parent / ".ouro-status").exists():
-            return parent
-        if (parent / ".auto-claude").exists():
-            return parent
-        if (parent / ".auto-claude-status").exists():
+        if (parent / ".ouro-status").exists() or (parent / ".auto-claude-status").exists():
             return parent
 
     return cwd
