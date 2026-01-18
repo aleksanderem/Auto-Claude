@@ -287,8 +287,9 @@ export function handleOAuthToken(
   // Strip ANSI escape codes and control characters before extracting token.
   // Terminal may wrap long tokens across lines, inserting \r and cursor movement codes.
   const cleanBuffer = terminal.outputBuffer
+    // eslint-disable-next-line no-control-regex -- ANSI escape stripping requires matching ESC character
     .replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')  // Remove ANSI escape sequences
-    .replace(/\r/g, '');                      // Remove carriage returns
+    .replace(/\r/g, '');                     // Remove carriage returns
 
   const token = OutputParser.extractOAuthToken(cleanBuffer);
   if (!token) {
