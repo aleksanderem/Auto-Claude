@@ -10,7 +10,12 @@
 import { test, expect, _electron as electron, ElectronApplication, Page } from '@playwright/test';
 import { mkdirSync, rmSync, existsSync } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import * as os from 'os';
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Global Navigator declaration for clipboard
 declare global {
