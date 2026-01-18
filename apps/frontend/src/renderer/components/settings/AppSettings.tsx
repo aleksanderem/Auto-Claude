@@ -22,7 +22,8 @@ import {
   Server,
   FileText,
   RefreshCw,
-  Shield
+  Shield,
+  Search
 } from 'lucide-react';
 
 // GitLab icon component (lucide-react doesn't have one)
@@ -101,7 +102,8 @@ const projectNavItemsConfig: NavItemConfig<ProjectSettingsSection>[] = [
   { id: 'gitlab', icon: GitLabIcon },
   { id: 'memory', icon: Database },
   { id: 'ui-docs', icon: FileText },
-  { id: 'supervisor', icon: Shield }
+  { id: 'supervisor', icon: Shield },
+  { id: 'grepai', icon: Search }
 ];
 
 /**

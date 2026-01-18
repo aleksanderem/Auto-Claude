@@ -5,6 +5,7 @@ import { IPC_CHANNELS } from '../../shared/constants';
 import type { IPCResult, TerminalCreateOptions, ClaudeProfile, ClaudeProfileSettings, ClaudeUsageSnapshot } from '../../shared/types';
 import { getClaudeProfileManager } from '../claude-profile-manager';
 import { getUsageMonitor } from '../claude-profile/usage-monitor';
+import { validateOAuthToken } from '../claude-profile/profile-utils';
 import { TerminalManager } from '../terminal-manager';
 import { projectStore } from '../project-store';
 import { terminalNameGenerator } from '../terminal-name-generator';
@@ -343,12 +344,50 @@ export function registerTerminalHandlers(
           isDefault: newProfile.isDefault
         } : 'NOT FOUND');
 
+        // Check if profile has a token - if not, require authentication first
+        if (newProfile && !newProfile.oauthToken && !newProfile.isDefault) {
+          debugLog('[terminal-handlers:CLAUDE_PROFILE_SET_ACTIVE] Profile has no token, authentication required');
+          return {
+            success: false,
+            error: 'Profile needs authentication. Click Authenticate button first.'
+          };
+        }
+
         const success = profileManager.setActiveProfile(profileId);
         debugLog('[terminal-handlers:CLAUDE_PROFILE_SET_ACTIVE] setActiveProfile result:', success);
 
         if (!success) {
           debugError('[terminal-handlers:CLAUDE_PROFILE_SET_ACTIVE] Profile not found, aborting');
           return { success: false, error: 'Profile not found' };
+        }
+
+        // Sync the new profile's token to backend .env
+        if (newProfile?.oauthToken) {
+          const token = profileManager.getProfileToken(profileId);
+          if (token) {
+            try {
+              const { existsSync, readFileSync, writeFileSync } = await import('fs');
+              const { resolve } = await import('path');
+
+              const envPath = resolve(process.cwd(), 'apps', 'backend', '.env');
+              if (existsSync(envPath)) {
+                let envContent = readFileSync(envPath, 'utf-8');
+                const tokenLine = `CLAUDE_CODE_OAUTH_TOKEN=${token}`;
+
+                if (envContent.includes('CLAUDE_CODE_OAUTH_TOKEN=')) {
+                  envContent = envContent.replace(/CLAUDE_CODE_OAUTH_TOKEN=.*/, tokenLine);
+                } else {
+                  envContent = envContent.trimEnd() + '\n\n# OAuth token (auto-synced from profile manager)\n' + tokenLine + '\n';
+                }
+
+                writeFileSync(envPath, envContent, 'utf-8');
+                debugLog('[terminal-handlers:CLAUDE_PROFILE_SET_ACTIVE] Token synced to backend .env');
+              }
+            } catch (envError) {
+              debugError('[terminal-handlers:CLAUDE_PROFILE_SET_ACTIVE] Failed to sync token to .env:', envError);
+              // Don't fail the profile switch if .env sync fails
+            }
+          }
         }
 
         // If the profile actually changed, restart Claude in active terminals
@@ -584,6 +623,131 @@ export function registerTerminalHandlers(
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to set OAuth token'
+        };
+      }
+    }
+  );
+
+  // Test/validate an OAuth token (raw token string)
+  ipcMain.handle(
+    IPC_CHANNELS.CLAUDE_PROFILE_TEST_TOKEN,
+    async (_, token: string): Promise<IPCResult<{ valid: boolean; error?: string }>> => {
+      try {
+        const result = await validateOAuthToken(token);
+        return { success: true, data: result };
+      } catch (error) {
+        debugError('[IPC] Failed to validate OAuth token:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to validate token'
+        };
+      }
+    }
+  );
+
+  // Test a profile's stored token by profile ID
+  ipcMain.handle(
+    IPC_CHANNELS.CLAUDE_PROFILE_TEST_PROFILE_TOKEN,
+    async (_, profileId: string): Promise<IPCResult<{ valid: boolean; error?: string }>> => {
+      try {
+        const profileManager = getClaudeProfileManager();
+        const token = profileManager.getProfileToken(profileId);
+
+        if (!token) {
+          return {
+            success: true,
+            data: { valid: false, error: 'No token stored for this profile' }
+          };
+        }
+
+        const result = await validateOAuthToken(token);
+        return { success: true, data: result };
+      } catch (error) {
+        debugError('[IPC] Failed to test profile token:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to test token'
+        };
+      }
+    }
+  );
+
+  // Sync token from backend .env file to a profile
+  ipcMain.handle(
+    IPC_CHANNELS.CLAUDE_PROFILE_SYNC_ENV_TOKEN,
+    async (_, profileId: string): Promise<IPCResult<{ token?: string; email?: string }>> => {
+      try {
+        const { existsSync, readFileSync } = await import('fs');
+        const { join, resolve } = await import('path');
+        const { app } = await import('electron');
+
+        // Find backend .env file
+        const possiblePaths = [
+          join(app.getAppPath(), '..', 'backend', '.env'),
+          resolve(process.cwd(), 'apps', 'backend', '.env'),
+          join(__dirname, '..', '..', '..', 'backend', '.env'),
+        ];
+
+        let envContent: string | null = null;
+        for (const envPath of possiblePaths) {
+          if (existsSync(envPath)) {
+            envContent = readFileSync(envPath, 'utf-8');
+            debugLog('[IPC] Found backend .env at:', envPath);
+            break;
+          }
+        }
+
+        if (!envContent) {
+          return { success: false, error: 'Backend .env file not found' };
+        }
+
+        // Parse .env to extract token
+        let token: string | undefined;
+        for (const line of envContent.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('#') || !trimmed) continue;
+          if (trimmed.startsWith('CLAUDE_CODE_OAUTH_TOKEN=')) {
+            let value = trimmed.substring('CLAUDE_CODE_OAUTH_TOKEN='.length).trim();
+            // Remove quotes if present
+            if ((value.startsWith('"') && value.endsWith('"')) ||
+                (value.startsWith("'") && value.endsWith("'"))) {
+              value = value.slice(1, -1);
+            }
+            token = value;
+            break;
+          }
+        }
+
+        if (!token) {
+          return { success: false, error: 'CLAUDE_CODE_OAUTH_TOKEN not found in .env' };
+        }
+
+        // Validate the token before saving
+        const validation = await validateOAuthToken(token);
+        if (!validation.valid) {
+          return {
+            success: false,
+            error: `Token from .env is invalid: ${validation.error || 'Authentication failed'}`
+          };
+        }
+
+        // Save to profile
+        const profileManager = getClaudeProfileManager();
+        const success = profileManager.setProfileToken(profileId, token);
+        if (!success) {
+          return { success: false, error: 'Failed to save token to profile' };
+        }
+
+        debugLog('[IPC] Token synced from .env to profile:', profileId);
+        return {
+          success: true,
+          data: { token: token.substring(0, 20) + '...' } // Return truncated for security
+        };
+      } catch (error) {
+        debugError('[IPC] Failed to sync token from .env:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to sync token'
         };
       }
     }

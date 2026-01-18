@@ -103,5 +103,11 @@ export const terminalMock = {
   onTerminalAuthCreated: () => () => {},
   onTerminalClaudeBusy: () => () => {},
   onTerminalClaudeExit: () => () => {},
-  onTerminalPendingResume: () => () => {}
+  onTerminalPendingResume: () => () => {},
+
+  // Claude Profile Management mocks
+  testClaudeProfileTokenById: async () => ({
+    success: true,
+    data: { valid: true }
+  })
 };

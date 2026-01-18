@@ -23,6 +23,7 @@ import type {
 } from '../shared/types';
 
 // Module imports
+import { debugClaudeLog } from '../shared/utils/debug-mode';
 import { encryptToken, decryptToken } from './claude-profile/token-encryption';
 import { parseUsageOutput } from './claude-profile/usage-parser';
 import {
@@ -89,7 +90,7 @@ export class ClaudeProfileManager {
     // else: keep the default data from constructor
 
     this.initialized = true;
-    console.warn('[ClaudeProfileManager] Initialized asynchronously');
+    debugClaudeLog('ClaudeProfileManager initialized asynchronously');
   }
 
   /**
@@ -227,13 +228,13 @@ export class ClaudeProfileManager {
 
     // Cannot delete default profile
     if (profile.isDefault) {
-      console.warn('[ClaudeProfileManager] Cannot delete default profile');
+      debugClaudeLog('Cannot delete default profile');
       return false;
     }
 
     // Cannot delete if it's the only profile
     if (this.data.profiles.length <= 1) {
-      console.warn('[ClaudeProfileManager] Cannot delete last profile');
+      debugClaudeLog('Cannot delete last profile');
       return false;
     }
 
@@ -261,13 +262,13 @@ export class ClaudeProfileManager {
 
     // Cannot rename to empty name
     if (!newName.trim()) {
-      console.warn('[ClaudeProfileManager] Cannot rename to empty name');
+      debugClaudeLog('Cannot rename to empty name');
       return false;
     }
 
     profile.name = newName.trim();
     this.save();
-    console.warn('[ClaudeProfileManager] Renamed profile:', profileId, 'to:', newName);
+    debugClaudeLog('Renamed profile:', profileId, 'to:', newName);
     return true;
   }
 
@@ -344,7 +345,7 @@ export class ClaudeProfileManager {
     this.save();
 
     const isEncrypted = profile.oauthToken.startsWith('enc:');
-    console.warn('[ClaudeProfileManager] Set OAuth token for profile:', profile.name, {
+    debugClaudeLog('Set OAuth token for profile:', profile.name, {
       email: email || '(not captured)',
       encrypted: isEncrypted,
       tokenLength: token.length
@@ -377,14 +378,14 @@ export class ClaudeProfileManager {
       const decryptedToken = decryptToken(profile.oauthToken);
       if (decryptedToken) {
         env.CLAUDE_CODE_OAUTH_TOKEN = decryptedToken;
-        console.warn('[ClaudeProfileManager] Using OAuth token for profile:', profile.name);
+        debugClaudeLog('Using OAuth token for profile:', profile.name);
       } else {
-        console.warn('[ClaudeProfileManager] Failed to decrypt token for profile:', profile.name);
+        debugClaudeLog('Failed to decrypt token for profile:', profile.name);
       }
     } else if (profile?.configDir && !profile.isDefault) {
       // Fallback to configDir for backward compatibility
       env.CLAUDE_CONFIG_DIR = profile.configDir;
-      console.warn('[ClaudeProfileManager] Using configDir for profile:', profile.name);
+      debugClaudeLog('Using configDir for profile:', profile.name);
     }
 
     return env;
@@ -403,7 +404,7 @@ export class ClaudeProfileManager {
     profile.usage = usage;
     this.save();
 
-    console.warn('[ClaudeProfileManager] Updated usage for', profile.name, ':', usage);
+    debugClaudeLog('Updated usage for', profile.name, ':', usage);
     return usage;
   }
 
@@ -419,7 +420,7 @@ export class ClaudeProfileManager {
     const event = recordRateLimitEventImpl(profile, resetTimeStr);
     this.save();
 
-    console.warn('[ClaudeProfileManager] Recorded rate limit event for', profile.name, ':', event);
+    debugClaudeLog('Recorded rate limit event for', profile.name, ':', event);
     return event;
   }
 

@@ -16,3 +16,4 @@ export { insightsMock } from './insights-mock';
 export { managerMock } from './manager-mock';
 export { infrastructureMock } from './infrastructure-mock';
 export { settingsMock } from './settings-mock';
+export { grepaiMock } from './grepai-mock';

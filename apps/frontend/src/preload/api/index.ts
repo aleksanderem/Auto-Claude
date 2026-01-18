@@ -16,6 +16,7 @@ import { McpAPI, createMcpAPI } from './modules/mcp-api';
 import { ProfileAPI, createProfileAPI } from './profile-api';
 import { SupervisorAPI, createSupervisorAPI } from './modules/supervisor-api';
 import { MigrationAPI, createMigrationAPI } from './modules/migration-api';
+import { GrepAIAPI, createGrepAIAPI } from './modules/grepai-api';
 
 export interface ElectronAPI extends
   ProjectAPI,
@@ -34,7 +35,8 @@ export interface ElectronAPI extends
   McpAPI,
   ProfileAPI,
   SupervisorAPI,
-  MigrationAPI {
+  MigrationAPI,
+  GrepAIAPI {
   github: GitHubAPI;
 }
 
@@ -56,6 +58,7 @@ export const createElectronAPI = (): ElectronAPI => ({
   ...createProfileAPI(),
   ...createSupervisorAPI(),
   ...createMigrationAPI(),
+  ...createGrepAIAPI(),
   github: createGitHubAPI()
 });
 
@@ -78,7 +81,8 @@ export {
   createClaudeCodeAPI,
   createMcpAPI,
   createSupervisorAPI,
-  createMigrationAPI
+  createMigrationAPI,
+  createGrepAIAPI
 };
 
 export type {
@@ -99,5 +103,6 @@ export type {
   ClaudeCodeAPI,
   McpAPI,
   SupervisorAPI,
-  MigrationAPI
+  MigrationAPI,
+  GrepAIAPI
 };

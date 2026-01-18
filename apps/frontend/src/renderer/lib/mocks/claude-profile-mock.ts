@@ -35,6 +35,16 @@ export const claudeProfileMock = {
 
   setClaudeProfileToken: async () => ({ success: true }),
 
+  testClaudeProfileToken: async () => ({
+    success: true,
+    data: { valid: true }
+  }),
+
+  syncClaudeProfileEnvToken: async () => ({
+    success: true,
+    data: { token: 'sk-ant-oat01-xxx...' }
+  }),
+
   getAutoSwitchSettings: async () => ({
     success: true,
     data: {

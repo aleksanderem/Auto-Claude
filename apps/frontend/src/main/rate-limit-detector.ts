@@ -4,6 +4,7 @@
  */
 
 import { getClaudeProfileManager } from './claude-profile-manager';
+import { debugClaudeLog } from '../shared/utils/debug-mode';
 
 /**
  * Regex pattern to detect Claude Code rate limit messages
@@ -254,7 +255,7 @@ export function getProfileEnv(profileId?: string): Record<string, string> {
     ? profileManager.getProfile(profileId)
     : profileManager.getActiveProfile();
 
-  console.warn('[getProfileEnv] Active profile:', {
+  debugClaudeLog('getProfileEnv: Active profile:', {
     profileId: profile?.id,
     profileName: profile?.name,
     email: profile?.email,
@@ -264,7 +265,7 @@ export function getProfileEnv(profileId?: string): Record<string, string> {
   });
 
   if (!profile) {
-    console.warn('[getProfileEnv] No profile found, using defaults');
+    debugClaudeLog('getProfileEnv: No profile found, using defaults');
     return {};
   }
 
@@ -276,31 +277,31 @@ export function getProfileEnv(profileId?: string): Record<string, string> {
       : profileManager.getActiveProfileToken();
 
     if (decryptedToken) {
-      console.warn('[getProfileEnv] Using OAuth token for profile:', profile.name);
+      debugClaudeLog('getProfileEnv: Using OAuth token for profile:', profile.name);
       return {
         CLAUDE_CODE_OAUTH_TOKEN: decryptedToken
       };
     } else {
-      console.warn('[getProfileEnv] Failed to decrypt token for profile:', profile.name);
+      debugClaudeLog('getProfileEnv: Failed to decrypt token for profile:', profile.name);
     }
   }
 
   // Fallback: If default profile, no env vars needed
   if (profile.isDefault) {
-    console.warn('[getProfileEnv] Using default profile (no env vars)');
+    debugClaudeLog('getProfileEnv: Using default profile (no env vars)');
     return {};
   }
 
   // Fallback: Use configDir for profiles without OAuth token (legacy)
   if (profile.configDir) {
-    console.warn('[getProfileEnv] Using configDir fallback for profile:', profile.name);
-    console.warn('[getProfileEnv] WARNING: Profile has no OAuth token. Run "claude setup-token" and save the token to enable instant switching.');
+    debugClaudeLog('getProfileEnv: Using configDir fallback for profile:', profile.name);
+    debugClaudeLog('getProfileEnv: WARNING: Profile has no OAuth token. Run "claude setup-token" and save the token to enable instant switching.');
     return {
       CLAUDE_CONFIG_DIR: profile.configDir
     };
   }
 
-  console.warn('[getProfileEnv] Profile has no auth method configured');
+  debugClaudeLog('getProfileEnv: Profile has no auth method configured');
   return {};
 }
 

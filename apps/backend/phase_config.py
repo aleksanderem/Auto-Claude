@@ -48,13 +48,13 @@ SPEC_PHASE_THINKING_LEVELS: dict[str, str] = {
 }
 
 # Default phase configuration (fallback, matches 'Balanced' profile)
-# NOTE: Coding phase upgraded to Opus + high thinking for Claude Code-level quality
+# NOTE: All phases use Opus 4.5 - cheaper than Sonnet and better quality
 DEFAULT_PHASE_MODELS: dict[str, str] = {
-    "spec": "sonnet",
-    "planning": "sonnet",  # Changed from "opus" (fix #433)
+    "spec": "opus",  # Changed to Opus 4.5
+    "planning": "opus",  # Changed to Opus 4.5
     "discovery": "opus",  # Code Discovery uses Opus 4.5
     "coding": "opus",  # Upgraded from sonnet for better implementation quality
-    "qa": "sonnet",
+    "qa": "opus",  # Changed to Opus 4.5
 }
 
 DEFAULT_PHASE_THINKING: dict[str, str] = {

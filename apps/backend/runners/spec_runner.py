@@ -174,7 +174,7 @@ Examples:
     parser.add_argument(
         "--model",
         type=str,
-        default="sonnet",
+        default="opus",
         help="Model to use for agent phases (haiku, sonnet, opus, or full model ID)",
     )
     parser.add_argument(

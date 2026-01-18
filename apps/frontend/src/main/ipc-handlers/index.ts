@@ -37,6 +37,7 @@ import { registerTerminalWorktreeIpcHandlers } from './terminal';
 import { registerTaskRecoveryHandlers } from './task-recovery-handlers';
 import { registerSupervisorHandlers } from './supervisor-handlers';
 import { registerMigrationHandlers } from './migration-handlers';
+import { registerGrepAIHandlers, cleanupGrepAIHandlers } from './grepai-handlers';
 import { notificationService } from '../notification-service';
 import { getTaskRecoveryService } from '../index';
 
@@ -138,6 +139,9 @@ export function setupIpcHandlers(
   // Legacy migration handlers (.auto-claude → .ouro)
   registerMigrationHandlers();
 
+  // GrepAI semantic code search handlers
+  registerGrepAIHandlers(getMainWindow());
+
   console.warn('[IPC] All handler modules registered successfully');
 }
 
@@ -167,5 +171,7 @@ export {
   registerMcpHandlers,
   registerProfileHandlers,
   registerSupervisorHandlers,
-  registerMigrationHandlers
+  registerMigrationHandlers,
+  registerGrepAIHandlers,
+  cleanupGrepAIHandlers
 };

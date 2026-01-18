@@ -48,6 +48,10 @@
     "debug": {
       "title": "Debug & Logs",
       "description": "Troubleshooting tools"
+    },
+    "recovery": {
+      "title": "Recovery",
+      "description": "Task recovery options"
     }
   },
   "apiProfiles": {
@@ -364,6 +368,13 @@
       "integrationTitle": "Supervisor Mode",
       "integrationDescription": "Force Claude Code into supervisor role for this project",
       "syncDescription": "Configure Claude Code supervisor mode"
+    },
+    "grepai": {
+      "title": "GrepAI",
+      "description": "Semantic code search",
+      "integrationTitle": "GrepAI Integration",
+      "integrationDescription": "AI-powered semantic code search for agents",
+      "syncDescription": "Configure semantic code search"
     }
   },
   "agentProfile": {
@@ -465,9 +476,22 @@
       "tokenSaved": "Token Saved",
       "tokenSavedDescription": "Your token has been saved successfully.",
       "tokenSaveFailed": "Failed to Save Token",
+      "tokenTestSuccess": "Token Valid",
+      "tokenTestSuccessDescription": "The token was validated successfully.",
+      "tokenTestFailed": "Token Invalid",
+      "tokenInvalid": "The token could not be validated.",
+      "tokenSynced": "Token Synced",
+      "tokenSyncedDescription": "Token from .env has been imported to profile.",
+      "tokenSyncFailed": "Sync Failed",
       "settingsUpdateFailed": "Failed to Update Settings",
       "tryAgain": "Please try again."
-    }
+    },
+    "testToken": "Test",
+    "tokenValid": "Valid",
+    "tokenInvalid": "Invalid",
+    "syncFromEnv": "Quick Sync from .env",
+    "syncFromEnvDescription": "Import token from backend .env file",
+    "syncToken": "Sync"
   },
   "debug": {
     "title": "Debug & Logs",
@@ -619,5 +643,47 @@
       "openai": "This looks like an OpenAI API. You'll need an API key.",
       "createOpenaiKey": "Create OpenAI API Key"
     }
+  },
+  "grepai": {
+    "title": "GrepAI",
+    "description": "AI-powered semantic code search. Agents can search your codebase by intent rather than just pattern matching.",
+    "installed": "CLI Installed",
+    "notInstalled": "CLI Not Installed",
+    "projectInitialized": "Project Indexed",
+    "watchDaemon": "Watch Daemon Running",
+    "indexProgress": "Indexing: {{progress}}%",
+    "installRequired": "GrepAI CLI Required",
+    "installInstructions": "Install the GrepAI CLI to enable semantic code search:",
+    "enabled": "Enable GrepAI",
+    "enabledDescription": "Allow agents to use semantic search in this project",
+    "autoWatch": "Auto-Start Watch",
+    "autoWatchDescription": "Automatically start the watch daemon when project opens",
+    "embeddingProvider": "Embedding Provider",
+    "embeddingModel": "Embedding Model",
+    "ollamaUrl": "Ollama URL",
+    "openaiApiKey": "OpenAI API Key",
+    "geminiApiKey": "Gemini API Key",
+    "apiKeyPlaceholder": "Enter your API key",
+    "saveConfig": "Save Configuration",
+    "initialize": "Initialize GrepAI",
+    "initializing": "Initializing...",
+    "startWatch": "Start Watch",
+    "stopWatch": "Stop Watch",
+    "refresh": "Refresh Status",
+    "howItWorks": "How it works",
+    "feature1": "Agents can search code by intent (e.g., 'user authentication logic')",
+    "feature2": "Watch daemon keeps the index updated as files change",
+    "feature3": "Supports multiple embedding providers for privacy-conscious setups",
+    "providers": {
+      "ollama": "Ollama (Local)",
+      "openai": "OpenAI",
+      "gemini": "Google Gemini"
+    },
+    "errorLoadingStatus": "Failed to load GrepAI status",
+    "errorSavingConfig": "Failed to save configuration",
+    "errorInitializing": "Failed to initialize GrepAI",
+    "errorStartingWatch": "Failed to start watch daemon",
+    "errorStoppingWatch": "Failed to stop watch daemon",
+    "errorToggleWatch": "Failed to toggle watch daemon"
   }
 }

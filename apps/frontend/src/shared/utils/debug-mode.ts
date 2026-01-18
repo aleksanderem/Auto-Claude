@@ -1,23 +1,26 @@
 /**
  * Debug Mode Utilities
  *
- * Provides conditional enabling of debug features for CPU/performance investigation.
+ * Provides conditional enabling of debug features for investigation.
  * These features were developed during debugging sessions and can be useful for
  * future investigations.
  *
- * Enable debug mode by setting environment variable:
- *   DEBUG_CPU_INVESTIGATION=true
+ * Available debug modes (set in .env file):
  *
- * Or in development, add to .env file:
- *   DEBUG_CPU_INVESTIGATION=true
+ * DEBUG_CPU_INVESTIGATION=true
+ *   - Usage monitor disabled (prevents polling overhead)
+ *   - Task recovery service disabled (prevents auto-QA triggers)
+ *   - Health check disabled in renderer (prevents startup overhead)
+ *   - DevTools can be conditionally disabled (DISABLE_DEVTOOLS=true)
+ *   - IPC call loop detection (warns if TASK_LIST called >10 times)
+ *   - Terminal data event rate logging (tracks PTY output frequency)
  *
- * Debug features enabled:
- * - Usage monitor disabled (prevents polling overhead)
- * - Task recovery service disabled (prevents auto-QA triggers)
- * - Health check disabled in renderer (prevents startup overhead)
- * - DevTools can be conditionally disabled (DISABLE_DEVTOOLS=true)
- * - IPC call loop detection (warns if TASK_LIST called >10 times)
- * - Terminal data event rate logging (tracks PTY output frequency)
+ * DEBUG_CLAUDE_INTEGRATION=true
+ *   - Claude profile management logging
+ *   - OAuth token capture/save logging
+ *   - Rate limit detection and auto-switch logging
+ *   - Session ID capture logging
+ *   - Profile switch operation logging
  *
  * @see CLAUDE.md section "Debug Mode for CPU Investigation"
  */
@@ -27,6 +30,23 @@
  */
 export function isDebugCpuModeEnabled(): boolean {
   return process.env.DEBUG_CPU_INVESTIGATION === 'true';
+}
+
+/**
+ * Check if Claude integration debug mode is enabled
+ * Enable with DEBUG_CLAUDE_INTEGRATION=true in .env
+ */
+export function isDebugClaudeEnabled(): boolean {
+  return process.env.DEBUG_CLAUDE_INTEGRATION === 'true';
+}
+
+/**
+ * Log a Claude integration debug message only when debug mode is enabled
+ */
+export function debugClaudeLog(message: string, ...args: unknown[]): void {
+  if (isDebugClaudeEnabled()) {
+    console.warn(`[ClaudeIntegration] ${message}`, ...args);
+  }
 }
 
 /**

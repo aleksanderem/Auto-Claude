@@ -116,6 +116,9 @@ export const IPC_CHANNELS = {
   CLAUDE_PROFILE_SWITCH: 'claude:profileSwitch',
   CLAUDE_PROFILE_INITIALIZE: 'claude:profileInitialize',
   CLAUDE_PROFILE_SET_TOKEN: 'claude:profileSetToken',  // Set OAuth token for a profile
+  CLAUDE_PROFILE_TEST_TOKEN: 'claude:profileTestToken',  // Validate OAuth token works (raw token)
+  CLAUDE_PROFILE_TEST_PROFILE_TOKEN: 'claude:profileTestProfileToken',  // Test a profile's stored token by ID
+  CLAUDE_PROFILE_SYNC_ENV_TOKEN: 'claude:profileSyncEnvToken',  // Sync token from backend .env file
   CLAUDE_PROFILE_AUTO_SWITCH_SETTINGS: 'claude:autoSwitchSettings',
   CLAUDE_PROFILE_UPDATE_AUTO_SWITCH: 'claude:updateAutoSwitch',
   CLAUDE_PROFILE_FETCH_USAGE: 'claude:fetchUsage',
@@ -552,5 +555,19 @@ export const IPC_CHANNELS = {
 
   // Legacy migration operations (.auto-claude → .ouro)
   MIGRATION_CHECK_LEGACY: 'migration:checkLegacy',  // Check if project has legacy .auto-claude directory
-  MIGRATION_EXECUTE: 'migration:execute'            // Execute migration to .ouro
+  MIGRATION_EXECUTE: 'migration:execute',           // Execute migration to .ouro
+
+  // GrepAI semantic code search operations
+  GREPAI_CHECK_INSTALLED: 'grepai:checkInstalled',  // Check if grepai CLI is installed
+  GREPAI_INIT: 'grepai:init',                       // Initialize grepai for a project
+  GREPAI_START_WATCH: 'grepai:startWatch',          // Start background indexing daemon
+  GREPAI_STOP_WATCH: 'grepai:stopWatch',            // Stop background indexing daemon
+  GREPAI_GET_STATUS: 'grepai:getStatus',            // Get daemon and index status
+  GREPAI_SEARCH: 'grepai:search',                   // Run semantic search
+  GREPAI_GET_CONFIG: 'grepai:getConfig',            // Load project grepai config
+  GREPAI_SAVE_CONFIG: 'grepai:saveConfig',          // Save project grepai config
+
+  // GrepAI events (main -> renderer)
+  GREPAI_STATUS_CHANGED: 'grepai:statusChanged',    // Daemon status changed
+  GREPAI_INDEX_PROGRESS: 'grepai:indexProgress'     // Index progress update
 } as const;
