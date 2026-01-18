@@ -52,9 +52,28 @@ from .criteria import (
     should_run_fixes,
     should_run_qa,
 )
+
+# Escalation mechanisms (NEW)
+from .escalation import (
+    clear_escalation,
+    escalate_for_credentials,
+    escalate_for_dev_server,
+    escalate_recurring_issues,
+    has_pending_escalation,
+)
 from .fixer import (
     load_qa_fixer_prompt,
     run_qa_fixer_session,
+)
+
+# Programmatic gates (NEW)
+from .gates import (
+    GateResult,
+    GateViolation,
+    GateViolationType,
+    IssueClassification,
+    get_recommended_action,
+    run_post_session_gates,
 )
 
 # Main loop
@@ -79,25 +98,6 @@ from .report import (
 
 # Agent sessions
 from .reviewer import run_qa_agent_session
-
-# Escalation mechanisms (NEW)
-from .escalation import (
-    clear_escalation,
-    escalate_for_credentials,
-    escalate_for_dev_server,
-    escalate_recurring_issues,
-    has_pending_escalation,
-)
-
-# Programmatic gates (NEW)
-from .gates import (
-    GateResult,
-    GateViolation,
-    GateViolationType,
-    IssueClassification,
-    get_recommended_action,
-    run_post_session_gates,
-)
 
 # QA Subtasks (NEW)
 from .subtasks import (

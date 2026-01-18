@@ -241,7 +241,16 @@ def infer_verification_type(criterion: str) -> str:
     # E2E/browser tests
     if any(
         kw in criterion_lower
-        for kw in ["click", "navigate", "page", "form", "button", "input", "ui", "user can"]
+        for kw in [
+            "click",
+            "navigate",
+            "page",
+            "form",
+            "button",
+            "input",
+            "ui",
+            "user can",
+        ]
     ):
         return "e2e"
 

@@ -32,8 +32,6 @@ from task_logger import (
 from .config import (
     check_qa_prerequisites,
     detect_login_requirement,
-    has_dev_server_config,
-    load_qa_config,
 )
 from .criteria import (
     get_qa_iteration_count,
@@ -48,11 +46,9 @@ from .escalation import (
     escalate_for_credentials,
     escalate_for_dev_server,
     escalate_recurring_issues,
-    has_pending_escalation,
 )
 from .fixer import run_qa_fixer_session
 from .gates import (
-    GateResult,
     IssueClassification,
     get_recommended_action,
     run_post_session_gates,
@@ -158,7 +154,7 @@ async def run_qa_validation_loop(
         spec_dir=spec_dir,
         project_dir=project_dir,
         requires_login=requires_login,
-        requires_dev_server=True  # E2E tests need dev server
+        requires_dev_server=True,  # E2E tests need dev server
     )
 
     if not prereq_result["can_proceed"]:
@@ -166,7 +162,7 @@ async def run_qa_validation_loop(
         debug_warning(
             "qa_loop",
             f"Prerequisites not met: {blocker_type}",
-            details=prereq_result["blocker_details"]
+            details=prereq_result["blocker_details"],
         )
 
         # Escalate to human based on blocker type
@@ -180,7 +176,7 @@ async def run_qa_validation_loop(
             task_logger.end_phase(
                 LogPhase.VALIDATION,
                 success=False,
-                message=f"QA blocked: {prereq_result['blocker_details']}"
+                message=f"QA blocked: {prereq_result['blocker_details']}",
             )
 
         return False  # Stop - wait for human input
@@ -193,7 +189,7 @@ async def run_qa_validation_loop(
     # =========================================================================
     # INITIALIZE QA SUBTASKS - Parse from spec.md acceptance criteria
     # =========================================================================
-    from .subtasks import get_qa_subtasks_result, initialize_qa_subtasks
+    from .subtasks import initialize_qa_subtasks
 
     qa_subtasks = initialize_qa_subtasks(spec_dir)
     if qa_subtasks:
@@ -209,7 +205,9 @@ async def run_qa_validation_loop(
         if len(qa_subtasks) > 5:
             print(f"   ... and {len(qa_subtasks) - 5} more")
     else:
-        debug_warning("qa_loop", "No QA subtasks found - will use traditional verdict-only mode")
+        debug_warning(
+            "qa_loop", "No QA subtasks found - will use traditional verdict-only mode"
+        )
 
     # =========================================================================
     # END QA SUBTASKS INITIALIZATION
@@ -669,7 +667,10 @@ async def run_qa_validation_loop(
 
             # Build error context for self-correction in next iteration
             # Include verdict token requirement if that was the issue
-            if gate_result.override_reason and "token" in gate_result.override_reason.lower():
+            if (
+                gate_result.override_reason
+                and "token" in gate_result.override_reason.lower()
+            ):
                 expected_action = (
                     "You MUST output <qa-verdict>APPROVED</qa-verdict> or "
                     "<qa-verdict>REJECTED</qa-verdict> at the end of your response. "

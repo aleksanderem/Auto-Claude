@@ -27,7 +27,6 @@ without outputting explicit, verifiable completion token.
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -37,6 +36,7 @@ from debug import debug, debug_error, debug_section, debug_success, debug_warnin
 
 class GateViolationType(Enum):
     """Types of gate violations."""
+
     TEST_FAILURES = "test_failures"
     CONSOLE_ERRORS = "console_errors"
     BUILD_ERRORS = "build_errors"
@@ -55,8 +55,7 @@ class GateViolationType(Enum):
 # The QA agent MUST output this token to signal completion
 # Format: <qa-verdict>APPROVED</qa-verdict> or <qa-verdict>REJECTED</qa-verdict>
 VERDICT_TOKEN_PATTERN = re.compile(
-    r"<qa-verdict>\s*(APPROVED|REJECTED)\s*</qa-verdict>",
-    re.IGNORECASE
+    r"<qa-verdict>\s*(APPROVED|REJECTED)\s*</qa-verdict>", re.IGNORECASE
 )
 
 
@@ -85,8 +84,7 @@ def extract_verdict_token(response_text: str) -> str | None:
 
 
 def verify_verdict_token(
-    response_text: str,
-    qa_signoff_status: str | None
+    response_text: str, qa_signoff_status: str | None
 ) -> tuple[bool, str | None, str | None]:
     """
     Verify that the verdict token matches qa_signoff.status.
@@ -110,9 +108,13 @@ def verify_verdict_token(
 
     # Case 3: Token and signoff don't match
     if token_verdict != qa_signoff_status:
-        return False, token_verdict, (
-            f"Token says '{token_verdict}' but qa_signoff says '{qa_signoff_status}' - "
-            "agent is being inconsistent"
+        return (
+            False,
+            token_verdict,
+            (
+                f"Token says '{token_verdict}' but qa_signoff says '{qa_signoff_status}' - "
+                "agent is being inconsistent"
+            ),
         )
 
     # All checks passed
@@ -121,16 +123,18 @@ def verify_verdict_token(
 
 class IssueClassification(Enum):
     """Classification of QA issues for routing."""
-    AUTO_FIXABLE = "auto_fixable"       # Return to In Progress, let Coder fix
-    NEEDS_HUMAN = "needs_human"         # Move to Human Review
+
+    AUTO_FIXABLE = "auto_fixable"  # Return to In Progress, let Coder fix
+    NEEDS_HUMAN = "needs_human"  # Move to Human Review
     NEEDS_CREDENTIALS = "needs_credentials"  # Specific: needs login creds
-    NEEDS_CONFIG = "needs_config"       # Specific: needs dev server config
-    RECURRING = "recurring"             # 3+ occurrences, human judgment needed
+    NEEDS_CONFIG = "needs_config"  # Specific: needs dev server config
+    RECURRING = "recurring"  # 3+ occurrences, human judgment needed
 
 
 @dataclass
 class GateViolation:
     """A single gate violation."""
+
     violation_type: GateViolationType
     message: str
     details: dict[str, Any] = field(default_factory=dict)
@@ -140,6 +144,7 @@ class GateViolation:
 @dataclass
 class GateResult:
     """Result of running programmatic gates."""
+
     passed: bool
     agent_verdict: str  # What the agent said: "approved", "rejected", "error"
     final_verdict: str  # After gates: may override agent
@@ -154,7 +159,9 @@ class GateResult:
 # =============================================================================
 
 
-def parse_test_results(tests_passed: dict[str, str] | None) -> dict[str, tuple[int, int]]:
+def parse_test_results(
+    tests_passed: dict[str, str] | None,
+) -> dict[str, tuple[int, int]]:
     """
     Parse test results from qa_signoff.tests_passed field.
 
@@ -307,9 +314,7 @@ def extract_metrics_from_report(spec_dir: Path) -> dict[str, Any]:
 
 
 def classify_issues(
-    issues: list[dict[str, Any]],
-    metrics: dict[str, Any],
-    has_recurring: bool = False
+    issues: list[dict[str, Any]], metrics: dict[str, Any], has_recurring: bool = False
 ) -> IssueClassification:
     """
     Classify the overall QA result for routing.
@@ -330,12 +335,23 @@ def classify_issues(
         combined = f"{title} {description}"
 
         # Credential indicators
-        if any(kw in combined for kw in ["login", "credential", "password", "authentication", "auth fail"]):
+        if any(
+            kw in combined
+            for kw in ["login", "credential", "password", "authentication", "auth fail"]
+        ):
             if any(kw in combined for kw in ["need", "require", "missing", "provide"]):
                 return IssueClassification.NEEDS_CREDENTIALS
 
         # Config indicators
-        if any(kw in combined for kw in ["dev server", "server not running", "connection refused", "econnrefused"]):
+        if any(
+            kw in combined
+            for kw in [
+                "dev server",
+                "server not running",
+                "connection refused",
+                "econnrefused",
+            ]
+        ):
             return IssueClassification.NEEDS_CONFIG
 
     # Check for human-required issues
@@ -426,24 +442,31 @@ def run_post_session_gates(
             if token_verdict is None:
                 # No token found at all
                 debug_error("qa_gates", "GATE VIOLATION: Verdict token missing")
-                violations.append(GateViolation(
-                    violation_type=GateViolationType.VERDICT_TOKEN_MISSING,
-                    message="Agent did not output required <qa-verdict>APPROVED|REJECTED</qa-verdict> token",
-                    details={"expected": "<qa-verdict>APPROVED</qa-verdict> or <qa-verdict>REJECTED</qa-verdict>"},
-                    is_auto_fixable=False,  # Agent must learn to output token
-                ))
+                violations.append(
+                    GateViolation(
+                        violation_type=GateViolationType.VERDICT_TOKEN_MISSING,
+                        message="Agent did not output required <qa-verdict>APPROVED|REJECTED</qa-verdict> token",
+                        details={
+                            "expected": "<qa-verdict>APPROVED</qa-verdict> or <qa-verdict>REJECTED</qa-verdict>"
+                        },
+                        is_auto_fixable=False,  # Agent must learn to output token
+                    )
+                )
             else:
                 # Token found but doesn't match signoff
                 debug_error(
                     "qa_gates",
-                    f"GATE VIOLATION: Token mismatch - token={token_verdict}, signoff={signoff_status}"
+                    f"GATE VIOLATION: Token mismatch - token={token_verdict}, signoff={signoff_status}",
                 )
-                violations.append(GateViolation(
-                    violation_type=GateViolationType.VERDICT_TOKEN_MISMATCH,
-                    message=token_error or "Verdict token doesn't match qa_signoff.status",
-                    details={"token": token_verdict, "signoff": signoff_status},
-                    is_auto_fixable=False,
-                ))
+                violations.append(
+                    GateViolation(
+                        violation_type=GateViolationType.VERDICT_TOKEN_MISMATCH,
+                        message=token_error
+                        or "Verdict token doesn't match qa_signoff.status",
+                        details={"token": token_verdict, "signoff": signoff_status},
+                        is_auto_fixable=False,
+                    )
+                )
 
             # Token violation is critical - override to error and force retry
             return GateResult(
@@ -458,7 +481,7 @@ def run_post_session_gates(
 
         debug_success(
             "qa_gates",
-            f"Verdict token verified: <qa-verdict>{token_verdict.upper()}</qa-verdict>"
+            f"Verdict token verified: <qa-verdict>{token_verdict.upper()}</qa-verdict>",
         )
 
     # =========================================================================
@@ -477,55 +500,69 @@ def run_post_session_gates(
                 # Subtasks not all checked
                 debug_error(
                     "qa_gates",
-                    f"GATE VIOLATION: {subtasks_result.pending} QA subtasks not checked"
+                    f"GATE VIOLATION: {subtasks_result.pending} QA subtasks not checked",
                 )
-                pending_ids = [s.id for s in subtasks_result.subtasks if s.status == "pending"]
-                violations.append(GateViolation(
-                    violation_type=GateViolationType.QA_SUBTASKS_INCOMPLETE,
-                    message=f"QA subtasks not checked: {', '.join(pending_ids)}",
-                    details={
-                        "pending": subtasks_result.pending,
-                        "pending_ids": pending_ids,
-                        "total": subtasks_result.total,
-                    },
-                    is_auto_fixable=False,  # Agent must check all subtasks
-                ))
+                pending_ids = [
+                    s.id for s in subtasks_result.subtasks if s.status == "pending"
+                ]
+                violations.append(
+                    GateViolation(
+                        violation_type=GateViolationType.QA_SUBTASKS_INCOMPLETE,
+                        message=f"QA subtasks not checked: {', '.join(pending_ids)}",
+                        details={
+                            "pending": subtasks_result.pending,
+                            "pending_ids": pending_ids,
+                            "total": subtasks_result.total,
+                        },
+                        is_auto_fixable=False,  # Agent must check all subtasks
+                    )
+                )
 
             if subtasks_result.failed > 0:
                 # Some subtasks failed
                 debug_warning(
                     "qa_gates",
-                    f"GATE VIOLATION: {subtasks_result.failed} QA subtasks failed"
+                    f"GATE VIOLATION: {subtasks_result.failed} QA subtasks failed",
                 )
                 failed = [s for s in subtasks_result.subtasks if s.status == "failed"]
-                violations.append(GateViolation(
-                    violation_type=GateViolationType.QA_SUBTASKS_FAILED,
-                    message=f"{subtasks_result.failed} QA subtasks failed",
-                    details={
-                        "failed": subtasks_result.failed,
-                        "failures": [
-                            {"id": s.id, "description": s.description, "reason": s.failure_reason}
-                            for s in failed
-                        ],
-                    },
-                    is_auto_fixable=True,  # Failed subtasks can be fixed
-                ))
+                violations.append(
+                    GateViolation(
+                        violation_type=GateViolationType.QA_SUBTASKS_FAILED,
+                        message=f"{subtasks_result.failed} QA subtasks failed",
+                        details={
+                            "failed": subtasks_result.failed,
+                            "failures": [
+                                {
+                                    "id": s.id,
+                                    "description": s.description,
+                                    "reason": s.failure_reason,
+                                }
+                                for s in failed
+                            ],
+                        },
+                        is_auto_fixable=True,  # Failed subtasks can be fixed
+                    )
+                )
 
             # If agent approved but subtasks incomplete/failed, we may need to override
-            if agent_verdict == "approved" and (subtasks_result.pending > 0 or subtasks_result.failed > 0):
+            if agent_verdict == "approved" and (
+                subtasks_result.pending > 0 or subtasks_result.failed > 0
+            ):
                 return GateResult(
                     passed=False,
                     agent_verdict=agent_verdict,
                     final_verdict="rejected",
                     violations=violations,
-                    classification=IssueClassification.AUTO_FIXABLE if subtasks_result.failed > 0 else None,
+                    classification=IssueClassification.AUTO_FIXABLE
+                    if subtasks_result.failed > 0
+                    else None,
                     override_reason=f"Agent approved but QA subtasks incomplete: {subtasks_error}",
                     metrics={"qa_subtasks": subtasks_result.to_dict()["summary"]},
                 )
         else:
             debug_success(
                 "qa_gates",
-                f"QA subtasks verified: {subtasks_result.passed}/{subtasks_result.total} passed"
+                f"QA subtasks verified: {subtasks_result.passed}/{subtasks_result.total} passed",
             )
 
     # =========================================================================
@@ -533,11 +570,13 @@ def run_post_session_gates(
     # =========================================================================
     if not qa_signoff:
         debug_error("qa_gates", "GATE VIOLATION: Missing qa_signoff")
-        violations.append(GateViolation(
-            violation_type=GateViolationType.MISSING_SIGNOFF,
-            message="QA agent did not write qa_signoff to implementation_plan.json",
-            is_auto_fixable=False,
-        ))
+        violations.append(
+            GateViolation(
+                violation_type=GateViolationType.MISSING_SIGNOFF,
+                message="QA agent did not write qa_signoff to implementation_plan.json",
+                is_auto_fixable=False,
+            )
+        )
 
         return GateResult(
             passed=False,
@@ -573,41 +612,46 @@ def run_post_session_gates(
     # Gate 1: Test failures
     if metrics["test_failures"] > 0:
         debug_warning(
-            "qa_gates",
-            f"GATE VIOLATION: {metrics['test_failures']} test failures"
+            "qa_gates", f"GATE VIOLATION: {metrics['test_failures']} test failures"
         )
-        violations.append(GateViolation(
-            violation_type=GateViolationType.TEST_FAILURES,
-            message=f"{metrics['test_failures']} tests failed",
-            details={"tests_parsed": metrics["tests_parsed"]},
-            is_auto_fixable=True,  # Test failures are usually fixable
-        ))
+        violations.append(
+            GateViolation(
+                violation_type=GateViolationType.TEST_FAILURES,
+                message=f"{metrics['test_failures']} tests failed",
+                details={"tests_parsed": metrics["tests_parsed"]},
+                is_auto_fixable=True,  # Test failures are usually fixable
+            )
+        )
 
     # Gate 2: Console errors
     if metrics["console_errors"] > 0:
         debug_warning(
-            "qa_gates",
-            f"GATE VIOLATION: {metrics['console_errors']} console errors"
+            "qa_gates", f"GATE VIOLATION: {metrics['console_errors']} console errors"
         )
-        violations.append(GateViolation(
-            violation_type=GateViolationType.CONSOLE_ERRORS,
-            message=f"{metrics['console_errors']} console errors detected",
-            is_auto_fixable=True,
-        ))
+        violations.append(
+            GateViolation(
+                violation_type=GateViolationType.CONSOLE_ERRORS,
+                message=f"{metrics['console_errors']} console errors detected",
+                is_auto_fixable=True,
+            )
+        )
 
     # Gate 3: Build errors
     if metrics.get("build_failed"):
         debug_error("qa_gates", "GATE VIOLATION: Build failed")
-        violations.append(GateViolation(
-            violation_type=GateViolationType.BUILD_ERRORS,
-            message="Build/compilation failed",
-            is_auto_fixable=True,
-        ))
+        violations.append(
+            GateViolation(
+                violation_type=GateViolationType.BUILD_ERRORS,
+                message="Build/compilation failed",
+                is_auto_fixable=True,
+            )
+        )
 
     # Check for recurring issues if history provided
     has_recurring = False
     if history:
         from .report import has_recurring_issues
+
         issues = qa_signoff.get("issues_found", [])
         has_recurring, _ = has_recurring_issues(issues, history)
         if has_recurring:

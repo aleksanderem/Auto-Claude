@@ -21,7 +21,6 @@ from typing import Any, TypedDict
 
 from debug import debug, debug_error, debug_success, debug_warning
 
-
 # =============================================================================
 # TYPE DEFINITIONS
 # =============================================================================
@@ -29,6 +28,7 @@ from debug import debug, debug_error, debug_success, debug_warning
 
 class LoginCredentials(TypedDict, total=False):
     """Login credentials for E2E testing."""
+
     username: str
     password: str
     provided_by_human: bool
@@ -38,6 +38,7 @@ class LoginCredentials(TypedDict, total=False):
 
 class DevServerConfig(TypedDict, total=False):
     """Dev server configuration."""
+
     start_command: str  # e.g., "npm run dev", "python manage.py runserver"
     base_url: str  # e.g., "http://localhost:3000"
     health_check_url: str  # e.g., "http://localhost:3000/api/health"
@@ -48,6 +49,7 @@ class DevServerConfig(TypedDict, total=False):
 
 class HumanApprovals(TypedDict, total=False):
     """Human-approved exceptions and overrides."""
+
     skip_flaky_tests: list[str]  # Test names to skip
     known_acceptable_warnings: list[str]  # Console warnings that are OK
     skip_accessibility_checks: bool
@@ -56,6 +58,7 @@ class HumanApprovals(TypedDict, total=False):
 
 class QAConfig(TypedDict, total=False):
     """Full QA configuration for a spec."""
+
     version: str  # Schema version for migrations
     spec_id: str
     created_at: str
@@ -84,11 +87,20 @@ DEFAULT_DEV_SERVERS = {
     "next": {"start_command": "npm run dev", "base_url": "http://localhost:3000"},
     "vite": {"start_command": "npm run dev", "base_url": "http://localhost:5173"},
     "react": {"start_command": "npm start", "base_url": "http://localhost:3000"},
-    "django": {"start_command": "python manage.py runserver", "base_url": "http://localhost:8000"},
+    "django": {
+        "start_command": "python manage.py runserver",
+        "base_url": "http://localhost:8000",
+    },
     "flask": {"start_command": "flask run", "base_url": "http://localhost:5000"},
-    "fastapi": {"start_command": "uvicorn main:app --reload", "base_url": "http://localhost:8000"},
+    "fastapi": {
+        "start_command": "uvicorn main:app --reload",
+        "base_url": "http://localhost:8000",
+    },
     "rails": {"start_command": "rails server", "base_url": "http://localhost:3000"},
-    "electron": {"start_command": "npm run dev", "base_url": "http://localhost:5173"},  # Vite for renderer
+    "electron": {
+        "start_command": "npm run dev",
+        "base_url": "http://localhost:5173",
+    },  # Vite for renderer
 }
 
 
@@ -115,12 +127,15 @@ def load_qa_config(spec_dir: Path) -> QAConfig | None:
         return None
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             config = json.load(f)
 
-        debug_success("qa_config", "Loaded qa_config.json",
-                     has_credentials=bool(config.get("credentials")),
-                     has_dev_server=bool(config.get("dev_server")))
+        debug_success(
+            "qa_config",
+            "Loaded qa_config.json",
+            has_credentials=bool(config.get("credentials")),
+            has_dev_server=bool(config.get("dev_server")),
+        )
         return config
 
     except json.JSONDecodeError as e:
@@ -185,7 +200,9 @@ def create_default_qa_config(spec_dir: Path, spec_id: str) -> QAConfig:
 # =============================================================================
 
 
-def get_login_credentials(spec_dir: Path, context: str = "default") -> LoginCredentials | None:
+def get_login_credentials(
+    spec_dir: Path, context: str = "default"
+) -> LoginCredentials | None:
     """
     Get login credentials for a specific context.
 
@@ -209,12 +226,14 @@ def set_login_credentials(
     username: str,
     password: str,
     context: str = "default",
-    login_url: str | None = None
+    login_url: str | None = None,
 ) -> bool:
     """
     Set login credentials (typically called after human provides them).
     """
-    config = load_qa_config(spec_dir) or create_default_qa_config(spec_dir, spec_dir.name)
+    config = load_qa_config(spec_dir) or create_default_qa_config(
+        spec_dir, spec_dir.name
+    )
 
     if "credentials" not in config:
         config["credentials"] = {}
@@ -256,10 +275,12 @@ def set_dev_server_config(
     start_command: str,
     base_url: str,
     health_check_url: str | None = None,
-    startup_timeout: int = 30
+    startup_timeout: int = 30,
 ) -> bool:
     """Set dev server configuration."""
-    config = load_qa_config(spec_dir) or create_default_qa_config(spec_dir, spec_dir.name)
+    config = load_qa_config(spec_dir) or create_default_qa_config(
+        spec_dir, spec_dir.name
+    )
 
     config["dev_server"] = DevServerConfig(
         start_command=start_command,
@@ -289,7 +310,7 @@ def guess_dev_server_config(project_dir: Path) -> DevServerConfig | None:
     package_json = project_dir / "package.json"
     if package_json.exists():
         try:
-            with open(package_json, "r") as f:
+            with open(package_json) as f:
                 pkg = json.load(f)
 
             scripts = pkg.get("scripts", {})
@@ -344,8 +365,11 @@ def guess_dev_server_config(project_dir: Path) -> DevServerConfig | None:
 
 class PrerequisiteResult(TypedDict):
     """Result of prerequisite check."""
+
     can_proceed: bool
-    blocker_type: str | None  # "NEED_CREDENTIALS", "NEED_DEV_SERVER", "BLOCKER_UNRESOLVED"
+    blocker_type: (
+        str | None
+    )  # "NEED_CREDENTIALS", "NEED_DEV_SERVER", "BLOCKER_UNRESOLVED"
     blocker_details: str | None
     suggestions: list[str]
 
@@ -354,7 +378,7 @@ def check_qa_prerequisites(
     spec_dir: Path,
     project_dir: Path,
     requires_login: bool = False,
-    requires_dev_server: bool = True
+    requires_dev_server: bool = True,
 ) -> PrerequisiteResult:
     """
     Check if QA can proceed or needs human input.
@@ -370,10 +394,13 @@ def check_qa_prerequisites(
     Returns:
         PrerequisiteResult with can_proceed flag and blocker details
     """
-    debug("qa_config", "Checking QA prerequisites",
-          spec_dir=str(spec_dir),
-          requires_login=requires_login,
-          requires_dev_server=requires_dev_server)
+    debug(
+        "qa_config",
+        "Checking QA prerequisites",
+        spec_dir=str(spec_dir),
+        requires_login=requires_login,
+        requires_dev_server=requires_dev_server,
+    )
 
     config = load_qa_config(spec_dir)
     suggestions = []
@@ -395,10 +422,11 @@ def check_qa_prerequisites(
                 can_proceed=False,
                 blocker_type="NEED_DEV_SERVER",
                 blocker_details="E2E tests need to know how to start and access the dev server",
-                suggestions=suggestions or [
+                suggestions=suggestions
+                or [
                     "Provide start_command (e.g., 'npm run dev')",
-                    "Provide base_url (e.g., 'http://localhost:3000')"
-                ]
+                    "Provide base_url (e.g., 'http://localhost:3000')",
+                ],
             )
 
     # Check 2: Login credentials (if required)
@@ -412,8 +440,8 @@ def check_qa_prerequisites(
                 suggestions=[
                     "Provide test username",
                     "Provide test password",
-                    "Optionally provide login URL if not standard"
-                ]
+                    "Optionally provide login URL if not standard",
+                ],
             )
 
     # Check 3: Unresolved blockers from previous iterations
@@ -421,10 +449,7 @@ def check_qa_prerequisites(
 
     debug_success("qa_config", "All prerequisites met")
     return PrerequisiteResult(
-        can_proceed=True,
-        blocker_type=None,
-        blocker_details=None,
-        suggestions=[]
+        can_proceed=True, blocker_type=None, blocker_details=None, suggestions=[]
     )
 
 
@@ -441,24 +466,44 @@ def detect_login_requirement(spec_dir: Path, project_dir: Path) -> bool:
     spec_file = spec_dir / "spec.md"
     if spec_file.exists():
         content = spec_file.read_text().lower()
-        auth_terms = ["login", "authentication", "sign in", "sign-in", "log in",
-                      "credentials", "password", "username", "email", "auth"]
+        auth_terms = [
+            "login",
+            "authentication",
+            "sign in",
+            "sign-in",
+            "log in",
+            "credentials",
+            "password",
+            "username",
+            "email",
+            "auth",
+        ]
         if any(term in content for term in auth_terms):
             debug("qa_config", "Login requirement detected from spec.md")
             return True
 
     # Check for auth-related files in project
     auth_file_patterns = [
-        "auth", "login", "signin", "authentication",
-        "middleware/auth", "guards/auth", "hooks/useAuth"
+        "auth",
+        "login",
+        "signin",
+        "authentication",
+        "middleware/auth",
+        "guards/auth",
+        "hooks/useAuth",
     ]
 
     for pattern in auth_file_patterns:
         matches = list(project_dir.rglob(f"*{pattern}*"))
         # Filter out node_modules, .git, etc.
-        matches = [m for m in matches if not any(
-            skip in str(m) for skip in ["node_modules", ".git", "__pycache__", "venv"]
-        )]
+        matches = [
+            m
+            for m in matches
+            if not any(
+                skip in str(m)
+                for skip in ["node_modules", ".git", "__pycache__", "venv"]
+            )
+        ]
         if matches:
             debug("qa_config", f"Login requirement detected from file: {matches[0]}")
             return True
