@@ -2,7 +2,7 @@
  * IPC (Inter-Process Communication) types for Electron API
  */
 
-import type { IPCResult } from './common';
+import type { IPCResult, SystemHealthCheck } from './common';
 import type { SupportedIDE, SupportedTerminal } from './settings';
 import type {
   Project,
@@ -43,7 +43,9 @@ import type {
   TaskMetadata,
   TaskLogs,
   TaskLogStreamChunk,
-  ImageAttachment
+  ImageAttachment,
+  RecoveryConfig,
+  RecoveryStats
 } from './task';
 import type {
   TerminalCreateOptions,
@@ -827,6 +829,27 @@ export interface ElectronAPI {
   // Legacy migration operations (.auto-claude → .ouro)
   checkLegacy: (projectPath: string) => Promise<IPCResult<LegacyCheckResult>>;
   executeMigration: (projectPath: string) => Promise<IPCResult<MigrationResult>>;
+
+  // App metadata operations
+  getAppIsPackaged: () => Promise<boolean>;
+  getAppBuildHash: () => Promise<string | null>;
+
+  // System health check
+  getSystemHealthCheck: (projectId?: string) => Promise<IPCResult<SystemHealthCheck>>;
+
+  // Task recovery operations
+  getRecoveryConfig: () => Promise<IPCResult<RecoveryConfig>>;
+  getRecoveryStats: () => Promise<IPCResult<RecoveryStats>>;
+  updateRecoveryConfig: (config: Partial<RecoveryConfig>) => Promise<IPCResult<RecoveryConfig>>;
+
+  // Manager session operations
+  cancelManagerSession: (projectId: string) => void;
+
+  // Generic IPC invoke (for dynamic operations)
+  invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
+
+  // Notification operations
+  showNotification: (title: string, body: string) => void;
 }
 
 declare global {

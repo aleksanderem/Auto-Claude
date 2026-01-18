@@ -1045,7 +1045,7 @@ export function App() {
               {/* Current Jobs Badge with Popover */}
               {(() => {
                 const runningTasks = tasks.filter(t =>
-                  t.status === 'in_progress' || t.status === 'running'
+                  t.status === 'in_progress' || t.status === 'ai_review'
                 );
 
                 if (runningTasks.length === 0) return null;

@@ -2,17 +2,16 @@ import { EventEmitter } from 'events';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import type { AgentManager } from './agent/agent-manager';
-import type { ImplementationPlan, TaskStatus } from '../shared/types';
+import type {
+  ImplementationPlan,
+  TaskStatus,
+  RecoveryConfig,
+  RecoveryStats,
+  RecoveryHealthStatus
+} from '../shared/types';
 
-/**
- * Configuration for task recovery behavior
- */
-export interface RecoveryConfig {
-  enabled: boolean;
-  cooldownPeriodMs: number;
-  maxRecoveryAttempts: number;
-  scanIntervalMs: number;
-}
+// Re-export types for backwards compatibility
+export type { RecoveryConfig, RecoveryStats, RecoveryHealthStatus };
 
 /**
  * Default recovery configuration
@@ -35,29 +34,6 @@ export interface StuckTask {
   status: 'ai_review' | 'in_progress';
   timeSinceLastUpdate: number;
   lastUpdatedAt: string;
-}
-
-/**
- * Recovery statistics
- */
-export interface RecoveryStats {
-  totalAttempts: number;
-  successfulRecoveries: number;
-  failedRecoveries: number;
-  tasksCurrentlyStuck: number;
-}
-
-/**
- * Health check status
- */
-export interface RecoveryHealthStatus {
-  isRunning: boolean;
-  isEnabled: boolean;
-  lastScanTime: number | null;
-  nextScanTime: number | null;
-  currentStats: RecoveryStats;
-  config: RecoveryConfig;
-  errors: string[];
 }
 
 /**
@@ -297,7 +273,7 @@ export class TaskRecoveryService extends EventEmitter {
 
     console.log(`[TaskRecoveryService] Attempting recovery for ${task.specId}`, {
       status: task.status,
-      timeSinceUpdate: `${Math.floor(task.timeSinceUpdate / 60000)}min`,
+      timeSinceUpdate: `${Math.floor(task.timeSinceLastUpdate / 60000)}min`,
       attempt: `${attempts + 1}/${this.config.maxRecoveryAttempts}`
     });
 
@@ -416,7 +392,8 @@ export class TaskRecoveryService extends EventEmitter {
       this.emit('healthcheck-passed');
     } catch (error) {
       console.error('[TaskRecoveryService] ❌ Healthcheck failed:', error);
-      this.errors.push(`Healthcheck failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.errors.push(`Healthcheck failed: ${errorMessage}`);
       this.emit('healthcheck-failed', error);
       throw error;
     }

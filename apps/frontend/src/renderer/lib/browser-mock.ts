@@ -374,7 +374,70 @@ const browserMockAPI: ElectronAPI = {
   executeMigration: async () => ({
     success: false,
     error: 'Migration not available in browser mode'
-  })
+  }),
+
+  // App info methods
+  getAppIsPackaged: async () => false,
+  getAppBuildHash: async () => null,
+
+  // System health check
+  getSystemHealthCheck: async () => ({
+    success: true,
+    data: {
+      healthy: true,
+      timestamp: new Date().toISOString(),
+      checks: {
+        python: { healthy: true, checks: {}, details: {}, message: 'OK' },
+        git: { healthy: true, checks: {}, details: {}, message: 'OK' },
+        claude_auth: { healthy: true, checks: {}, details: {}, message: 'OK' },
+        integrations: { healthy: true, checks: {}, details: {}, message: 'OK' },
+        environment: { healthy: true, checks: {}, details: {}, message: 'OK' }
+      },
+      summary: {
+        total_checks: 5,
+        passed: 5,
+        failed: 0
+      }
+    }
+  }),
+
+  // Recovery service methods
+  getRecoveryConfig: async () => ({
+    success: true,
+    data: {
+      enabled: false,
+      cooldownPeriodMs: 60000,
+      maxRecoveryAttempts: 3,
+      scanIntervalMs: 30000
+    }
+  }),
+  getRecoveryStats: async () => ({
+    success: true,
+    data: {
+      totalAttempts: 0,
+      successfulRecoveries: 0,
+      failedRecoveries: 0,
+      tasksCurrentlyStuck: 0
+    }
+  }),
+  updateRecoveryConfig: async () => ({
+    success: true,
+    data: {
+      enabled: false,
+      cooldownPeriodMs: 60000,
+      maxRecoveryAttempts: 3,
+      scanIntervalMs: 30000
+    }
+  }),
+
+  // Manager session
+  cancelManagerSession: () => {},
+
+  // Generic invoke
+  invoke: async () => ({ success: false, error: 'Not available in browser' }),
+
+  // Notifications
+  showNotification: () => {}
 };
 
 /**

@@ -14,7 +14,9 @@ import type {
   SupportedTerminal,
   WorktreeCreatePROptions,
   WorktreeCreatePRResult,
-  ImageAttachment
+  ImageAttachment,
+  RecoveryConfig,
+  RecoveryStats
 } from '../../shared/types';
 
 export interface TaskAPI {
@@ -83,9 +85,9 @@ export interface TaskAPI {
   onTaskLogsStream: (callback: (specId: string, chunk: TaskLogStreamChunk) => void) => () => void;
 
   // Task Recovery
-  getRecoveryStats: () => Promise<IPCResult<import('../../../main/task-recovery-service').RecoveryStats>>;
-  getRecoveryConfig: () => Promise<IPCResult<import('../../../main/task-recovery-service').RecoveryConfig>>;
-  updateRecoveryConfig: (config: Partial<import('../../../main/task-recovery-service').RecoveryConfig>) => Promise<IPCResult<import('../../../main/task-recovery-service').RecoveryConfig>>;
+  getRecoveryStats: () => Promise<IPCResult<RecoveryStats>>;
+  getRecoveryConfig: () => Promise<IPCResult<RecoveryConfig>>;
+  updateRecoveryConfig: (config: Partial<RecoveryConfig>) => Promise<IPCResult<RecoveryConfig>>;
 }
 
 export const createTaskAPI = (): TaskAPI => ({
@@ -309,14 +311,14 @@ export const createTaskAPI = (): TaskAPI => ({
   },
 
   // Task Recovery
-  getRecoveryStats: (): Promise<IPCResult<import('../../../main/task-recovery-service').RecoveryStats>> =>
+  getRecoveryStats: (): Promise<IPCResult<RecoveryStats>> =>
     ipcRenderer.invoke(IPC_CHANNELS.TASK_RECOVERY_STATS),
 
-  getRecoveryConfig: (): Promise<IPCResult<import('../../../main/task-recovery-service').RecoveryConfig>> =>
+  getRecoveryConfig: (): Promise<IPCResult<RecoveryConfig>> =>
     ipcRenderer.invoke(IPC_CHANNELS.TASK_RECOVERY_CONFIG_GET),
 
   updateRecoveryConfig: (
-    config: Partial<import('../../../main/task-recovery-service').RecoveryConfig>
-  ): Promise<IPCResult<import('../../../main/task-recovery-service').RecoveryConfig>> =>
+    config: Partial<RecoveryConfig>
+  ): Promise<IPCResult<RecoveryConfig>> =>
     ipcRenderer.invoke(IPC_CHANNELS.TASK_RECOVERY_CONFIG_UPDATE, config)
 });

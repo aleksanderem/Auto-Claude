@@ -212,7 +212,7 @@ export function SectionRouter({
             <UIFrameworkDocsSection
               isExpanded={true}
               onToggle={() => {}}
-              envConfig={envConfig || {}}
+              envConfig={envConfig || {} as ProjectEnvConfig}
               settings={settings}
               onUpdateConfig={updateEnvConfig}
               projectPath={project.path}

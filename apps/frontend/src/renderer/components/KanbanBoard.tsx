@@ -377,7 +377,8 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
     ai_review: 'asc',
     human_review: 'asc',
     done: 'asc',
-    pr_created: 'asc'
+    pr_created: 'asc',
+    error: 'asc'
   });
 
   // Worktree cleanup dialog state

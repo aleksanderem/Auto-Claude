@@ -135,7 +135,7 @@ export function Branches({ projectId }: BranchesProps) {
         command: 'git',
         args: ['branch', '-D', branchToDelete.fullName],
         cwd: selectedProject.path
-      });
+      }) as { success: boolean; error?: string };
 
       if (deleteLocal.success) {
         // Try to delete remote branch as well (if it exists)
@@ -143,7 +143,7 @@ export function Branches({ projectId }: BranchesProps) {
           command: 'git',
           args: ['push', 'origin', '--delete', branchToDelete.fullName],
           cwd: selectedProject.path
-        });
+        }) as { success: boolean; error?: string };
 
         // Only show error if remote deletion failed (ignore if branch was local-only)
         if (!deleteRemote.success && deleteRemote.error && !deleteRemote.error.includes('unable to delete')) {
@@ -187,10 +187,10 @@ export function Branches({ projectId }: BranchesProps) {
 
     // Show notification
     if (window.electronAPI?.showNotification) {
-      window.electronAPI.showNotification({
-        title: 'Merge Command Copied',
-        body: `Paste the command in your terminal to merge ${branchToMerge.name}`
-      });
+      window.electronAPI.showNotification(
+        'Merge Command Copied',
+        `Paste the command in your terminal to merge ${branchToMerge.name}`
+      );
     }
   };
 
