@@ -215,10 +215,18 @@ function ensureGitignoreEntries(projectPath: string, entries: string[]): void {
 
   let content = '';
   let existingLines: string[] = [];
+  let fileExists = false;
 
-  if (existsSync(gitignorePath)) {
+  // Try to read existing content - use try-catch to avoid TOCTOU race condition
+  try {
     content = readFileSync(gitignorePath, 'utf-8');
     existingLines = content.split('\n').map(line => line.trim());
+    fileExists = true;
+  } catch (error) {
+    // File doesn't exist yet, that's fine
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
   }
 
   // Find entries that need to be added
@@ -240,22 +248,21 @@ function ensureGitignoreEntries(projectPath: string, entries: string[]): void {
     return;
   }
 
-  // Build the content to append
-  let appendContent = '';
-
-  // Ensure file ends with newline before adding our entries
-  if (content && !content.endsWith('\n')) {
-    appendContent += '\n';
-  }
-
-  appendContent += '\n# Ouro data directory\n';
-  for (const entry of entriesToAdd) {
-    appendContent += entry + '\n';
-  }
-
-  if (existsSync(gitignorePath)) {
+  // Build the content to write
+  if (fileExists) {
+    // Append to existing file
+    let appendContent = '';
+    // Ensure file ends with newline before adding our entries
+    if (content && !content.endsWith('\n')) {
+      appendContent += '\n';
+    }
+    appendContent += '\n# Ouro data directory\n';
+    for (const entry of entriesToAdd) {
+      appendContent += entry + '\n';
+    }
     appendFileSync(gitignorePath, appendContent);
   } else {
+    // Create new file
     writeFileSync(gitignorePath, '# Ouro data directory\n' + entriesToAdd.join('\n') + '\n');
   }
 
