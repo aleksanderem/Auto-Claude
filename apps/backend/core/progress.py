@@ -422,6 +422,7 @@ def get_next_subtask(spec_dir: Path) -> dict | None:
         phases = plan.get("phases", [])
 
         # Build a map of phase completion
+        # Store both full ID (e.g., "phase-1") and extracted number (e.g., "1") for compatibility
         phase_complete: dict[str, bool] = {}
         for i, phase in enumerate(phases):
             phase_id_value = phase.get("id")
@@ -432,9 +433,13 @@ def get_next_subtask(spec_dir: Path) -> dict | None:
                 str(phase_id_raw) if phase_id_raw is not None else f"unknown:{i}"
             )
             subtasks = phase.get("subtasks", phase.get("chunks", []))
-            phase_complete[phase_id_key] = all(
-                s.get("status") == "completed" for s in subtasks
-            )
+            is_complete = all(s.get("status") == "completed" for s in subtasks)
+            phase_complete[phase_id_key] = is_complete
+            # Also store with extracted number for dependency lookups
+            if phase_id_key.startswith("phase-"):
+                parts = phase_id_key.split("-")
+                if len(parts) >= 2 and parts[1].isdigit():
+                    phase_complete[parts[1]] = is_complete
 
         # Helper to extract phase number from various dependency formats
         def extract_phase_num(dep_str: str) -> str | None:

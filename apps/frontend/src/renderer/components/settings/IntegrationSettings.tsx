@@ -64,6 +64,11 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   const [manualTokenEmail, setManualTokenEmail] = useState('');
   const [showManualToken, setShowManualToken] = useState(false);
   const [savingTokenProfileId, setSavingTokenProfileId] = useState<string | null>(null);
+  const [testingToken, setTestingToken] = useState(false);
+  const [tokenTestResult, setTokenTestResult] = useState<{ valid: boolean; error?: string } | null>(null);
+  const [syncingEnvProfileId, setSyncingEnvProfileId] = useState<string | null>(null);
+  const [testingProfileId, setTestingProfileId] = useState<string | null>(null);
+  const [profileTestResults, setProfileTestResults] = useState<Record<string, { valid: boolean; error?: string }>>({});
 
   // Auto-swap settings state
   const [autoSwitchSettings, setAutoSwitchSettings] = useState<ClaudeAutoSwitchSettings | null>(null);
@@ -84,6 +89,12 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   useEffect(() => {
     const unsubscribe = window.electronAPI.onTerminalOAuthToken(async (info) => {
       if (info.success && info.profileId) {
+        // Clear any previous test result for this profile (new token = untested)
+        setProfileTestResults(prev => {
+          const updated = { ...prev };
+          delete updated[info.profileId!];
+          return updated;
+        });
         // Reload profiles to show updated state
         await loadClaudeProfiles();
         // Show simple success notification (non-blocking)
@@ -106,11 +117,41 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
         setActiveProfileId(result.data.activeProfileId);
         // Also update the global store
         await loadGlobalClaudeProfiles();
+
+        // Auto-validate tokens for profiles that have them stored
+        const profilesWithTokens = result.data.profiles.filter(p => p.oauthToken);
+        if (profilesWithTokens.length > 0) {
+          // Validate in background (don't block UI)
+          validateProfileTokens(profilesWithTokens.map(p => p.id));
+        }
       }
     } catch (err) {
       debugError('[IntegrationSettings] Failed to load Claude profiles:', err);
     } finally {
       setIsLoadingProfiles(false);
+    }
+  };
+
+  // Auto-validate tokens in background
+  const validateProfileTokens = async (profileIds: string[]) => {
+    for (const profileId of profileIds) {
+      // Skip if already tested in this session
+      if (profileTestResults[profileId] !== undefined) continue;
+
+      try {
+        setTestingProfileId(profileId);
+        const result = await window.electronAPI.testClaudeProfileTokenById(profileId);
+        if (result.success && result.data) {
+          setProfileTestResults(prev => ({ ...prev, [profileId]: result.data! }));
+        } else {
+          setProfileTestResults(prev => ({ ...prev, [profileId]: { valid: false, error: result.error } }));
+        }
+      } catch (err) {
+        debugError('[IntegrationSettings] Failed to auto-validate token for profile:', profileId, err);
+        setProfileTestResults(prev => ({ ...prev, [profileId]: { valid: false, error: 'Validation failed' } }));
+      } finally {
+        setTestingProfileId(null);
+      }
     }
   };
 
@@ -213,6 +254,7 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
   };
 
   const handleAuthenticateProfile = async (profileId: string) => {
+    console.warn('[IntegrationSettings] handleAuthenticateProfile called for:', profileId);
     debugLog('[IntegrationSettings] handleAuthenticateProfile called for:', profileId);
     setAuthenticatingProfileId(profileId);
     try {
@@ -247,11 +289,129 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
       setManualToken('');
       setManualTokenEmail('');
       setShowManualToken(false);
+      setTokenTestResult(null);
     } else {
       setExpandedTokenProfileId(profileId);
       setManualToken('');
       setManualTokenEmail('');
       setShowManualToken(false);
+      setTokenTestResult(null);
+    }
+  };
+
+  const handleTestToken = async () => {
+    if (!manualToken.trim()) return;
+
+    setTestingToken(true);
+    setTokenTestResult(null);
+    try {
+      const result = await window.electronAPI.testClaudeProfileToken(manualToken.trim());
+      if (result.success && result.data) {
+        setTokenTestResult(result.data);
+        if (result.data.valid) {
+          toast({
+            title: t('integrations.toast.tokenTestSuccess'),
+            description: t('integrations.toast.tokenTestSuccessDescription'),
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: t('integrations.toast.tokenTestFailed'),
+            description: result.data.error || t('integrations.toast.tokenInvalid'),
+          });
+        }
+      } else {
+        setTokenTestResult({ valid: false, error: result.error });
+        toast({
+          variant: 'destructive',
+          title: t('integrations.toast.tokenTestFailed'),
+          description: result.error || t('integrations.toast.tryAgain'),
+        });
+      }
+    } catch (err) {
+      debugError('[IntegrationSettings] Failed to test token:', err);
+      setTokenTestResult({ valid: false, error: 'Network error' });
+      toast({
+        variant: 'destructive',
+        title: t('integrations.toast.tokenTestFailed'),
+        description: t('integrations.toast.tryAgain'),
+      });
+    } finally {
+      setTestingToken(false);
+    }
+  };
+
+  const handleSyncEnvToken = async (profileId: string) => {
+    setSyncingEnvProfileId(profileId);
+    try {
+      const result = await window.electronAPI.syncClaudeProfileEnvToken(profileId);
+      if (result.success) {
+        await loadClaudeProfiles();
+        toast({
+          title: t('integrations.toast.tokenSynced'),
+          description: t('integrations.toast.tokenSyncedDescription'),
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: t('integrations.toast.tokenSyncFailed'),
+          description: result.error || t('integrations.toast.tryAgain'),
+        });
+      }
+    } catch (err) {
+      debugError('[IntegrationSettings] Failed to sync token from .env:', err);
+      toast({
+        variant: 'destructive',
+        title: t('integrations.toast.tokenSyncFailed'),
+        description: t('integrations.toast.tryAgain'),
+      });
+    } finally {
+      setSyncingEnvProfileId(null);
+    }
+  };
+
+  const handleTestProfileToken = async (profileId: string) => {
+    setTestingProfileId(profileId);
+    // Clear previous result for this profile
+    setProfileTestResults(prev => {
+      const updated = { ...prev };
+      delete updated[profileId];
+      return updated;
+    });
+    try {
+      const result = await window.electronAPI.testClaudeProfileTokenById(profileId);
+      if (result.success && result.data) {
+        setProfileTestResults(prev => ({ ...prev, [profileId]: result.data! }));
+        if (result.data.valid) {
+          toast({
+            title: t('integrations.toast.tokenTestSuccess'),
+            description: t('integrations.toast.tokenTestSuccessDescription'),
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: t('integrations.toast.tokenTestFailed'),
+            description: result.data.error || t('integrations.toast.tokenInvalid'),
+          });
+        }
+      } else {
+        setProfileTestResults(prev => ({ ...prev, [profileId]: { valid: false, error: result.error } }));
+        toast({
+          variant: 'destructive',
+          title: t('integrations.toast.tokenTestFailed'),
+          description: result.error || t('integrations.toast.tryAgain'),
+        });
+      }
+    } catch (err) {
+      debugError('[IntegrationSettings] Failed to test profile token:', err);
+      setProfileTestResults(prev => ({ ...prev, [profileId]: { valid: false, error: 'Network error' } }));
+      toast({
+        variant: 'destructive',
+        title: t('integrations.toast.tokenTestFailed'),
+        description: t('integrations.toast.tryAgain'),
+      });
+    } finally {
+      setTestingProfileId(null);
     }
   };
 
@@ -432,11 +592,19 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                                     {t('integrations.active')}
                                   </span>
                                 )}
+                                {/* Auth status badge - reflects token existence and test result */}
                                 {(profile.oauthToken || (profile.isDefault && profile.configDir)) ? (
-                                  <span className="text-xs bg-success/20 text-success px-1.5 py-0.5 rounded flex items-center gap-1">
-                                    <Check className="h-3 w-3" />
-                                    {t('integrations.authenticated')}
-                                  </span>
+                                  profileTestResults[profile.id]?.valid === false ? (
+                                    <span className="text-xs bg-destructive/20 text-destructive px-1.5 py-0.5 rounded flex items-center gap-1">
+                                      <X className="h-3 w-3" />
+                                      {t('integrations.tokenInvalid')}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs bg-success/20 text-success px-1.5 py-0.5 rounded flex items-center gap-1">
+                                      <Check className="h-3 w-3" />
+                                      {t('integrations.authenticated')}
+                                    </span>
+                                  )
                                 ) : (
                                   <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded">
                                     {t('integrations.needsAuth')}
@@ -489,6 +657,45 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>{t('common:accessibility.reAuthenticateProfileAriaLabel')}</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {/* Test token button - show for profiles with stored tokens */}
+                          {profile.oauthToken && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleTestProfileToken(profile.id)}
+                                  disabled={testingProfileId === profile.id}
+                                  className={cn(
+                                    "h-7 w-7",
+                                    profileTestResults[profile.id]?.valid === true
+                                      ? "text-success hover:text-success hover:bg-success/10"
+                                      : profileTestResults[profile.id]?.valid === false
+                                        ? "text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        : "text-muted-foreground hover:text-foreground"
+                                  )}
+                                  aria-label={t('integrations.testToken')}
+                                >
+                                  {testingProfileId === profile.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : profileTestResults[profile.id]?.valid === true ? (
+                                    <Check className="h-3 w-3" />
+                                  ) : profileTestResults[profile.id]?.valid === false ? (
+                                    <X className="h-3 w-3" />
+                                  ) : (
+                                    <Activity className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {profileTestResults[profile.id]?.valid === true
+                                  ? t('integrations.tokenValid')
+                                  : profileTestResults[profile.id]?.valid === false
+                                    ? t('integrations.tokenInvalid')
+                                    : t('integrations.testToken')}
+                              </TooltipContent>
                             </Tooltip>
                           )}
                           {profile.id !== activeProfileId && (
@@ -565,6 +772,31 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                     {/* Expanded token entry section */}
                     {expandedTokenProfileId === profile.id && (
                       <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
+                        {/* Quick sync from .env */}
+                        <div className="bg-primary/5 rounded-lg p-3 mt-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-xs font-medium">{t('integrations.syncFromEnv')}</Label>
+                              <p className="text-xs text-muted-foreground mt-0.5">{t('integrations.syncFromEnvDescription')}</p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSyncEnvToken(profile.id)}
+                              disabled={syncingEnvProfileId === profile.id}
+                              className="h-7 text-xs gap-1"
+                            >
+                              {syncingEnvProfileId === profile.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-3 w-3" />
+                              )}
+                              {t('integrations.syncToken')}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Manual token entry */}
                         <div className="bg-muted/30 rounded-lg p-3 mt-3 space-y-3">
                           <div className="flex items-center justify-between">
                             <Label className="text-xs font-medium text-muted-foreground">
@@ -581,7 +813,10 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                                 type={showManualToken ? 'text' : 'password'}
                                 placeholder={t('integrations.tokenPlaceholder')}
                                 value={manualToken}
-                                onChange={(e) => setManualToken(e.target.value)}
+                                onChange={(e) => {
+                                  setManualToken(e.target.value);
+                                  setTokenTestResult(null); // Clear test result when token changes
+                                }}
                                 className="pr-10 font-mono text-xs h-8"
                               />
                               <button
@@ -602,28 +837,65 @@ export function IntegrationSettings({ settings, onSettingsChange, isOpen }: Inte
                             />
                           </div>
 
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleTokenEntry(profile.id)}
-                              className="h-7 text-xs"
-                            >
-                              {tCommon('buttons.cancel')}
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleSaveManualToken(profile.id)}
-                              disabled={!manualToken.trim() || savingTokenProfileId === profile.id}
-                              className="h-7 text-xs gap-1"
-                            >
-                              {savingTokenProfileId === profile.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Check className="h-3 w-3" />
+                          <div className="flex items-center justify-between">
+                            {/* Test result indicator */}
+                            <div className="flex items-center gap-2">
+                              {tokenTestResult !== null && (
+                                <span className={cn(
+                                  "text-xs flex items-center gap-1",
+                                  tokenTestResult.valid ? "text-success" : "text-destructive"
+                                )}>
+                                  {tokenTestResult.valid ? (
+                                    <>
+                                      <Check className="h-3 w-3" />
+                                      {t('integrations.tokenValid')}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <X className="h-3 w-3" />
+                                      {t('integrations.tokenInvalid')}
+                                    </>
+                                  )}
+                                </span>
                               )}
-                              {t('integrations.saveToken')}
-                            </Button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleTokenEntry(profile.id)}
+                                className="h-7 text-xs"
+                              >
+                                {tCommon('buttons.cancel')}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleTestToken}
+                                disabled={!manualToken.trim() || testingToken}
+                                className="h-7 text-xs gap-1"
+                              >
+                                {testingToken ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Activity className="h-3 w-3" />
+                                )}
+                                {t('integrations.testToken')}
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleSaveManualToken(profile.id)}
+                                disabled={!manualToken.trim() || savingTokenProfileId === profile.id}
+                                className="h-7 text-xs gap-1"
+                              >
+                                {savingTokenProfileId === profile.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Check className="h-3 w-3" />
+                                )}
+                                {t('integrations.saveToken')}
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>

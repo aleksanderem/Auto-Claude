@@ -1,0 +1,45 @@
+# core/user_profile.yaml
+id: user_profile
+name: User Profile
+status: planned
+
+fields:
+  imie:
+    type: string
+    source: auth.imie  # <-- linkuje do auth
+
+  email:
+    type: string
+    source: auth.email  # <-- linkuje do auth
+
+  # miasto:           # <-- brakuje! walidator to wykryje jeśli auth.miasto istnieje
+  #   type: string
+  #   source: auth.miasto
+
+assumptions:
+  - rejestracja obowiązkowa przy generowaniu darmowego cennika
+  - rejestracja obowiązkowa na każdym innym etapie
+  - user może mieć dowolną ilość audytów
+  - user może mieć dowolną ilość salonów
+  - user może mieć dowolną ilość cenników
+
+relations:
+  audyty:
+    type: has_many
+    entity: audyt
+
+  salony:
+    type: has_many
+    entity: salon
+
+  cenniki:
+    type: has_many
+    entity: cennik
+    note: user ustawia swój cennik
+
+triggers:
+  - on: darmowy_cennik_generated
+    require: registered
+
+  - on: any_paid_action
+    require: registered

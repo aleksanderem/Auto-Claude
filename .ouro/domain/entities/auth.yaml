@@ -1,0 +1,45 @@
+# core/auth.yaml
+id: auth
+name: User Authentication
+status: planned
+
+provider:
+  preferred: clerk  # najszybciej
+  alternatives:
+    - convex  # mamy backend
+  sso:
+    - google
+    - meta
+
+fields:
+  email:
+    type: string
+    required: true
+    source: user_input
+
+  password:
+    type: string
+    required: true
+    source: user_input
+    note: hashed, never stored plain
+
+  imie:
+    type: string
+    required: false
+    source: user_input
+
+# miasto: <-- odkomentuj żeby zobaczyć walidację
+#   type: string
+#   required: false
+#   source: user_input
+
+assumptions:
+  - session expires after 24h
+  - max 3 failed login attempts before lockout
+  - SSO bypasses password requirement
+  - email must be verified before full access
+
+outputs:
+  - user_id
+  - session_token
+  - email_verified: boolean

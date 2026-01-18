@@ -20,9 +20,11 @@ const CLAUDE_SESSION_PATTERNS = [
 const RATE_LIMIT_PATTERN = /Limit reached\s*[·•]\s*resets\s+(.+?)$/m;
 
 /**
- * Regex pattern to capture OAuth token from `claude setup-token` output
+ * Regex pattern to capture OAuth token from `claude setup-token` output.
+ * Tokens are base64-encoded and end with 'AA' (padding).
+ * We require at least 90 chars after prefix to avoid matching too early.
  */
-const OAUTH_TOKEN_PATTERN = /(sk-ant-oat01-[A-Za-z0-9_-]+)/;
+const OAUTH_TOKEN_PATTERN = /(sk-ant-oat01-[A-Za-z0-9_-]{90,}AA)/;
 
 /**
  * Pattern to detect email in Claude output

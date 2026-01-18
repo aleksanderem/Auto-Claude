@@ -19,7 +19,8 @@ import {
   insightsMock,
   managerMock,
   infrastructureMock,
-  settingsMock
+  settingsMock,
+  grepaiMock
 } from './mocks';
 
 // Check if we're in a browser (not Electron)
@@ -47,6 +48,9 @@ const browserMockAPI: ElectronAPI = {
 
   // Settings
   ...settingsMock,
+
+  // GrepAI Operations
+  ...grepaiMock,
 
   // Roadmap Operations
   getRoadmap: async () => ({

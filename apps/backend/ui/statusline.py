@@ -63,7 +63,9 @@ def find_project_root() -> Path:
     for parent in cwd.parents:
         if (parent / ".ouro").exists() or (parent / ".auto-claude").exists():
             return parent
-        if (parent / ".ouro-status").exists() or (parent / ".auto-claude-status").exists():
+        if (parent / ".ouro-status").exists() or (
+            parent / ".auto-claude-status"
+        ).exists():
             return parent
 
     return cwd

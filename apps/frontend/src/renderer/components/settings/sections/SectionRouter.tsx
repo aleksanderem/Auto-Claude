@@ -8,6 +8,7 @@ import { LinearIntegration } from '../integrations/LinearIntegration';
 import { GitHubIntegration } from '../integrations/GitHubIntegration';
 import { GitLabIntegration } from '../integrations/GitLabIntegration';
 import { SupervisorModeSection } from '../SupervisorModeSection';
+import { GrepAISettings } from '../GrepAISettings';
 import { InitializationGuard } from '../common/InitializationGuard';
 import type { ProjectSettingsSection } from '../ProjectSettingsContent';
 
@@ -229,6 +230,22 @@ export function SectionRouter({
           description={t('projectSections.supervisor.integrationDescription')}
         >
           <SupervisorModeSection projectPath={project.path} />
+        </SettingsSection>
+      );
+
+    case 'grepai':
+      return (
+        <SettingsSection
+          title={t('projectSections.grepai.integrationTitle')}
+          description={t('projectSections.grepai.integrationDescription')}
+        >
+          <InitializationGuard
+            initialized={!!project.autoBuildPath}
+            title={t('projectSections.grepai.integrationTitle')}
+            description={t('projectSections.grepai.syncDescription')}
+          >
+            <GrepAISettings projectPath={project.path} />
+          </InitializationGuard>
         </SettingsSection>
       );
 

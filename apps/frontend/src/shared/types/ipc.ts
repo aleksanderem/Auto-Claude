@@ -134,6 +134,13 @@ import type {
 import type { APIProfile, ProfilesFile, TestConnectionResult, DiscoverModelsResult } from './profile';
 import type { SupervisorPluginStatus, SupervisorPluginResult, SupervisorPluginInstallOptions } from './supervisor';
 import type { LegacyCheckResult, MigrationResult } from './migration';
+import type {
+  GrepAIConfig,
+  GrepAIStatus,
+  GrepAISearchResult,
+  GrepAISearchOptions,
+  GrepAIInitOptions,
+} from './grepai';
 
 // Electron API exposed via contextBridge
 // Tab state interface (persisted in main process)
@@ -265,6 +272,12 @@ export interface ElectronAPI {
   initializeClaudeProfile: (profileId: string) => Promise<IPCResult>;
   /** Set OAuth token for a profile (used when capturing from terminal) */
   setClaudeProfileToken: (profileId: string, token: string, email?: string) => Promise<IPCResult>;
+  /** Test/validate an OAuth token (checks if token works with Anthropic API) */
+  testClaudeProfileToken: (token: string) => Promise<IPCResult<{ valid: boolean; error?: string }>>;
+  /** Test/validate a profile's stored OAuth token */
+  testClaudeProfileTokenById: (profileId: string) => Promise<IPCResult<{ valid: boolean; error?: string }>>;
+  /** Sync token from backend .env file to profile */
+  syncClaudeProfileEnvToken: (profileId: string) => Promise<IPCResult<{ token?: string; email?: string }>>;
   /** Get auto-switch settings */
   getAutoSwitchSettings: () => Promise<IPCResult<ClaudeAutoSwitchSettings>>;
   /** Update auto-switch settings */
@@ -829,6 +842,24 @@ export interface ElectronAPI {
   // Legacy migration operations (.auto-claude → .ouro)
   checkLegacy: (projectPath: string) => Promise<IPCResult<LegacyCheckResult>>;
   executeMigration: (projectPath: string) => Promise<IPCResult<MigrationResult>>;
+
+  // GrepAI semantic code search operations
+  grepaiCheckInstalled: () => Promise<IPCResult<{ installed: boolean; path: string | null }>>;
+  grepaiInit: (projectPath: string, options: GrepAIInitOptions) => Promise<IPCResult<void>>;
+  grepaiStartWatch: (projectPath: string) => Promise<IPCResult<void>>;
+  grepaiStopWatch: () => Promise<IPCResult<void>>;
+  grepaiGetStatus: (projectPath?: string) => Promise<IPCResult<GrepAIStatus>>;
+  grepaiSearch: (
+    projectPath: string,
+    query: string,
+    options?: GrepAISearchOptions
+  ) => Promise<IPCResult<GrepAISearchResult[]>>;
+  grepaiGetConfig: (projectPath: string) => Promise<IPCResult<GrepAIConfig>>;
+  grepaiSaveConfig: (projectPath: string, config: GrepAIConfig) => Promise<IPCResult<void>>;
+
+  // GrepAI event listeners
+  onGrepaiStatusChanged: (callback: (status: GrepAIStatus) => void) => () => void;
+  onGrepaiIndexProgress: (callback: (progress: number) => void) => () => void;
 
   // App metadata operations
   getAppIsPackaged: () => Promise<boolean>;

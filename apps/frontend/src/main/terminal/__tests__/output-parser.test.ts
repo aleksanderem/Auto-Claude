@@ -215,23 +215,35 @@ describe('output-parser', () => {
   });
 
   describe('extractOAuthToken', () => {
+    // Token must be 90+ chars after prefix and end with 'AA'
+    const validToken = 'sk-ant-oat01-' + 'A'.repeat(90) + 'AA';
+
     it('extracts OAuth token', () => {
-      const token = 'sk-ant-oat01-abc123_XYZ';
-      expect(extractOAuthToken(`Token: ${token}`)).toBe(token);
+      expect(extractOAuthToken(`Token: ${validToken}`)).toBe(validToken);
     });
 
     it('returns null when no token present', () => {
       expect(extractOAuthToken('No token here')).toBe(null);
     });
+
+    it('returns null for short tokens', () => {
+      expect(extractOAuthToken('sk-ant-oat01-abc123')).toBe(null);
+    });
   });
 
   describe('hasOAuthToken', () => {
+    const validToken = 'sk-ant-oat01-' + 'A'.repeat(90) + 'AA';
+
     it('returns true when OAuth token present', () => {
-      expect(hasOAuthToken('sk-ant-oat01-test123')).toBe(true);
+      expect(hasOAuthToken(validToken)).toBe(true);
     });
 
     it('returns false when no token', () => {
       expect(hasOAuthToken('No token')).toBe(false);
+    });
+
+    it('returns false for short tokens', () => {
+      expect(hasOAuthToken('sk-ant-oat01-short')).toBe(false);
     });
   });
 

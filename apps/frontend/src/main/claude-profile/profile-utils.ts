@@ -158,3 +158,40 @@ export function expandHomePath(path: string): string {
   }
   return path;
 }
+
+/**
+ * Result of OAuth token validation
+ */
+export interface TokenValidationResult {
+  valid: boolean;
+  error?: string;
+  email?: string;
+}
+
+/**
+ * Validate an OAuth token by checking its format.
+ *
+ * IMPORTANT: Claude Code OAuth tokens (sk-ant-oat01-*) cannot be validated via
+ * direct API calls to api.anthropic.com - they only work through Claude CLI.
+ * We validate the token format instead and trust it works with the CLI.
+ */
+export async function validateOAuthToken(token: string): Promise<TokenValidationResult> {
+  if (!token || typeof token !== 'string') {
+    return { valid: false, error: 'Token is empty or invalid type' };
+  }
+
+  // Check token format: sk-ant-oat01-{base64-chars} ending with A padding
+  // Valid tokens are ~108 characters
+  const TOKEN_PATTERN = /^sk-ant-oat01-[A-Za-z0-9_-]{80,}A+$/;
+
+  if (!TOKEN_PATTERN.test(token)) {
+    return { valid: false, error: 'Token format is invalid (expected sk-ant-oat01-... pattern)' };
+  }
+
+  if (token.length < 100 || token.length > 120) {
+    return { valid: false, error: `Token length ${token.length} is outside expected range (100-120)` };
+  }
+
+  // Token format is valid
+  return { valid: true };
+}

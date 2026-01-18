@@ -1,0 +1,52 @@
+# core/cennik.yaml
+id: cennik
+name: Cennik
+status: planned
+
+fields:
+  id:
+    type: uuid
+    source: generated
+
+  nazwa:
+    type: string
+    required: true
+    source: user_input
+
+  uslugi:
+    type: array
+    items: usluga
+    source: user_input
+
+  waluta:
+    type: string
+    default: PLN
+
+  created_at:
+    type: datetime
+    source: generated
+
+  owner_id:
+    type: uuid
+    source: user_profile.id
+
+assumptions:
+  - cennik może być darmowy (generowany bez konta) lub zapisany (wymaga konta)
+  - darmowy cennik = preview, nie zapisuje się
+  - jeden user może mieć wiele cenników
+  - cennik może być przypisany do salonu lub być "luźny"
+
+relations:
+  owner:
+    type: belongs_to
+    entity: user_profile
+
+  salon:
+    type: belongs_to
+    entity: salon
+    optional: true
+
+states:
+  - draft
+  - published
+  - archived

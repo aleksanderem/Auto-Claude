@@ -143,7 +143,13 @@ export class TitleGenerator extends EventEmitter {
     });
 
     // Get active Claude profile environment (CLAUDE_CONFIG_DIR if not default)
+    // Profile manager token takes priority (multi-account support)
+    // .env token is only used as fallback if no profile token exists
     const profileEnv = getProfileEnv();
+    debug('Profile env', {
+      hasProfileToken: !!profileEnv.CLAUDE_CODE_OAUTH_TOKEN,
+      hasEnvToken: !!autoBuildEnv.CLAUDE_CODE_OAUTH_TOKEN
+    });
 
     return new Promise((resolve) => {
       // Parse Python command to handle space-separated commands like "py -3"
@@ -153,7 +159,7 @@ export class TitleGenerator extends EventEmitter {
         env: {
           ...process.env,
           ...autoBuildEnv,
-          ...profileEnv, // Include active Claude profile config
+          ...profileEnv, // Include active Claude profile config (only if no .env token)
           PYTHONUNBUFFERED: '1',
           PYTHONIOENCODING: 'utf-8',
           PYTHONUTF8: '1'

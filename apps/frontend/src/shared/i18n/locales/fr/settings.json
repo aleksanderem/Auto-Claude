@@ -48,6 +48,10 @@
     "debug": {
       "title": "Debug & Logs",
       "description": "Outils de dépannage"
+    },
+    "recovery": {
+      "title": "Récupération",
+      "description": "Options de récupération des tâches"
     }
   },
   "apiProfiles": {
@@ -364,6 +368,13 @@
       "integrationTitle": "Mode Superviseur",
       "integrationDescription": "Forcer Claude Code en rôle superviseur pour ce projet",
       "syncDescription": "Configurer le mode superviseur Claude Code"
+    },
+    "grepai": {
+      "title": "GrepAI",
+      "description": "Recherche sémantique de code",
+      "integrationTitle": "Intégration GrepAI",
+      "integrationDescription": "Recherche sémantique de code alimentée par l'IA pour les agents",
+      "syncDescription": "Configurer la recherche sémantique de code"
     }
   },
   "agentProfile": {
@@ -465,9 +476,22 @@
       "tokenSaved": "Token enregistré",
       "tokenSavedDescription": "Votre token a été enregistré avec succès.",
       "tokenSaveFailed": "Échec de l'enregistrement du token",
+      "tokenTestSuccess": "Token valide",
+      "tokenTestSuccessDescription": "Le token a été validé avec succès.",
+      "tokenTestFailed": "Token invalide",
+      "tokenInvalid": "Le token n'a pas pu être validé.",
+      "tokenSynced": "Token synchronisé",
+      "tokenSyncedDescription": "Le token du fichier .env a été importé dans le profil.",
+      "tokenSyncFailed": "Échec de la synchronisation",
       "settingsUpdateFailed": "Échec de la mise à jour des paramètres",
       "tryAgain": "Veuillez réessayer."
-    }
+    },
+    "testToken": "Tester",
+    "tokenValid": "Valide",
+    "tokenInvalid": "Invalide",
+    "syncFromEnv": "Synchronisation rapide depuis .env",
+    "syncFromEnvDescription": "Importer le token du fichier .env backend",
+    "syncToken": "Sync"
   },
   "debug": {
     "title": "Debug & Logs",
@@ -619,5 +643,47 @@
       "openai": "Ceci ressemble à une API OpenAI. Vous aurez besoin d'une clé API.",
       "createOpenaiKey": "Créer une clé API OpenAI"
     }
+  },
+  "grepai": {
+    "title": "GrepAI",
+    "description": "Recherche sémantique de code alimentée par l'IA. Les agents peuvent rechercher dans votre codebase par intention plutôt que par correspondance de motifs.",
+    "installed": "CLI installé",
+    "notInstalled": "CLI non installé",
+    "projectInitialized": "Projet indexé",
+    "watchDaemon": "Daemon de surveillance actif",
+    "indexProgress": "Indexation : {{progress}}%",
+    "installRequired": "CLI GrepAI requis",
+    "installInstructions": "Installez la CLI GrepAI pour activer la recherche sémantique de code :",
+    "enabled": "Activer GrepAI",
+    "enabledDescription": "Permettre aux agents d'utiliser la recherche sémantique dans ce projet",
+    "autoWatch": "Démarrage automatique",
+    "autoWatchDescription": "Démarrer automatiquement le daemon de surveillance à l'ouverture du projet",
+    "embeddingProvider": "Fournisseur d'embeddings",
+    "embeddingModel": "Modèle d'embedding",
+    "ollamaUrl": "URL Ollama",
+    "openaiApiKey": "Clé API OpenAI",
+    "geminiApiKey": "Clé API Gemini",
+    "apiKeyPlaceholder": "Entrez votre clé API",
+    "saveConfig": "Enregistrer la configuration",
+    "initialize": "Initialiser GrepAI",
+    "initializing": "Initialisation...",
+    "startWatch": "Démarrer la surveillance",
+    "stopWatch": "Arrêter la surveillance",
+    "refresh": "Actualiser le statut",
+    "howItWorks": "Comment ça marche",
+    "feature1": "Les agents peuvent rechercher du code par intention (ex. : 'logique d'authentification utilisateur')",
+    "feature2": "Le daemon de surveillance maintient l'index à jour lors des modifications de fichiers",
+    "feature3": "Supporte plusieurs fournisseurs d'embeddings pour les configurations soucieuses de la confidentialité",
+    "providers": {
+      "ollama": "Ollama (Local)",
+      "openai": "OpenAI",
+      "gemini": "Google Gemini"
+    },
+    "errorLoadingStatus": "Échec du chargement du statut GrepAI",
+    "errorSavingConfig": "Échec de l'enregistrement de la configuration",
+    "errorInitializing": "Échec de l'initialisation de GrepAI",
+    "errorStartingWatch": "Échec du démarrage du daemon de surveillance",
+    "errorStoppingWatch": "Échec de l'arrêt du daemon de surveillance",
+    "errorToggleWatch": "Échec de la bascule du daemon de surveillance"
   }
 }

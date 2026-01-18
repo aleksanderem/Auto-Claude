@@ -13,6 +13,7 @@ import { getClaudeProfileManager, initializeClaudeProfileManager } from '../clau
 import * as OutputParser from './output-parser';
 import * as SessionHandler from './session-handler';
 import { debugLog, debugError } from '../../shared/utils/debug-logger';
+import { debugClaudeLog } from '../../shared/utils/debug-mode';
 import { escapeShellArg, buildCdCommand } from '../../shared/utils/shell-escape';
 import { getClaudeCliInvocation, getClaudeCliInvocationAsync } from '../claude-cli-utils';
 import type {
@@ -183,14 +184,14 @@ export function handleRateLimit(
   }
 
   lastNotifiedRateLimitReset.set(terminal.id, resetTime);
-  console.warn('[ClaudeIntegration] Rate limit detected, reset:', resetTime);
+  debugClaudeLog('Rate limit detected, reset:', resetTime);
 
   const profileManager = getClaudeProfileManager();
   const currentProfileId = terminal.claudeProfileId || 'default';
 
   try {
     const rateLimitEvent = profileManager.recordRateLimitEvent(currentProfileId, resetTime);
-    console.warn('[ClaudeIntegration] Recorded rate limit event:', rateLimitEvent.type);
+    debugClaudeLog('Recorded rate limit event:', rateLimitEvent.type);
   } catch (err) {
     console.error('[ClaudeIntegration] Failed to record rate limit event:', err);
   }
@@ -212,12 +213,66 @@ export function handleRateLimit(
   }
 
   if (autoSwitchSettings.enabled && autoSwitchSettings.autoSwitchOnRateLimit && bestProfile) {
-    console.warn('[ClaudeIntegration] Auto-switching to profile:', bestProfile.name);
+    debugClaudeLog('Auto-switching to profile:', bestProfile.name);
     switchProfileCallback(terminal.id, bestProfile.id).then(_result => {
-      console.warn('[ClaudeIntegration] Auto-switch completed');
+      debugClaudeLog('Auto-switch completed');
     }).catch(err => {
       console.error('[ClaudeIntegration] Auto-switch failed:', err);
     });
+  }
+}
+
+/**
+ * Save OAuth token to backend .env file
+ */
+async function saveTokenToBackendEnv(token: string): Promise<boolean> {
+  try {
+    const { existsSync, readFileSync, writeFileSync } = await import('fs');
+    const { join, resolve } = await import('path');
+    const { app } = await import('electron');
+
+    // Find backend .env file
+    const possiblePaths = [
+      resolve(process.cwd(), 'apps', 'backend', '.env'),
+      join(app.getAppPath(), '..', '..', '..', 'backend', '.env'),
+      join(app.getAppPath(), '..', 'backend', '.env'),
+    ];
+
+    let envPath: string | null = null;
+    for (const p of possiblePaths) {
+      if (existsSync(p)) {
+        envPath = p;
+        break;
+      }
+    }
+
+    if (!envPath) {
+      debugClaudeLog('Backend .env not found, skipping token sync');
+      return false;
+    }
+
+    // Read existing .env
+    let envContent = readFileSync(envPath, 'utf-8');
+    const tokenLine = `CLAUDE_CODE_OAUTH_TOKEN=${token}`;
+
+    // Check if token already exists
+    if (envContent.includes('CLAUDE_CODE_OAUTH_TOKEN=')) {
+      // Replace existing token
+      envContent = envContent.replace(
+        /CLAUDE_CODE_OAUTH_TOKEN=.*/,
+        tokenLine
+      );
+    } else {
+      // Add token at the end
+      envContent = envContent.trimEnd() + '\n\n# OAuth token (auto-synced from profile manager)\n' + tokenLine + '\n';
+    }
+
+    writeFileSync(envPath, envContent, 'utf-8');
+    debugClaudeLog('Token synced to backend .env:', envPath);
+    return true;
+  } catch (error) {
+    console.error('[ClaudeIntegration] Failed to sync token to backend .env:', error);
+    return false;
   }
 }
 
@@ -229,12 +284,26 @@ export function handleOAuthToken(
   data: string,
   getWindow: WindowGetter
 ): void {
-  const token = OutputParser.extractOAuthToken(data);
+  // Strip ANSI escape codes and control characters before extracting token.
+  // Terminal may wrap long tokens across lines, inserting \r and cursor movement codes.
+  const cleanBuffer = terminal.outputBuffer
+    // eslint-disable-next-line no-control-regex -- ANSI escape stripping requires matching ESC character
+    .replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')  // Remove ANSI escape sequences
+    .replace(/\r/g, '');                     // Remove carriage returns
+
+  const token = OutputParser.extractOAuthToken(cleanBuffer);
   if (!token) {
     return;
   }
 
-  console.warn('[ClaudeIntegration] OAuth token detected, length:', token.length);
+  // Anthropic OAuth tokens are ~108 characters
+  const MIN_OAUTH_TOKEN_LENGTH = 100;
+  if (token.length < MIN_OAUTH_TOKEN_LENGTH) {
+    debugClaudeLog('OAuth token incomplete, length:', token.length, '(waiting for more data)');
+    return;
+  }
+
+  debugClaudeLog('OAuth token detected, length:', token.length);
 
   const email = OutputParser.extractEmail(terminal.outputBuffer);
   // Match both custom profiles (profile-123456) and the default profile
@@ -247,7 +316,14 @@ export function handleOAuthToken(
     const success = profileManager.setProfileToken(profileId, token, email || undefined);
 
     if (success) {
-      console.warn('[ClaudeIntegration] OAuth token auto-saved to profile:', profileId);
+      debugClaudeLog('OAuth token auto-saved to profile:', profileId);
+
+      // Also sync to backend .env for CLI usage
+      saveTokenToBackendEnv(token).catch(() => {});
+
+      // Set this profile as active
+      profileManager.setActiveProfile(profileId);
+      debugClaudeLog('Profile set as active:', profileId);
 
       const win = getWindow();
       if (win) {
@@ -264,7 +340,7 @@ export function handleOAuthToken(
     }
   } else {
     // No profile-specific terminal, save to active profile (GitHub OAuth flow, etc.)
-    console.warn('[ClaudeIntegration] OAuth token detected in non-profile terminal, saving to active profile');
+    debugClaudeLog('OAuth token detected in non-profile terminal, saving to active profile');
     const profileManager = getClaudeProfileManager();
     const activeProfile = profileManager.getActiveProfile();
 
@@ -288,7 +364,10 @@ export function handleOAuthToken(
     const success = profileManager.setProfileToken(activeProfile.id, token, email || undefined);
 
     if (success) {
-      console.warn('[ClaudeIntegration] OAuth token auto-saved to active profile:', activeProfile.name);
+      debugClaudeLog('OAuth token auto-saved to active profile:', activeProfile.name);
+
+      // Also sync to backend .env for CLI usage
+      saveTokenToBackendEnv(token).catch(() => {});
 
       const win = getWindow();
       if (win) {
@@ -326,7 +405,7 @@ export function handleClaudeSessionId(
   getWindow: WindowGetter
 ): void {
   terminal.claudeSessionId = sessionId;
-  console.warn('[ClaudeIntegration] Captured Claude session ID:', sessionId);
+  debugClaudeLog('Captured Claude session ID:', sessionId);
 
   if (terminal.projectPath) {
     SessionHandler.updateClaudeSessionId(terminal.projectPath, terminal.id, sessionId);
@@ -354,7 +433,7 @@ export function handleClaudeExit(
     return;
   }
 
-  console.warn('[ClaudeIntegration] Claude exit detected, resetting mode for terminal:', terminal.id);
+  debugClaudeLog('Claude exit detected, resetting mode for terminal:', terminal.id);
 
   // Reset Claude mode state
   terminal.isClaudeMode = false;
@@ -521,7 +600,7 @@ export function resumeClaude(
 
   // Deprecation warning for callers still passing sessionId
   if (_sessionId) {
-    console.warn('[ClaudeIntegration:resumeClaude] sessionId parameter is deprecated and ignored; using claude --continue instead');
+    debugClaudeLog('resumeClaude: sessionId parameter is deprecated and ignored; using claude --continue instead');
   }
 
   const command = `${pathPrefix}${escapedClaudeCmd} --continue`;
@@ -694,7 +773,7 @@ export async function resumeClaudeAsync(
 
   // Deprecation warning for callers still passing sessionId
   if (sessionId) {
-    console.warn('[ClaudeIntegration:resumeClaudeAsync] sessionId parameter is deprecated and ignored; using claude --continue instead');
+    debugClaudeLog('resumeClaudeAsync: sessionId parameter is deprecated and ignored; using claude --continue instead');
   }
 
   const command = `${escapedClaudeCmd} --continue`;
@@ -852,7 +931,7 @@ async function waitForClaudeExit(
 
       // Check for timeout
       if (elapsed >= timeout) {
-        console.warn('[ClaudeIntegration:waitForClaudeExit] Timeout waiting for Claude to exit after', timeout, 'ms');
+        debugClaudeLog('waitForClaudeExit: Timeout waiting for Claude to exit after', timeout, 'ms');
         debugLog('[ClaudeIntegration:waitForClaudeExit] Timeout reached, Claude may not have exited cleanly');
         resolve({
           success: false,
@@ -901,9 +980,8 @@ export async function switchClaudeProfile(
   invokeClaudeCallback: (terminalId: string, cwd: string | undefined, profileId: string, dangerouslySkipPermissions?: boolean) => Promise<void>,
   clearRateLimitCallback: (terminalId: string) => void
 ): Promise<{ success: boolean; error?: string }> {
-  // Always-on tracing
-  console.warn('[ClaudeIntegration:switchClaudeProfile] Called for terminal:', terminal.id, '| profileId:', profileId);
-  console.warn('[ClaudeIntegration:switchClaudeProfile] Terminal state: isClaudeMode=', terminal.isClaudeMode);
+  debugClaudeLog('switchClaudeProfile: Called for terminal:', terminal.id, '| profileId:', profileId);
+  debugClaudeLog('switchClaudeProfile: Terminal state: isClaudeMode=', terminal.isClaudeMode);
 
   debugLog('[ClaudeIntegration:switchClaudeProfile] ========== SWITCH PROFILE START ==========');
   debugLog('[ClaudeIntegration:switchClaudeProfile] Terminal ID:', terminal.id);
@@ -920,7 +998,7 @@ export async function switchClaudeProfile(
   const profileManager = await initializeClaudeProfileManager();
   const profile = profileManager.getProfile(profileId);
 
-  console.warn('[ClaudeIntegration:switchClaudeProfile] Profile found:', profile?.name || 'NOT FOUND');
+  debugClaudeLog('switchClaudeProfile: Profile found:', profile?.name || 'NOT FOUND');
   debugLog('[ClaudeIntegration:switchClaudeProfile] Target profile:', profile ? {
     id: profile.id,
     name: profile.name,
@@ -934,11 +1012,11 @@ export async function switchClaudeProfile(
     return { success: false, error: 'Profile not found' };
   }
 
-  console.warn('[ClaudeIntegration:switchClaudeProfile] Switching to profile:', profile.name);
+  debugClaudeLog('switchClaudeProfile: Switching to profile:', profile.name);
   debugLog('[ClaudeIntegration:switchClaudeProfile] Switching to Claude profile:', profile.name);
 
   if (terminal.isClaudeMode) {
-    console.warn('[ClaudeIntegration:switchClaudeProfile] Sending exit commands (Ctrl+C, /exit)');
+    debugClaudeLog('switchClaudeProfile: Sending exit commands (Ctrl+C, /exit)');
     debugLog('[ClaudeIntegration:switchClaudeProfile] Terminal is in Claude mode, sending exit commands');
 
     // Send Ctrl+C to interrupt any ongoing operation
@@ -956,7 +1034,7 @@ export async function switchClaudeProfile(
     const exitResult = await waitForClaudeExit(terminal, { timeout: 5000, pollInterval: 100 });
 
     if (exitResult.timedOut) {
-      console.warn('[ClaudeIntegration:switchClaudeProfile] Timed out waiting for Claude to exit, proceeding with caution');
+      debugClaudeLog('switchClaudeProfile: Timed out waiting for Claude to exit, proceeding with caution');
       debugLog('[ClaudeIntegration:switchClaudeProfile] Exit timeout - terminal may be in inconsistent state');
 
       // Even on timeout, we'll try to proceed but log the warning
@@ -967,11 +1045,11 @@ export async function switchClaudeProfile(
       debugError('[ClaudeIntegration:switchClaudeProfile] Exit failed:', exitResult.error);
       // Continue anyway - the /exit command was sent
     } else {
-      console.warn('[ClaudeIntegration:switchClaudeProfile] Claude exited successfully');
+      debugClaudeLog('switchClaudeProfile: Claude exited successfully');
       debugLog('[ClaudeIntegration:switchClaudeProfile] Claude exited, ready to switch profile');
     }
   } else {
-    console.warn('[ClaudeIntegration:switchClaudeProfile] NOT in Claude mode, skipping exit commands');
+    debugClaudeLog('switchClaudeProfile: NOT in Claude mode, skipping exit commands');
     debugLog('[ClaudeIntegration:switchClaudeProfile] Terminal NOT in Claude mode, skipping exit commands');
   }
 
@@ -979,7 +1057,7 @@ export async function switchClaudeProfile(
   clearRateLimitCallback(terminal.id);
 
   const projectPath = terminal.projectPath || terminal.cwd;
-  console.warn('[ClaudeIntegration:switchClaudeProfile] Invoking Claude with profile:', profileId, '| cwd:', projectPath, '| YOLO:', terminal.dangerouslySkipPermissions);
+  debugClaudeLog('switchClaudeProfile: Invoking Claude with profile:', profileId, '| cwd:', projectPath, '| YOLO:', terminal.dangerouslySkipPermissions);
   debugLog('[ClaudeIntegration:switchClaudeProfile] Invoking Claude with new profile:', {
     terminalId: terminal.id,
     projectPath,
@@ -992,7 +1070,7 @@ export async function switchClaudeProfile(
   debugLog('[ClaudeIntegration:switchClaudeProfile] Setting active profile in profile manager');
   profileManager.setActiveProfile(profileId);
 
-  console.warn('[ClaudeIntegration:switchClaudeProfile] COMPLETE');
+  debugClaudeLog('switchClaudeProfile: COMPLETE');
   debugLog('[ClaudeIntegration:switchClaudeProfile] ========== SWITCH PROFILE COMPLETE ==========');
   return { success: true };
 }

@@ -203,7 +203,9 @@ def handle_batch_cleanup_command(project_dir: str, dry_run: bool = True) -> bool
             specs_dir = legacy_specs_dir
     worktrees_dir = Path(project_dir) / ".ouro" / "worktrees" / "tasks"
     if not worktrees_dir.exists():
-        legacy_worktrees_dir = Path(project_dir) / ".auto-claude" / "worktrees" / "tasks"
+        legacy_worktrees_dir = (
+            Path(project_dir) / ".auto-claude" / "worktrees" / "tasks"
+        )
         if legacy_worktrees_dir.exists():
             worktrees_dir = legacy_worktrees_dir
 

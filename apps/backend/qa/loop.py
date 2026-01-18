@@ -29,6 +29,10 @@ from task_logger import (
     get_task_logger,
 )
 
+from .config import (
+    check_qa_prerequisites,
+    detect_login_requirement,
+)
 from .criteria import (
     get_qa_iteration_count,
     get_qa_signoff_status,
@@ -36,7 +40,19 @@ from .criteria import (
     load_implementation_plan,
     save_implementation_plan,
 )
+from .escalation import (
+    apply_auto_detected_config,
+    clear_escalation,
+    escalate_for_credentials,
+    escalate_for_dev_server,
+    escalate_recurring_issues,
+)
 from .fixer import run_qa_fixer_session
+from .gates import (
+    IssueClassification,
+    get_recommended_action,
+    run_post_session_gates,
+)
 from .report import (
     create_manual_test_plan,
     escalate_to_human,
@@ -120,6 +136,86 @@ async def run_qa_validation_loop(
 
     # Emit phase event at start of QA validation (before any early returns)
     emit_phase(ExecutionPhase.QA_REVIEW, "Starting QA validation")
+
+    # =========================================================================
+    # PREREQUISITES CHECK - Gate before running QA
+    # =========================================================================
+    # This is a programmatic gate that prevents QA from running blindly.
+    # If prerequisites aren't met, we escalate to human and STOP.
+
+    # First, try to auto-apply detected config (e.g., dev server)
+    await apply_auto_detected_config(spec_dir, project_dir)
+
+    # Detect if this spec likely needs login credentials
+    requires_login = detect_login_requirement(spec_dir, project_dir)
+
+    # Check prerequisites
+    prereq_result = check_qa_prerequisites(
+        spec_dir=spec_dir,
+        project_dir=project_dir,
+        requires_login=requires_login,
+        requires_dev_server=True,  # E2E tests need dev server
+    )
+
+    if not prereq_result["can_proceed"]:
+        blocker_type = prereq_result["blocker_type"]
+        debug_warning(
+            "qa_loop",
+            f"Prerequisites not met: {blocker_type}",
+            details=prereq_result["blocker_details"],
+        )
+
+        # Escalate to human based on blocker type
+        if blocker_type == "NEED_CREDENTIALS":
+            await escalate_for_credentials(spec_dir, project_dir)
+        elif blocker_type == "NEED_DEV_SERVER":
+            await escalate_for_dev_server(spec_dir, project_dir)
+
+        # End task logger phase
+        if task_logger:
+            task_logger.end_phase(
+                LogPhase.VALIDATION,
+                success=False,
+                message=f"QA blocked: {prereq_result['blocker_details']}",
+            )
+
+        return False  # Stop - wait for human input
+
+    # Prerequisites met - clear any old escalation files
+    clear_escalation(spec_dir)
+
+    debug_success("qa_loop", "Prerequisites check passed")
+
+    # =========================================================================
+    # INITIALIZE QA SUBTASKS - Parse from spec.md acceptance criteria
+    # =========================================================================
+    from .subtasks import initialize_qa_subtasks
+
+    qa_subtasks = initialize_qa_subtasks(spec_dir)
+    if qa_subtasks:
+        debug(
+            "qa_loop",
+            "QA subtasks initialized from spec",
+            count=len(qa_subtasks),
+            subtasks=[s.id for s in qa_subtasks],
+        )
+        print(f"\n📋 QA Subtasks: {len(qa_subtasks)} acceptance criteria to verify")
+        for subtask in qa_subtasks[:5]:  # Show first 5
+            print(f"   - {subtask.id}: {subtask.description[:60]}...")
+        if len(qa_subtasks) > 5:
+            print(f"   ... and {len(qa_subtasks) - 5} more")
+    else:
+        debug_warning(
+            "qa_loop", "No QA subtasks found - will use traditional verdict-only mode"
+        )
+
+    # =========================================================================
+    # END QA SUBTASKS INITIALIZATION
+    # =========================================================================
+
+    # =========================================================================
+    # END PREREQUISITES CHECK
+    # =========================================================================
 
     # Check if there's pending human feedback that needs to be processed
     fix_request_file = spec_dir / "QA_FIX_REQUEST.md"
@@ -276,7 +372,47 @@ async def run_qa_validation_loop(
             response_length=len(response),
         )
 
-        if status == "approved":
+        # =========================================================================
+        # PROGRAMMATIC GATES - Run after agent session
+        # =========================================================================
+        # Gates can override agent verdict based on objective metrics
+        qa_signoff = get_qa_signoff_status(spec_dir)
+        history = get_iteration_history(spec_dir)
+
+        gate_result = run_post_session_gates(
+            spec_dir=spec_dir,
+            qa_signoff=qa_signoff,
+            agent_verdict=status,
+            history=history,
+            response_text=response,  # For verdict token verification
+        )
+
+        # Use gate's final verdict (may override agent)
+        final_status = gate_result.final_verdict
+
+        if gate_result.override_reason:
+            debug_warning(
+                "qa_loop",
+                f"Gates overrode agent: {gate_result.override_reason}",
+                agent_said=status,
+                gates_say=final_status,
+            )
+            print(f"\n⚠️  Gate override: {gate_result.override_reason}")
+
+        # Get recommended action from gates
+        action = get_recommended_action(gate_result)
+        debug(
+            "qa_loop",
+            "Gate recommended action",
+            action=action["action"],
+            reason=action["reason"],
+        )
+
+        # =========================================================================
+        # END PROGRAMMATIC GATES
+        # =========================================================================
+
+        if final_status == "approved":
             emit_phase(ExecutionPhase.COMPLETE, "QA validation passed")
             # Reset error tracking on success
             consecutive_errors = 0
@@ -323,7 +459,7 @@ async def run_qa_validation_loop(
 
             return True
 
-        elif status == "rejected":
+        elif final_status == "rejected":
             # Reset error tracking on valid response (rejected is a valid response)
             consecutive_errors = 0
             last_error_context = None
@@ -336,9 +472,8 @@ async def run_qa_validation_loop(
             )
             print(f"\n❌ QA found issues. Iteration {qa_iteration}/{MAX_QA_ITERATIONS}")
 
-            # Get issues from QA report
-            qa_status = get_qa_signoff_status(spec_dir)
-            current_issues = qa_status.get("issues_found", []) if qa_status else []
+            # Get issues from QA signoff (already fetched for gates)
+            current_issues = qa_signoff.get("issues_found", []) if qa_signoff else []
             debug(
                 "qa_loop",
                 "Issues found by QA",
@@ -346,24 +481,56 @@ async def run_qa_validation_loop(
                 issues=current_issues[:3] if current_issues else [],  # Show first 3
             )
 
-            # Check for recurring issues BEFORE recording current iteration
-            # This prevents the current issues from matching themselves in history
-            history = get_iteration_history(spec_dir)
-            has_recurring, recurring_issues = has_recurring_issues(
-                current_issues, history
-            )
-
-            # Record rejected iteration AFTER checking for recurring issues
+            # Record rejected iteration
             record_iteration(
                 spec_dir, qa_iteration, "rejected", current_issues, iteration_duration
             )
 
-            if has_recurring:
+            # =====================================================================
+            # GATE-BASED ROUTING - Use classification to determine next action
+            # =====================================================================
+            classification = gate_result.classification
+
+            # Handle escalations based on gate classification
+            if classification == IssueClassification.NEEDS_CREDENTIALS:
+                debug_warning("qa_loop", "Gate classification: needs credentials")
+                print("\n⚠️  Login credentials required for E2E testing.")
+                await escalate_for_credentials(spec_dir, project_dir)
+
+                if task_logger:
+                    task_logger.end_phase(
+                        LogPhase.VALIDATION,
+                        success=False,
+                        message="QA blocked: credentials required",
+                    )
+
+                return False
+
+            if classification == IssueClassification.NEEDS_CONFIG:
+                debug_warning("qa_loop", "Gate classification: needs config")
+                print("\n⚠️  Dev server configuration required.")
+                await escalate_for_dev_server(spec_dir, project_dir)
+
+                if task_logger:
+                    task_logger.end_phase(
+                        LogPhase.VALIDATION,
+                        success=False,
+                        message="QA blocked: dev server config required",
+                    )
+
+                return False
+
+            if classification == IssueClassification.RECURRING:
                 from .report import RECURRING_ISSUE_THRESHOLD
+
+                # Get recurring issues for escalation
+                has_recurring_flag, recurring_issues = has_recurring_issues(
+                    current_issues, history
+                )
 
                 debug_error(
                     "qa_loop",
-                    "Recurring issues detected - escalating to human",
+                    "Gate classification: recurring issues",
                     recurring_count=len(recurring_issues),
                     threshold=RECURRING_ISSUE_THRESHOLD,
                 )
@@ -372,10 +539,8 @@ async def run_qa_validation_loop(
                 )
                 print("Escalating to human review due to recurring issues...")
 
-                # Create escalation file
                 await escalate_to_human(spec_dir, recurring_issues, qa_iteration)
 
-                # End validation phase
                 if task_logger:
                     task_logger.end_phase(
                         LogPhase.VALIDATION,
@@ -383,7 +548,6 @@ async def run_qa_validation_loop(
                         message=f"QA escalated to human after {qa_iteration} iterations due to recurring issues",
                     )
 
-                # Update Linear
                 if linear_task and linear_task.task_id:
                     await linear_qa_max_iterations(spec_dir, qa_iteration)
                     print(
@@ -391,6 +555,36 @@ async def run_qa_validation_loop(
                     )
 
                 return False
+
+            if classification == IssueClassification.NEEDS_HUMAN:
+                debug_warning("qa_loop", "Gate classification: needs human judgment")
+                print("\n⚠️  Issues require human judgment.")
+
+                # Create escalation with the issues
+                await escalate_recurring_issues(spec_dir, current_issues, qa_iteration)
+
+                if task_logger:
+                    task_logger.end_phase(
+                        LogPhase.VALIDATION,
+                        success=False,
+                        message="QA escalated: issues need human judgment",
+                    )
+
+                if linear_task and linear_task.task_id:
+                    await linear_qa_max_iterations(spec_dir, qa_iteration)
+
+                return False
+
+            # =====================================================================
+            # AUTO-FIXABLE - Continue the loop
+            # =====================================================================
+            debug("qa_loop", "Gate classification: auto-fixable - continuing loop")
+
+            # Show gate violations if any
+            if gate_result.violations:
+                print("\nGate violations (will be fixed):")
+                for v in gate_result.violations:
+                    print(f"  - {v.message}")
 
             # Record rejection in Linear
             if linear_task and linear_task.task_id:
@@ -447,15 +641,20 @@ async def run_qa_validation_loop(
             debug_success("qa_loop", "Fixes applied, re-running QA validation")
             print("\n✅ Fixes applied. Re-running QA validation...")
 
-        elif status == "error":
+        elif final_status == "error":
             consecutive_errors += 1
+
+            # Determine error message - use gate override reason if available
+            error_message = gate_result.override_reason or response[:200]
+
             debug_error(
                 "qa_loop",
-                f"QA session error: {response[:200]}",
+                f"QA session error: {error_message}",
                 consecutive_errors=consecutive_errors,
                 max_consecutive=MAX_CONSECUTIVE_ERRORS,
+                gate_override=gate_result.override_reason is not None,
             )
-            print(f"\n❌ QA error: {response}")
+            print(f"\n❌ QA error: {error_message}")
             print(
                 f"   Consecutive errors: {consecutive_errors}/{MAX_CONSECUTIVE_ERRORS}"
             )
@@ -463,15 +662,33 @@ async def run_qa_validation_loop(
                 spec_dir,
                 qa_iteration,
                 "error",
-                [{"title": "QA error", "description": response}],
+                [{"title": "QA error", "description": error_message}],
             )
 
             # Build error context for self-correction in next iteration
+            # Include verdict token requirement if that was the issue
+            if (
+                gate_result.override_reason
+                and "token" in gate_result.override_reason.lower()
+            ):
+                expected_action = (
+                    "You MUST output <qa-verdict>APPROVED</qa-verdict> or "
+                    "<qa-verdict>REJECTED</qa-verdict> at the end of your response. "
+                    "This token MUST match the status you write to qa_signoff in implementation_plan.json."
+                )
+                error_type = "missing_verdict_token"
+            else:
+                expected_action = (
+                    "You MUST update implementation_plan.json with a qa_signoff object "
+                    "containing 'status': 'approved' or 'status': 'rejected'"
+                )
+                error_type = "missing_implementation_plan_update"
+
             last_error_context = {
-                "error_type": "missing_implementation_plan_update",
-                "error_message": response,
+                "error_type": error_type,
+                "error_message": error_message,
                 "consecutive_errors": consecutive_errors,
-                "expected_action": "You MUST update implementation_plan.json with a qa_signoff object containing 'status': 'approved' or 'status': 'rejected'",
+                "expected_action": expected_action,
                 "file_path": str(spec_dir / "implementation_plan.json"),
             }
 

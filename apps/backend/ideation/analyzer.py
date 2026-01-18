@@ -96,7 +96,10 @@ class ProjectAnalyzer:
             )
             if not discovery_path.exists():
                 legacy_discovery = (
-                    self.project_dir / ".auto-claude" / "roadmap" / "roadmap_discovery.json"
+                    self.project_dir
+                    / ".auto-claude"
+                    / "roadmap"
+                    / "roadmap_discovery.json"
                 )
                 if legacy_discovery.exists():
                     discovery_path = legacy_discovery

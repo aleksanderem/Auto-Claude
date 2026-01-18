@@ -174,9 +174,7 @@ def handle_workspace_choice(
                 print(highlight(f"  cd {worktree_path}"))
             else:
                 print(
-                    highlight(
-                        f"  cd {project_dir}/.ouro/worktrees/tasks/{spec_name}"
-                    )
+                    highlight(f"  cd {project_dir}/.ouro/worktrees/tasks/{spec_name}")
                 )
 
         # Show likely test/run commands
@@ -245,9 +243,7 @@ def handle_workspace_choice(
                 print(highlight(f"  cd {worktree_path}"))
             else:
                 print(
-                    highlight(
-                        f"  cd {project_dir}/.ouro/worktrees/tasks/{spec_name}"
-                    )
+                    highlight(f"  cd {project_dir}/.ouro/worktrees/tasks/{spec_name}")
                 )
         print()
         print("When you're ready to add it:")
