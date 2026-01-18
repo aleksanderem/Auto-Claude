@@ -8,6 +8,8 @@ Modular QA validation system with:
 - Recurring issue detection
 - QA reviewer and fixer agents
 - Main orchestration loop
+- Prerequisites checking and human escalation (NEW)
+- QA configuration management (credentials, dev server) (NEW)
 
 Usage:
     from qa import run_qa_validation_loop, should_run_qa, is_qa_approved
@@ -18,9 +20,25 @@ Module structure:
     - fixer.py: QA fixer agent session
     - report.py: Issue tracking, reporting, escalation
     - criteria.py: Acceptance criteria and status management
+    - config.py: QA configuration (credentials, dev server) (NEW)
+    - escalation.py: Human escalation mechanisms (NEW)
 """
 
-# Configuration constants
+# QA Configuration (NEW)
+from .config import (
+    QAConfig,
+    check_qa_prerequisites,
+    detect_login_requirement,
+    get_dev_server_config,
+    get_login_credentials,
+    has_dev_server_config,
+    has_login_credentials,
+    load_qa_config,
+    save_qa_config,
+    set_dev_server_config,
+    set_login_credentials,
+)
+
 # Criteria & status
 from .criteria import (
     get_qa_iteration_count,
@@ -62,6 +80,40 @@ from .report import (
 # Agent sessions
 from .reviewer import run_qa_agent_session
 
+# Escalation mechanisms (NEW)
+from .escalation import (
+    clear_escalation,
+    escalate_for_credentials,
+    escalate_for_dev_server,
+    escalate_recurring_issues,
+    has_pending_escalation,
+)
+
+# Programmatic gates (NEW)
+from .gates import (
+    GateResult,
+    GateViolation,
+    GateViolationType,
+    IssueClassification,
+    get_recommended_action,
+    run_post_session_gates,
+)
+
+# QA Subtasks (NEW)
+from .subtasks import (
+    QASubtask,
+    QASubtasksResult,
+    add_qa_subtask,
+    create_qa_subtasks_from_spec,
+    get_qa_subtasks_result,
+    initialize_qa_subtasks,
+    load_qa_subtasks,
+    parse_acceptance_criteria_from_spec,
+    save_qa_subtasks,
+    update_qa_subtask_status,
+    verify_all_subtasks_complete,
+)
+
 # Public API
 __all__ = [
     # Configuration
@@ -70,6 +122,43 @@ __all__ = [
     "ISSUE_SIMILARITY_THRESHOLD",
     # Main loop
     "run_qa_validation_loop",
+    # QA Config (NEW)
+    "QAConfig",
+    "load_qa_config",
+    "save_qa_config",
+    "get_login_credentials",
+    "set_login_credentials",
+    "has_login_credentials",
+    "get_dev_server_config",
+    "set_dev_server_config",
+    "has_dev_server_config",
+    "check_qa_prerequisites",
+    "detect_login_requirement",
+    # Escalation (NEW)
+    "escalate_for_credentials",
+    "escalate_for_dev_server",
+    "escalate_recurring_issues",
+    "has_pending_escalation",
+    "clear_escalation",
+    # Programmatic gates (NEW)
+    "GateResult",
+    "GateViolation",
+    "GateViolationType",
+    "IssueClassification",
+    "run_post_session_gates",
+    "get_recommended_action",
+    # QA Subtasks (NEW)
+    "QASubtask",
+    "QASubtasksResult",
+    "parse_acceptance_criteria_from_spec",
+    "create_qa_subtasks_from_spec",
+    "load_qa_subtasks",
+    "save_qa_subtasks",
+    "initialize_qa_subtasks",
+    "add_qa_subtask",
+    "update_qa_subtask_status",
+    "get_qa_subtasks_result",
+    "verify_all_subtasks_complete",
     # Criteria & status
     "load_implementation_plan",
     "save_implementation_plan",

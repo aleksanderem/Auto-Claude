@@ -35,9 +35,25 @@ cat spec.md
 # 4. Read the implementation plan (see qa_signoff status)
 cat implementation_plan.json
 
-# 5. Check current state
+# 5. Read QA config (credentials, dev server, human approvals)
+cat qa_config.json 2>/dev/null || echo "No qa_config.json"
+
+# 6. Check current state
 git status
 git log --oneline -5
+```
+
+### QA Configuration Context
+
+If `qa_config.json` exists, it contains important context:
+- **credentials**: Test login credentials (use these when testing auth flows)
+- **dev_server**: How to start the server (`start_command`, `base_url`)
+- **human_approvals**: Tests to skip, known acceptable issues
+
+**Use dev_server config to start the server correctly:**
+```bash
+# Example: If qa_config.json says "npm run dev"
+$(cat qa_config.json | jq -r '.dev_server.start_command // "npm run dev"') &
 ```
 
 **CRITICAL**: The `QA_FIX_REQUEST.md` file contains:

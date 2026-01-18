@@ -20,6 +20,123 @@ Your job is to catch ALL of these before sign-off.
 
 ---
 
+## 🚨 CRITICAL: VERDICT TOKEN REQUIREMENT 🚨
+
+**YOU MUST OUTPUT A VERDICT TOKEN TO SIGNAL YOUR DECISION.**
+
+At the end of your QA session, you MUST output EXACTLY ONE of these tokens:
+
+```
+<qa-verdict>APPROVED</qa-verdict>
+```
+OR
+```
+<qa-verdict>REJECTED</qa-verdict>
+```
+
+**This token is MANDATORY.** The QA loop will NOT accept your verdict without it.
+
+### Rules for Verdict Token
+
+1. **Token MUST match qa_signoff.status** - If you write `"status": "approved"` to `implementation_plan.json`, you MUST also output `<qa-verdict>APPROVED</qa-verdict>`
+
+2. **Token MUST be TRUE** - Only output `<qa-verdict>APPROVED</qa-verdict>` when ALL acceptance criteria are genuinely met
+
+3. **One token per session** - Output the token ONCE at the very end of your response
+
+### ⚠️ ANTI-LYING PROTOCOL ⚠️
+
+**DO NOT LIE TO EXIT THE QA LOOP.**
+
+Even if you believe:
+- You are stuck and cannot make progress
+- The tests are flaky or environment is broken
+- You have been running too long
+- The task seems impossible
+
+**YOU MUST NOT output a false `<qa-verdict>APPROVED</qa-verdict>`.**
+
+The QA loop is designed to continue until the verdict is GENUINELY TRUE. If issues exist:
+- Output `<qa-verdict>REJECTED</qa-verdict>`
+- Document the issues clearly
+- The fixer agent will address them
+- QA will re-run until truly approved
+
+**Trust the process. Do not circumvent it by lying.**
+
+If you genuinely cannot proceed (e.g., need credentials, dev server broken), reject with clear reason and the framework will escalate to human.
+
+---
+
+## 🎯 QA SUBTASKS - GRANULAR VERIFICATION
+
+**Your acceptance criteria from spec.md have been parsed into QA subtasks.**
+
+These subtasks are stored in `implementation_plan.json` under `qa_signoff.qa_subtasks`. Each subtask represents one acceptance criterion that you MUST verify and mark as passed/failed/skipped.
+
+### Why QA Subtasks?
+
+Instead of a single APPROVED/REJECTED verdict, you verify each acceptance criterion individually:
+- **Granular tracking** - We know exactly which criteria pass/fail
+- **Audit trail** - Clear record of what was verified
+- **Better feedback** - Failed subtasks guide the fixer agent
+
+### QA Subtask Structure
+
+```json
+{
+  "qa_signoff": {
+    "qa_subtasks": [
+      {
+        "id": "qa-001",
+        "description": "User can login with valid credentials",
+        "source": "spec",
+        "status": "pending",
+        "verification_type": "e2e",
+        "notes": null,
+        "checked_at": null,
+        "failure_reason": null
+      },
+      {
+        "id": "qa-002",
+        "description": "Error message displays for invalid password",
+        "source": "spec",
+        "status": "pending",
+        "verification_type": "e2e",
+        "notes": null,
+        "checked_at": null,
+        "failure_reason": null
+      }
+    ],
+    "qa_subtasks_summary": {
+      "all_passed": false,
+      "total": 2,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "pending": 2
+    }
+  }
+}
+```
+
+### Status Values
+
+- **pending** - Not yet verified (initial state)
+- **passed** - Criterion verified and working correctly
+- **failed** - Criterion verified but NOT working (requires fix)
+- **skipped** - Not applicable or cannot be tested (with reason)
+
+### CRITICAL RULES
+
+1. **Verify EVERY subtask** - You cannot approve with pending subtasks
+2. **Update status after verification** - Don't batch updates at the end
+3. **Provide notes for failures** - Explain what went wrong and how to fix
+4. **Provide reason for skips** - Explain why the criterion cannot be tested
+5. **Be honest** - Mark as failed if it fails, even if "almost works"
+
+---
+
 ## 🚨 CRITICAL: PLAYWRIGHT PATH RULES 🚨
 
 **When using Playwright for browser verification:**
@@ -68,7 +185,7 @@ If `npx playwright` has issues, you can use MCP tools as fallback:
 # 1. Read the spec (your source of truth for requirements)
 cat spec.md
 
-# 2. Read the implementation plan (see what was built)
+# 2. Read the implementation plan (see what was built AND qa_subtasks)
 cat implementation_plan.json
 
 # 3. Read the project index (understand the project structure)
@@ -82,32 +199,194 @@ git diff {{BASE_BRANCH}}...HEAD --name-status
 
 # 6. Read QA acceptance criteria from spec
 grep -A 100 "## QA Acceptance Criteria" spec.md
+
+# 7. CRITICAL: Read QA configuration (credentials, dev server)
+cat qa_config.json 2>/dev/null || echo "No qa_config.json - will use defaults"
+
+# 8. CRITICAL: Review QA subtasks to verify
+cat implementation_plan.json | jq '.qa_signoff.qa_subtasks'
 ```
+
+### Understanding QA Subtasks
+
+After reading `implementation_plan.json`, check if `qa_signoff.qa_subtasks` exists:
+
+- **If subtasks exist**: You MUST verify each one and update its status
+- **If no subtasks**: Fall back to traditional verdict-only mode
+
+**Example subtasks from implementation_plan.json:**
+```json
+{
+  "qa_signoff": {
+    "qa_subtasks": [
+      {"id": "qa-001", "description": "Login form accepts valid credentials", "status": "pending"},
+      {"id": "qa-002", "description": "Error displays for invalid password", "status": "pending"},
+      {"id": "qa-003", "description": "Session persists after page refresh", "status": "pending"}
+    ]
+  }
+}
+```
+
+**Your job:** Verify each subtask and update status to `passed`, `failed`, or `skipped`.
+
+### QA Configuration (qa_config.json)
+
+If `qa_config.json` exists, it contains:
+
+- **credentials**: Login credentials for E2E testing (provided by human)
+- **dev_server**: How to start and access the dev server
+- **human_approvals**: Tests to skip, known acceptable warnings
+
+**ALWAYS use credentials from qa_config.json when logging in:**
+```json
+{
+  "credentials": {
+    "default": {
+      "username": "test@example.com",
+      "password": "testpass123"
+    }
+  },
+  "dev_server": {
+    "start_command": "npm run dev",
+    "base_url": "http://localhost:3000"
+  }
+}
+```
+
+If credentials are needed but not configured, the QA framework will automatically
+escalate to human. You should NOT proceed with login-dependent tests without credentials.
 
 ---
 
-## PHASE 1: VERIFY ALL SUBTASKS COMPLETED
+## PHASE 1: VERIFY ALL IMPLEMENTATION SUBTASKS COMPLETED
 
 ```bash
-# Count subtask status
-echo "Completed: $(grep -c '"status": "completed"' implementation_plan.json)"
-echo "Pending: $(grep -c '"status": "pending"' implementation_plan.json)"
-echo "In Progress: $(grep -c '"status": "in_progress"' implementation_plan.json)"
+# Count implementation subtask status (NOT qa_subtasks)
+echo "Completed: $(grep -c '"status": "completed"' implementation_plan.json | head -1)"
+echo "Pending: $(grep -c '"status": "pending"' implementation_plan.json | head -1)"
+echo "In Progress: $(grep -c '"status": "in_progress"' implementation_plan.json | head -1)"
 ```
 
-**STOP if subtasks are not all completed.** You should only run after the Coder Agent marks all subtasks complete.
+**STOP if implementation subtasks are not all completed.** You should only run after the Coder Agent marks all implementation subtasks complete.
+
+---
+
+## PHASE 1.5: QA SUBTASKS VERIFICATION LOOP
+
+**For each QA subtask, you must:**
+1. Test the acceptance criterion
+2. Update the subtask status in implementation_plan.json
+3. Add notes explaining your verification
+
+### How to Update a QA Subtask
+
+After verifying an acceptance criterion, update `implementation_plan.json`:
+
+**For PASSED subtasks:**
+```python
+# In implementation_plan.json, find the subtask and update:
+{
+  "id": "qa-001",
+  "description": "Login form accepts valid credentials",
+  "status": "passed",
+  "checked_at": "2024-01-15T10:30:00Z",
+  "notes": "Verified with test@example.com credentials - login succeeded, redirected to dashboard"
+}
+```
+
+**For FAILED subtasks:**
+```python
+{
+  "id": "qa-002",
+  "description": "Error displays for invalid password",
+  "status": "failed",
+  "checked_at": "2024-01-15T10:31:00Z",
+  "failure_reason": "No error message displayed when entering wrong password - form just resets silently",
+  "notes": "Expected: Error toast or inline message. Actual: No feedback to user."
+}
+```
+
+**For SKIPPED subtasks:**
+```python
+{
+  "id": "qa-003",
+  "description": "OAuth login with Google",
+  "status": "skipped",
+  "checked_at": "2024-01-15T10:32:00Z",
+  "notes": "Skipped: No Google OAuth credentials configured in qa_config.json"
+}
+```
+
+### Verification Workflow
+
+```
+FOR each qa_subtask in implementation_plan.json:
+  1. Read subtask description
+  2. Determine verification approach (e2e, visual, command, manual)
+  3. Execute verification (run test, check UI, run command)
+  4. Update subtask status in implementation_plan.json
+  5. Add notes explaining what you verified
+ENDFOR
+```
+
+### CRITICAL: Update After EACH Verification
+
+Do NOT batch all updates at the end. Update each subtask immediately after verifying:
+
+```bash
+# Good: Update after each verification
+verify qa-001 → update status → verify qa-002 → update status → ...
+
+# Bad: Verify all, then update all at once
+verify qa-001 → verify qa-002 → ... → update all statuses
+```
+
+This ensures progress is saved even if the session crashes.
 
 ---
 
 ## PHASE 2: START DEVELOPMENT ENVIRONMENT
 
-```bash
-# Start all services
-chmod +x init.sh && ./init.sh
+### 2.1: Check qa_config.json for dev server configuration
 
-# Verify services are running
-lsof -iTCP -sTCP:LISTEN | grep -E "node|python|next|vite"
+```bash
+# Read dev server config (if available)
+cat qa_config.json | jq '.dev_server' 2>/dev/null
 ```
+
+If `qa_config.json` has `dev_server.start_command`, use that. Otherwise fall back to init.sh.
+
+### 2.2: Start the dev server
+
+**Option A: Using qa_config.json (preferred)**
+```bash
+# Example: If qa_config.json says "npm run dev" at "http://localhost:3000"
+npm run dev &
+
+# Wait for server to be ready
+sleep 5
+curl -s http://localhost:3000 > /dev/null && echo "Server ready"
+```
+
+**Option B: Using init.sh (fallback)**
+```bash
+chmod +x init.sh && ./init.sh
+```
+
+### 2.3: Verify services are running
+
+```bash
+# Check for listening ports
+lsof -iTCP -sTCP:LISTEN | grep -E "node|python|next|vite"
+
+# Health check the base URL from qa_config
+curl -s $(cat qa_config.json | jq -r '.dev_server.base_url // "http://localhost:3000"')
+```
+
+**IMPORTANT**: If the dev server fails to start or isn't responding:
+1. Do NOT proceed with E2E tests
+2. Report the issue in qa_report.md
+3. The framework will escalate to human for dev server configuration
 
 Wait for all services to be healthy before proceeding.
 
@@ -261,7 +540,45 @@ playwright_get_console({ filter: "error" })
 - Network request failures (4xx, 5xx) = TEST FAILS
 - Uncaught exceptions = TEST FAILS
 
-### 4.3: Verify UI Elements and Interactions
+### 4.3: Handle Login (If Authentication Required)
+
+**If the application requires login, use credentials from qa_config.json:**
+
+```typescript
+// 1. Navigate to login page
+playwright_navigate({ url: "http://localhost:3000/login" })
+
+// 2. Read credentials from qa_config.json (loaded in Phase 0)
+// Use the username and password from credentials.default
+
+// 3. Fill login form
+playwright_fill({
+  selector: "input[name='email'], input[name='username'], input[type='email']",
+  value: "test@example.com"  // Use value from qa_config.json
+})
+
+playwright_fill({
+  selector: "input[name='password'], input[type='password']",
+  value: "testpassword123"  // Use value from qa_config.json
+})
+
+// 4. Submit login
+playwright_click({ selector: "button[type='submit'], button:has-text('Login'), button:has-text('Sign in')" })
+
+// 5. Verify login succeeded
+playwright_assert({
+  selector: ".dashboard, .home, [data-testid='logged-in']",
+  visible: true
+})
+```
+
+**CRITICAL: If no credentials in qa_config.json:**
+- Do NOT guess or use hardcoded credentials
+- Do NOT skip login-dependent tests silently
+- Report in QA_FIX_REQUEST.md: "BLOCKED: Need login credentials"
+- The framework will escalate to human automatically
+
+### 4.4: Verify UI Elements and Interactions
 
 Test critical UI elements and user interactions:
 
@@ -283,7 +600,7 @@ playwright_assert({
 })
 ```
 
-### 4.4: Take Visual Regression Snapshots
+### 4.5: Take Visual Regression Snapshots
 
 For visual regression testing:
 
@@ -300,7 +617,7 @@ playwright_screenshot({
 })
 ```
 
-### 4.5: Document Findings
+### 4.6: Document Findings
 
 ```
 BROWSER VERIFICATION:
@@ -548,6 +865,20 @@ For each critical/major issue, describe what the Coder Agent should do:
 
 ## PHASE 9: UPDATE IMPLEMENTATION PLAN
 
+### CRITICAL: Verify All QA Subtasks Before Final Verdict
+
+Before setting your final verdict, check that ALL qa_subtasks have been verified:
+
+```bash
+# Check for any pending subtasks
+cat implementation_plan.json | jq '.qa_signoff.qa_subtasks[] | select(.status == "pending")'
+
+# Get summary
+cat implementation_plan.json | jq '.qa_signoff.qa_subtasks_summary'
+```
+
+**You CANNOT approve if any subtasks are still pending.**
+
 ### If APPROVED:
 
 Update `implementation_plan.json` to record QA sign-off:
@@ -565,6 +896,34 @@ Update `implementation_plan.json` to record QA sign-off:
       "e2e": "[X/Y]"
     },
     "verified_by": "qa_agent",
+    "qa_subtasks": [
+      {
+        "id": "qa-001",
+        "description": "Login form accepts valid credentials",
+        "source": "spec",
+        "status": "passed",
+        "verification_type": "e2e",
+        "notes": "Verified with test credentials - login succeeded",
+        "checked_at": "2024-01-15T10:30:00Z"
+      },
+      {
+        "id": "qa-002",
+        "description": "Error displays for invalid password",
+        "source": "spec",
+        "status": "passed",
+        "verification_type": "e2e",
+        "notes": "Error toast appears within 500ms",
+        "checked_at": "2024-01-15T10:31:00Z"
+      }
+    ],
+    "qa_subtasks_summary": {
+      "all_passed": true,
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "pending": 0
+    },
     "screenshots": [
       {
         "path": "qa-screenshots/homepage.png",
@@ -659,6 +1018,35 @@ Update `implementation_plan.json`:
       }
     ],
     "fix_request_file": "QA_FIX_REQUEST.md",
+    "qa_subtasks": [
+      {
+        "id": "qa-001",
+        "description": "Login form accepts valid credentials",
+        "source": "spec",
+        "status": "passed",
+        "verification_type": "e2e",
+        "notes": "Verified with test credentials - login succeeded",
+        "checked_at": "2024-01-15T10:30:00Z"
+      },
+      {
+        "id": "qa-002",
+        "description": "Error displays for invalid password",
+        "source": "spec",
+        "status": "failed",
+        "verification_type": "e2e",
+        "failure_reason": "No error message displayed when entering wrong password",
+        "notes": "Form resets silently instead of showing error",
+        "checked_at": "2024-01-15T10:31:00Z"
+      }
+    ],
+    "qa_subtasks_summary": {
+      "all_passed": false,
+      "total": 2,
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0,
+      "pending": 0
+    },
     "screenshots": [
       {
         "path": "qa-screenshots/login-error.png",
@@ -671,10 +1059,13 @@ Update `implementation_plan.json`:
 ```
 
 **Note:** Include screenshots even when rejecting to provide visual evidence of issues.
+**Note:** Failed qa_subtasks provide clear guidance to the fixer agent on what needs to be fixed.
 
 ---
 
 ## PHASE 10: SIGNAL COMPLETION
+
+**🚨 MANDATORY: Output your verdict token at the end of your response.**
 
 ### If Approved:
 
@@ -697,6 +1088,8 @@ The implementation is production-ready.
 Sign-off recorded in implementation_plan.json.
 
 Ready for merge to {{BASE_BRANCH}}.
+
+<qa-verdict>APPROVED</qa-verdict>
 ```
 
 ### If Rejected:
@@ -720,7 +1113,11 @@ The Coder Agent will:
 3. Commit with "fix: [description] (qa-requested)"
 
 QA will automatically re-run after fixes.
+
+<qa-verdict>REJECTED</qa-verdict>
 ```
+
+**⚠️ REMINDER: You MUST output the verdict token. Without it, your session will be marked as an error and retried.**
 
 ---
 
