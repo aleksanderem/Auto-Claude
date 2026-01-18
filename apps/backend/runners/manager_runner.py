@@ -51,7 +51,12 @@ def load_project_context(project_dir: str) -> str:
     context_parts = []
 
     # Load project index
-    index_path = Path(project_dir) / ".auto-claude" / "project_index.json"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    index_path = Path(project_dir) / ".ouro" / "project_index.json"
+    if not index_path.exists():
+        legacy_path = Path(project_dir) / ".auto-claude" / "project_index.json"
+        if legacy_path.exists():
+            index_path = legacy_path
     if index_path.exists():
         try:
             with open(index_path) as f:
@@ -69,7 +74,12 @@ def load_project_context(project_dir: str) -> str:
             pass
 
     # Load existing tasks/specs with status
-    specs_path = Path(project_dir) / ".auto-claude" / "specs"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    specs_path = Path(project_dir) / ".ouro" / "specs"
+    if not specs_path.exists():
+        legacy_path = Path(project_dir) / ".auto-claude" / "specs"
+        if legacy_path.exists():
+            specs_path = legacy_path
     if specs_path.exists():
         try:
             task_summaries = []
@@ -94,7 +104,12 @@ def load_project_context(project_dir: str) -> str:
             pass
 
     # Load roadmap if available
-    roadmap_path = Path(project_dir) / ".auto-claude" / "roadmap" / "roadmap.json"
+    # Check .ouro first, fallback to .auto-claude for backwards compatibility
+    roadmap_path = Path(project_dir) / ".ouro" / "roadmap" / "roadmap.json"
+    if not roadmap_path.exists():
+        legacy_path = Path(project_dir) / ".auto-claude" / "roadmap" / "roadmap.json"
+        if legacy_path.exists():
+            roadmap_path = legacy_path
     if roadmap_path.exists():
         try:
             with open(roadmap_path) as f:
@@ -181,7 +196,7 @@ python run.py --spec 001 --merge    # Merge to main
 
 | What | Where |
 |------|-------|
-| All specs | `.auto-claude/specs/` |
+| All specs | `.ouro/specs/` |
 | Spec status | `implementation_plan.json` → status field |
 | QA results | `qa_report.md` |
 | Issues | `QA_FIX_REQUEST.md` |
