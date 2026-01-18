@@ -115,6 +115,14 @@ vi.mock("electron", () => {
       getAppPath: vi.fn(() => TEST_DIR),
       getVersion: vi.fn(() => "0.1.0"),
       isPackaged: false,
+      setName: vi.fn(),
+      name: "Ouro",
+      commandLine: {
+        appendSwitch: vi.fn(),
+      },
+      whenReady: vi.fn(() => Promise.resolve()),
+      on: vi.fn(),
+      quit: vi.fn(),
     },
     ipcMain: mockIpcMain,
     dialog: {
