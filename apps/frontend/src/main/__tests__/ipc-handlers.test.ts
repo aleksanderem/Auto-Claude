@@ -559,7 +559,7 @@ describe("IPC Handlers", { timeout: 15000 }, () => {
 
       expect(result).toHaveProperty("success", true);
       const data = (result as { data: { theme: string } }).data;
-      expect(data).toHaveProperty("theme", "system");
+      expect(data).toHaveProperty("theme", "dark");  // Default theme from config.ts
     });
   });
 
@@ -671,11 +671,26 @@ describe("IPC Handlers", { timeout: 15000 }, () => {
       await ipcMain.invokeHandler("project:add", {}, TEST_PROJECT_PATH);
 
       // Create a spec/task directory with implementation_plan.json
+      // Include subtasks and qa_signoff to satisfy validateStatusTransition
       const specDir = path.join(TEST_PROJECT_PATH, ".ouro", "specs", "task-1");
       mkdirSync(specDir, { recursive: true });
       writeFileSync(
         path.join(specDir, "implementation_plan.json"),
-        JSON.stringify({ feature: "Test Task", status: "in_progress" })
+        JSON.stringify({
+          feature: "Test Task",
+          status: "in_progress",
+          phases: [
+            {
+              phase: 1,
+              name: "Implementation",
+              type: "implementation",
+              subtasks: [
+                { id: "st-1", description: "Subtask 1", status: "completed" }
+              ]
+            }
+          ],
+          qa_signoff: { status: "approved" }
+        })
       );
 
       mockAgentManager.emit("exit", "task-1", 1, "task-execution");

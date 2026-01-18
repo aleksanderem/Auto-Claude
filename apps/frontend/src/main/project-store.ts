@@ -649,6 +649,15 @@ export class ProjectStore {
           status: finalStatus,
           subtasks,
           qaReport,
+          // Add qaSignoff for status transition validation
+          ...(qaSignoff && {
+            qaSignoff: {
+              status: qaSignoff.status as 'approved' | 'rejected' | undefined,
+              timestamp: qaSignoff.timestamp,
+              issues_found: qaSignoff.issues_found,
+              screenshots: qaSignoff.screenshots
+            }
+          }),
           logs: [],
           metadata,
           ...(finalReviewReason !== undefined && { reviewReason: finalReviewReason }),
