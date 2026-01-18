@@ -34,7 +34,7 @@ import { getRunnerEnv } from './utils/runner-env';
 const { debug: debugLog } = createContextLogger('GitHub AutoFix');
 
 /**
- * Auto-fix configuration stored in .auto-claude/github/config.json
+ * Auto-fix configuration stored in .ouro/github/config.json (or .auto-claude/github for legacy projects)
  */
 export interface AutoFixConfig {
   enabled: boolean;
@@ -103,9 +103,18 @@ export interface BatchProgress {
 
 /**
  * Get the GitHub directory for a project
+ * Checks .ouro first, falls back to .auto-claude for legacy projects
  */
 function getGitHubDir(project: Project): string {
-  return path.join(project.path, '.auto-claude', 'github');
+  const ouroDir = path.join(project.path, '.ouro', 'github');
+  const legacyDir = path.join(project.path, '.auto-claude', 'github');
+
+  if (fs.existsSync(ouroDir)) {
+    return ouroDir;
+  } else if (fs.existsSync(legacyDir)) {
+    return legacyDir;
+  }
+  return ouroDir; // Default to .ouro for new projects
 }
 
 /**

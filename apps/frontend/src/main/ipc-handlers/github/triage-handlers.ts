@@ -81,9 +81,18 @@ export interface TriageProgress {
 
 /**
  * Get the GitHub directory for a project
+ * Checks .ouro first, falls back to .auto-claude for legacy projects
  */
 function getGitHubDir(project: Project): string {
-  return path.join(project.path, '.auto-claude', 'github');
+  const ouroDir = path.join(project.path, '.ouro', 'github');
+  const legacyDir = path.join(project.path, '.auto-claude', 'github');
+
+  if (fs.existsSync(ouroDir)) {
+    return ouroDir;
+  } else if (fs.existsSync(legacyDir)) {
+    return legacyDir;
+  }
+  return ouroDir; // Default to .ouro for new projects
 }
 
 /**

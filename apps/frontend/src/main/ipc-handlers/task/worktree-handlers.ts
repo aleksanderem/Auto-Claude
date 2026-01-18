@@ -1883,7 +1883,7 @@ export function registerWorktreeHandlers(
         // Try new .ouro path first, fall back to legacy .auto-claude
         let specDir = path.join(project.path, '.ouro', 'specs', task.specId);
         if (!existsSync(specDir)) {
-          specDir = path.join(project.path, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+          specDir = path.join(project.path, project.autoBuildPath || '.ouro', 'specs', task.specId);
         }
 
         if (!existsSync(specDir)) {
@@ -2251,7 +2251,7 @@ export function registerWorktreeHandlers(
               if (worktreePath) {
                 let worktreeSpecDir = path.join(worktreePath, '.ouro', 'specs', task.specId);
                 if (!existsSync(worktreeSpecDir)) {
-                  worktreeSpecDir = path.join(worktreePath, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+                  worktreeSpecDir = path.join(worktreePath, project.autoBuildPath || '.ouro', 'specs', task.specId);
                 }
                 planPaths.push({ path: path.join(worktreeSpecDir, AUTO_BUILD_PATHS.IMPLEMENTATION_PLAN), isMain: false });
               }
@@ -2470,7 +2470,7 @@ export function registerWorktreeHandlers(
         // Try new .ouro path first, fall back to legacy .auto-claude
         let specDir = path.join(project.path, '.ouro', 'specs', task.specId);
         if (!existsSync(specDir)) {
-          specDir = path.join(project.path, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+          specDir = path.join(project.path, project.autoBuildPath || '.ouro', 'specs', task.specId);
         }
         const args = [
           runScript,
@@ -2978,7 +2978,7 @@ export function registerWorktreeHandlers(
         // Try new .ouro path first, fall back to legacy .auto-claude
         let specDir = path.join(project.path, '.ouro', 'specs', task.specId);
         if (!existsSync(specDir)) {
-          specDir = path.join(project.path, project.autoBuildPath || '.auto-claude', 'specs', task.specId);
+          specDir = path.join(project.path, project.autoBuildPath || '.ouro', 'specs', task.specId);
         }
 
         // Use EAFP pattern - try to read specDir and catch ENOENT

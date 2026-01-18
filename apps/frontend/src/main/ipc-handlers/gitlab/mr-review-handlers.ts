@@ -706,8 +706,7 @@ export function registerMRReviewHandlers(
       debugLog('checkNewCommits handler called', { projectId, mrIid });
 
       const result = await withProjectOrNull(projectId, async (project) => {
-        const gitlabDir = path.join(project.path, '.auto-claude', 'gitlab');
-        const reviewPath = path.join(gitlabDir, 'mr', `review_${mrIid}.json`);
+        const reviewPath = path.join(getGitLabDir(project), 'mr', `review_${mrIid}.json`);
 
         if (!fs.existsSync(reviewPath)) {
           return { hasNewCommits: false };
